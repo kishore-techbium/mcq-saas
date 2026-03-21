@@ -59,7 +59,7 @@ export default function AuthCallback() {
 
   if (!isProfileComplete) {
     console.log("🟡 Incomplete profile → redirecting to profile")
-    router.replace('/profile')
+    router.replace('/signup')
   } else {
     console.log("🟢 Profile complete → select-category")
     router.replace('/select-category')
