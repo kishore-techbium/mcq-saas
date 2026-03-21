@@ -9,12 +9,17 @@ export default function AuthCallback() {
   const router = useRouter()
   const hasRun = useRef(false) // ✅ prevents re-run
 
-  useEffect(() => {
-    if (hasRun.current) return
-    hasRun.current = true
+ useEffect(() => {
+  // ✅ VERY IMPORTANT: run ONLY on callback page
+  if (window.location.pathname !== '/auth/callback') {
+    return
+  }
 
-    handleAuth()
-  }, [])
+  if (hasRun.current) return
+  hasRun.current = true
+
+  handleAuth()
+}, [])
 
   async function handleAuth() {
 
