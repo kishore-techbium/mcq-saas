@@ -1,9 +1,9 @@
 'use client'
 
 import { supabase } from '../../../lib/supabase'
-import { isAdmin } from '../../../lib/isAdmin'
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
+import { useAdminGuard } from '../../../lib/useAdminGuard'
 
 export default function AdminResults() {
   const [loading, setLoading] = useState(true)
@@ -19,15 +19,14 @@ export default function AdminResults() {
     init()
   }, [])
 
-  async function init() {
-    const { data } = await supabase.auth.getUser()
-    if (!data.user || !isAdmin(data.user)) {
-      window.location.href = '/adminlogin'
-      return
-    }
-    await loadResults()
-    setLoading(false)
-  }
+
+async function init() {
+  const allowed = await useAdminGuard()
+  if (!allowed) return
+
+  await loadData() // or loadExams / whatever
+  setLoading(false)
+}
 
   async function loadResults() {
     const { data: exams } = await supabase
