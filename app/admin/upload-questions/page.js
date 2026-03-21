@@ -42,7 +42,7 @@ export default function UploadQuestionsPage() {
       if (!data.user || !isAdmin(data.user)) {
         window.location.href = '/'
       }
-
+console.log("🚀 UPLOAD PAGE LOADED")
       const { data: examList } = await supabase
         .from('exams')
         .select('id, title, created_at')
