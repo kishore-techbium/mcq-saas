@@ -16,35 +16,50 @@ export default function AuthCallback() {
 
     console.log("🔵 CALLBACK START")
 
-    // wait a bit for session hydration
+    // small delay to allow session
     await new Promise(r => setTimeout(r, 500))
 
     const { data: userData } = await supabase.auth.getUser()
 
-    console.log("🟢 USER DATA:", userData)
-
     if (!userData?.user) {
-      console.log("🔴 NO USER → redirecting to login")
+      console.log("❌ No user")
       router.replace('/')
       return
     }
 
     const email = userData.user.email
-    console.log("🟢 EMAIL:", email)
+    console.log("✅ Logged in:", email)
 
-    const { data: student, error } = await supabase
+    // 🔥 FETCH USER ROLE
+    const { data: user, error } = await supabase
       .from('students')
-      .select('exam_preference')
+      .select('role')
       .eq('email', email)
       .single()
 
-    console.log("🟢 STUDENT:", student, "ERROR:", error)
+    console.log("🟢 USER RECORD:", user)
 
-    if (!student || !student.exam_preference) {
-      console.log("🟡 NEW USER → signup")
+    // 🚨 If user not found → signup
+    if (!user) {
+      console.log("🟡 New user → signup")
       router.replace('/signup')
-    } else {
-      console.log("🟢 EXISTING USER → select-category")
+      return
+    }
+
+    // 🎯 ROLE-BASED REDIRECT
+
+    if (user.role === 'superadmin') {
+      console.log("👑 Superadmin")
+      router.replace('/superadmin')
+    }
+
+    else if (user.role === 'admin') {
+      console.log("🏫 Admin")
+      router.replace('/admin')
+    }
+
+    else {
+      console.log("🎓 Student")
       router.replace('/select-category')
     }
   }
@@ -54,9 +69,10 @@ export default function AuthCallback() {
       height:'100vh',
       display:'flex',
       alignItems:'center',
-      justifyContent:'center'
+      justifyContent:'center',
+      fontFamily:'system-ui'
     }}>
-      Callback loading...
+      Signing you in...
     </div>
   )
 }
