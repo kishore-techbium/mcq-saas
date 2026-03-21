@@ -8,14 +8,28 @@ export default function AdminDashboard() {
   const [cleaning, setCleaning] = useState(false)
   const [progress, setProgress] = useState(0)
 
-  /* ================= AUTH GUARD ================= */
+  /* ================= AUTH GUARD (UPDATED) ================= */
 
   useEffect(() => {
     async function checkAdmin() {
       const { data } = await supabase.auth.getUser()
 
-      if (!data.user || localStorage.getItem('is_admin') !== 'true') {
-        window.location.href = '/adminlogin'
+      if (!data?.user) {
+        window.location.href = '/'
+        return
+      }
+
+      const email = data.user.email
+
+      const { data: user } = await supabase
+        .from('students')
+        .select('role')
+        .eq('email', email)
+        .single()
+
+      // ✅ NEW ROLE CHECK
+      if (user?.role !== 'admin') {
+        window.location.href = '/'
         return
       }
 
@@ -33,8 +47,8 @@ export default function AdminDashboard() {
 
   async function logoutAdmin() {
     await supabase.auth.signOut()
-    localStorage.removeItem('is_admin')
-    window.location.href = '/adminlogin'
+    // ❌ removed localStorage logic
+    window.location.href = '/'
   }
 
   /* ================= DUPLICATE CLEANER WITH PROGRESS ================= */
@@ -114,7 +128,6 @@ export default function AdminDashboard() {
 
   return (
     <div style={styles.page}>
-      {/* ===== HEADER ===== */}
       <div style={styles.header}>
         <div>
           <h1 style={styles.heading}>Admin Control Panel</h1>
@@ -128,7 +141,6 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      {/* ===== MAIN ACTIONS ===== */}
       <div style={styles.grid}>
         <Card
           title="📤 Upload Question Bank"
@@ -187,7 +199,6 @@ export default function AdminDashboard() {
           onClick="/admin/proctoring"
         />
 
-        {/* NEW CARD */}
         <Card
           title="🗂 Review Question Bank"
           desc="Filter by subject/chapter and delete specific questions"
@@ -198,7 +209,6 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* ===== MAINTENANCE ===== */}
       <div style={styles.maintenance}>
         <h2>🧹 Maintenance</h2>
         <p style={{ color: '#555' }}>
