@@ -21,14 +21,26 @@ export default function StudentLogin() {
 
     const { data } = await supabase.auth.getUser()
 
-    console.log("🟡 LOGIN USER:", data)
+if (data?.user) {
 
-    if (data?.user) {
-      console.log("🟡 ALREADY LOGGED IN → redirecting")
-      router.replace('/select-category')
-    } else {
-      setChecking(false)
-    }
+  const email = data.user.email
+
+  const { data: user } = await supabase
+    .from('students')
+    .select('role')
+    .eq('email', email)
+    .single()
+
+  if (user?.role === 'student') {
+    router.replace('/select-category')
+  }
+  else if (user?.role === 'admin') {
+    router.replace('/admin')
+  }
+  else if (user?.role === 'superadmin') {
+    router.replace('/superadmin')
+  }
+}
   }
 
   async function loginWithGoogle() {
