@@ -1,0 +1,346 @@
+'use client'
+import { supabase } from '../../lib/supabase'
+import { useEffect, useState } from 'react'
+
+export default function AdminDashboard() {
+  const [checkingAuth, setCheckingAuth] = useState(true)
+  const [status, setStatus] = useState('')
+  const [cleaning, setCleaning] = useState(false)
+  const [progress, setProgress] = useState(0)
+
+  /* ================= AUTH GUARD ================= */
+
+  useEffect(() => {
+    async function checkAdmin() {
+      const { data } = await supabase.auth.getUser()
+
+      if (!data.user || localStorage.getItem('is_admin') !== 'true') {
+        window.location.href = '/adminlogin'
+        return
+      }
+
+      setCheckingAuth(false)
+    }
+
+    checkAdmin()
+  }, [])
+
+  if (checkingAuth) {
+    return <p style={{ padding: 30 }}>Checking admin access…</p>
+  }
+
+  /* ================= LOGOUT ================= */
+
+  async function logoutAdmin() {
+    await supabase.auth.signOut()
+    localStorage.removeItem('is_admin')
+    window.location.href = '/adminlogin'
+  }
+
+  /* ================= DUPLICATE CLEANER WITH PROGRESS ================= */
+
+  async function cleanDuplicates() {
+    const confirmText = prompt(
+      'This will permanently delete duplicate questions.\nType CLEAN to continue.'
+    )
+    if (confirmText !== 'CLEAN') return
+
+    setCleaning(true)
+    setProgress(0)
+    setStatus('Scanning for duplicate questions...')
+
+    const { data: questions } = await supabase
+      .from('question_bank')
+      .select('*')
+
+    if (!questions || questions.length === 0) {
+      setStatus('No questions found')
+      setCleaning(false)
+      return
+    }
+
+    const seen = {}
+    const duplicates = []
+
+    for (const q of questions) {
+      const key = [
+        q.exam_category,
+        q.subject,
+        q.chapter,
+        q.question,
+        q.option_a,
+        q.option_b,
+        q.option_c,
+        q.option_d,
+        q.correct_answer
+      ].join('|')
+
+      if (seen[key]) {
+        duplicates.push(q.id)
+      } else {
+        seen[key] = true
+      }
+    }
+
+    if (duplicates.length === 0) {
+      setStatus('✅ No duplicate questions found')
+      setCleaning(false)
+      return
+    }
+
+    setStatus(`Deleting ${duplicates.length} duplicate questions...`)
+
+    const batchSize = 20
+    let deleted = 0
+
+    for (let i = 0; i < duplicates.length; i += batchSize) {
+      const batch = duplicates.slice(i, i + batchSize)
+
+      await supabase
+        .from('question_bank')
+        .delete()
+        .in('id', batch)
+
+      deleted += batch.length
+      const percent = Math.round((deleted / duplicates.length) * 100)
+      setProgress(percent)
+    }
+
+    setStatus(`🧹 Duplicate cleanup completed. Deleted ${duplicates.length} questions.`)
+    setCleaning(false)
+  }
+
+  /* ================= UI ================= */
+
+  return (
+    <div style={styles.page}>
+      {/* ===== HEADER ===== */}
+      <div style={styles.header}>
+        <div>
+          <h1 style={styles.heading}>Admin Control Panel</h1>
+          <p style={styles.subheading}>
+            Manage questions, exams, and mappings from one place
+          </p>
+        </div>
+
+        <button onClick={logoutAdmin} style={styles.logoutBtn}>
+          Logout
+        </button>
+      </div>
+
+      {/* ===== MAIN ACTIONS ===== */}
+      <div style={styles.grid}>
+        <Card
+          title="📤 Upload Question Bank"
+          desc="Upload Excel, validate data, and view upload summary"
+          color="#e0f2fe"
+          action="Upload Questions"
+          onClick="/admin/upload-questions"
+        />
+
+        <Card
+          title="📝 Create Exam"
+          desc="Create mock, grand, or regular exams with rules"
+          color="#ede9fe"
+          action="Create Exam"
+          onClick="/admin/create-exam"
+          purple
+        />
+
+        <Card
+          title="🔗 Map Questions to Exam"
+          desc="Attach questions to exams using filters"
+          color="#ecfeff"
+          action="Map Questions"
+          onClick="/admin/map-questions"
+        />
+
+        <Card
+          title="📚 Available Exams"
+          desc="View exams, activate/deactivate, and delete"
+          color="#fef3c7"
+          action="View Exams"
+          onClick="/admin/available-exams"
+        />
+
+        <Card
+          title="📊 Exam Results"
+          desc="View performance analytics and student scores"
+          color="#dcfce7"
+          action="View Results"
+          onClick="/admin/results"
+        />
+
+        <Card
+          title="👨‍🎓 Student List"
+          desc="View all registered students and their complete exam history"
+          color="#ffe4e6"
+          action="View Students"
+          onClick="/admin/students"
+        />
+
+        <Card
+          title="🎥 Proctoring Review"
+          desc="Review and approve/reject proctored exam attempts"
+          color="#fef3c7"
+          action="Open Review"
+          onClick="/admin/proctoring"
+        />
+
+        {/* NEW CARD */}
+        <Card
+          title="🗂 Review Question Bank"
+          desc="Filter by subject/chapter and delete specific questions"
+          color="#e9d5ff"
+          action="Open Question Review"
+          onClick="/admin/review-questions"
+          purple
+        />
+      </div>
+
+      {/* ===== MAINTENANCE ===== */}
+      <div style={styles.maintenance}>
+        <h2>🧹 Maintenance</h2>
+        <p style={{ color: '#555' }}>
+          Remove duplicate questions from the question bank
+        </p>
+
+        <button
+          style={{
+            ...styles.dangerBtn,
+            opacity: cleaning ? 0.6 : 1
+          }}
+          onClick={cleanDuplicates}
+          disabled={cleaning}
+        >
+          {cleaning ? 'Cleaning…' : 'Clean Duplicate Questions'}
+        </button>
+
+        {cleaning && (
+          <div style={styles.progressWrapper}>
+            <div
+              style={{
+                ...styles.progressBar,
+                width: `${progress}%`
+              }}
+            />
+            <p style={{ marginTop: 8 }}>Deleting... {progress}%</p>
+          </div>
+        )}
+
+        {status && <pre style={styles.statusBox}>{status}</pre>}
+      </div>
+    </div>
+  )
+}
+
+/* ================= CARD ================= */
+
+function Card({ title, desc, color, action, onClick, purple }) {
+  return (
+    <div style={{ ...styles.card, background: color }}>
+      <div>
+        <h2 style={styles.cardTitle}>{title}</h2>
+        <p style={styles.cardDesc}>{desc}</p>
+      </div>
+      <button
+        style={purple ? styles.purpleBtn : styles.primaryBtn}
+        onClick={() => (window.location.href = onClick)}
+      >
+        {action}
+      </button>
+    </div>
+  )
+}
+
+/* ================= STYLES ================= */
+
+const styles = {
+  page: {
+    padding: 40,
+    minHeight: '100vh',
+    background: 'linear-gradient(135deg,#f8fafc,#eef2ff)',
+    fontFamily: 'system-ui, sans-serif'
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 30
+  },
+  heading: { fontSize: 32, marginBottom: 6 },
+  subheading: { color: '#555' },
+  logoutBtn: {
+    padding: '10px 18px',
+    background: '#dc2626',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 10,
+    fontWeight: 700,
+    cursor: 'pointer'
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: 18
+  },
+  card: {
+    minHeight: 170,
+    padding: 20,
+    borderRadius: 16,
+    boxShadow: '0 8px 20px rgba(0,0,0,0.06)',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between'
+  },
+  cardTitle: { margin: 0, fontSize: 20 },
+  cardDesc: { marginTop: 10, color: '#444', fontSize: 14 },
+  primaryBtn: {
+    padding: '10px 18px',
+    background: '#2563eb',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 8
+  },
+  purpleBtn: {
+    padding: '10px 18px',
+    background: '#7c3aed',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 8
+  },
+  maintenance: {
+    marginTop: 50,
+    paddingTop: 30,
+    borderTop: '1px solid #e5e7eb'
+  },
+  dangerBtn: {
+    marginTop: 10,
+    padding: '12px 20px',
+    background: '#dc2626',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 8,
+    fontWeight: 700
+  },
+  progressWrapper: {
+    marginTop: 15,
+    background: '#e5e7eb',
+    borderRadius: 8,
+    height: 10,
+    overflow: 'hidden'
+  },
+  progressBar: {
+    height: 10,
+    background: '#dc2626',
+    transition: 'width 0.3s ease'
+  },
+  statusBox: {
+    marginTop: 20,
+    background: '#f1f5f9',
+    padding: 15,
+    borderRadius: 8,
+    whiteSpace: 'pre-wrap',
+    fontSize: 14
+  }
+}
