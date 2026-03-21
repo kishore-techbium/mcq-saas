@@ -17,43 +17,14 @@ async function checkUser() {
 
   console.log("🟡 LOGIN PAGE CHECK")
 
-  // ✅ VERY IMPORTANT: run ONLY on homepage
-  if (window.location.pathname !== '/') {
-    setChecking(false)
-    return
-  }
-
-  await new Promise(r => setTimeout(r, 500))
-
   const { data } = await supabase.auth.getUser()
 
   console.log("🟡 LOGIN USER:", data)
 
-  if (data?.user) {
+  // ✅ DO NOT redirect here
+  // Only control loader
 
-    const email = data.user.email
-
-    const { data: user } = await supabase
-      .from('students')
-      .select('role')
-      .eq('email', email)
-      .single()
-
-    setChecking(false)
-
-    if (user?.role === 'student') {
-      router.replace('/select-category')
-    }
-    else if (user?.role === 'admin') {
-      router.replace('/admin')
-    }
-    else if (user?.role === 'superadmin') {
-      router.replace('/superadmin')
-    }
-
-  } else {
-    setChecking(false)
-  }
+  setChecking(false)
 }
 
   async function loginWithGoogle() {
