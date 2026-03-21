@@ -1,14 +1,18 @@
 'use client'
 
 import { supabase } from '../../../lib/supabase'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 
 export default function AuthCallback() {
 
   const router = useRouter()
+  const hasRun = useRef(false) // ✅ prevents re-run
 
   useEffect(() => {
+    if (hasRun.current) return
+    hasRun.current = true
+
     handleAuth()
   }, [])
 
@@ -16,50 +20,31 @@ export default function AuthCallback() {
 
     console.log("🔵 CALLBACK START")
 
-    // small delay to allow session
-    await new Promise(r => setTimeout(r, 500))
-
     const { data: userData } = await supabase.auth.getUser()
 
     if (!userData?.user) {
-      console.log("❌ No user")
       router.replace('/')
       return
     }
 
     const email = userData.user.email
-    console.log("✅ Logged in:", email)
 
-    // 🔥 FETCH USER ROLE
-    const { data: user, error } = await supabase
+    const { data: user } = await supabase
       .from('students')
       .select('role')
       .eq('email', email)
       .single()
 
-    console.log("🟢 USER RECORD:", user)
+    console.log("🟢 USER ROLE:", user?.role)
 
-    // 🚨 If user not found → signup
-    if (!user) {
-      console.log("🟡 New user → signup")
-      router.replace('/signup')
-      return
-    }
-
-    // 🎯 ROLE-BASED REDIRECT
-
-    if (user.role === 'superadmin') {
-      console.log("👑 Superadmin")
+    // ✅ SAFE REDIRECT (only once)
+    if (user?.role === 'superadmin') {
       router.replace('/superadmin')
     }
-
-    else if (user.role === 'admin') {
-      console.log("🏫 Admin")
+    else if (user?.role === 'admin') {
       router.replace('/admin')
     }
-
     else {
-      console.log("🎓 Student")
       router.replace('/select-category')
     }
   }
@@ -69,8 +54,7 @@ export default function AuthCallback() {
       height:'100vh',
       display:'flex',
       alignItems:'center',
-      justifyContent:'center',
-      fontFamily:'system-ui'
+      justifyContent:'center'
     }}>
       Signing you in...
     </div>
