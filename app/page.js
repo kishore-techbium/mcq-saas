@@ -13,9 +13,15 @@ export default function StudentLogin() {
     checkUser()
   }, [])
 
-  async function checkUser() {
+async function checkUser() {
 
   console.log("🟡 LOGIN PAGE CHECK")
+
+  // ✅ VERY IMPORTANT: run ONLY on homepage
+  if (window.location.pathname !== '/') {
+    setChecking(false)
+    return
+  }
 
   await new Promise(r => setTimeout(r, 500))
 
@@ -33,7 +39,6 @@ export default function StudentLogin() {
       .eq('email', email)
       .single()
 
-    // ✅ stop loader BEFORE redirect
     setChecking(false)
 
     if (user?.role === 'student') {
