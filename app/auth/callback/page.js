@@ -49,9 +49,22 @@ export default function AuthCallback() {
     else if (user?.role === 'admin') {
       router.replace('/admin')
     }
-    else {
-      router.replace('/select-category')
-    }
+   else if (user?.role === 'student') {
+
+  // ✅ check profile completeness
+  const isProfileComplete =
+    user.first_name &&
+    user.phone &&
+    user.exam_preference
+
+  if (!isProfileComplete) {
+    console.log("🟡 Incomplete profile → redirecting to profile")
+    router.replace('/profile')
+  } else {
+    console.log("🟢 Profile complete → select-category")
+    router.replace('/select-category')
+  }
+}
   }
 
   return (
