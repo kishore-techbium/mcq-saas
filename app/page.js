@@ -15,33 +15,41 @@ export default function StudentLogin() {
 
   async function checkUser() {
 
-    console.log("🟡 LOGIN PAGE CHECK")
+  console.log("🟡 LOGIN PAGE CHECK")
 
-    await new Promise(r => setTimeout(r, 500))
+  await new Promise(r => setTimeout(r, 500))
 
-    const { data } = await supabase.auth.getUser()
+  const { data } = await supabase.auth.getUser()
 
-if (data?.user) {
+  console.log("🟡 LOGIN USER:", data)
 
-  const email = data.user.email
+  if (data?.user) {
 
-  const { data: user } = await supabase
-    .from('students')
-    .select('role')
-    .eq('email', email)
-    .single()
+    const email = data.user.email
 
-  if (user?.role === 'student') {
-    router.replace('/select-category')
-  }
-  else if (user?.role === 'admin') {
-    router.replace('/admin')
-  }
-  else if (user?.role === 'superadmin') {
-    router.replace('/superadmin')
+    const { data: user } = await supabase
+      .from('students')
+      .select('role')
+      .eq('email', email)
+      .single()
+
+    // ✅ stop loader BEFORE redirect
+    setChecking(false)
+
+    if (user?.role === 'student') {
+      router.replace('/select-category')
+    }
+    else if (user?.role === 'admin') {
+      router.replace('/admin')
+    }
+    else if (user?.role === 'superadmin') {
+      router.replace('/superadmin')
+    }
+
+  } else {
+    setChecking(false)
   }
 }
-  }
 
   async function loginWithGoogle() {
     await supabase.auth.signInWithOAuth({
