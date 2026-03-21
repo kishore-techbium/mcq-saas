@@ -5,67 +5,104 @@ import { supabase } from '../../lib/supabase'
 
 export default function SuperAdminPage() {
 
-  const [user, setUser] = useState(null)
+  const [colleges, setColleges] = useState([])
+  const [name, setName] = useState('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    checkUser()
+    loadColleges()
   }, [])
 
-  async function checkUser() {
+  async function loadColleges() {
+    const { data } = await supabase
+      .from('colleges')
+      .select('*')
+      .order('created_at', { ascending: false })
 
-    const { data } = await supabase.auth.getUser()
+    setColleges(data || [])
+    setLoading(false)
+  }
 
-    if (!data?.user) {
-      window.location.href = '/'
+  async function createCollege() {
+
+    if (!name) {
+      alert('Enter college name')
       return
     }
 
-    const email = data.user.email
+    const { error } = await supabase
+      .from('colleges')
+      .insert({ name })
 
-    const { data: dbUser } = await supabase
-      .from('students')
-      .select('role')
-      .eq('email', email)
-      .single()
-
-    if (dbUser?.role !== 'superadmin') {
-      window.location.href = '/'
+    if (error) {
+      alert('Error creating college')
       return
     }
 
-    setUser(data.user)
+    setName('')
+    loadColleges()
+  }
+
+  if (loading) {
+    return <p style={{ padding: 30 }}>Loading...</p>
   }
 
   return (
     <div style={{ padding: 40 }}>
+
       <h1>👑 Superadmin Dashboard</h1>
 
-      <p>Welcome: {user?.email}</p>
+      {/* CREATE COLLEGE */}
+      <div style={{ marginTop: 20 }}>
+        <h3>Create College</h3>
 
-      <div style={{ marginTop: 30 }}>
-        <h3>Actions</h3>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="College Name"
+          style={styles.input}
+        />
 
-        <button style={styles.btn}>
-          Create College
-        </button>
-
-        <button style={styles.btn}>
-          View All Colleges
+        <button onClick={createCollege} style={styles.btn}>
+          Create
         </button>
       </div>
+
+      {/* LIST COLLEGES */}
+      <div style={{ marginTop: 40 }}>
+        <h3>All Colleges</h3>
+
+        {colleges.map(c => (
+          <div key={c.id} style={styles.card}>
+            {c.name}
+          </div>
+        ))}
+
+        {colleges.length === 0 && <p>No colleges yet</p>}
+      </div>
+
     </div>
   )
 }
 
 const styles = {
+  input: {
+    padding: 10,
+    marginRight: 10,
+    borderRadius: 6,
+    border: '1px solid #ccc'
+  },
   btn: {
-    display: 'block',
-    marginTop: 10,
     padding: '10px 16px',
     background: '#2563eb',
     color: '#fff',
     border: 'none',
-    borderRadius: 8,
-    cursor: 'pointer'
+    borderRadius: 6
+  },
+  card: {
+    padding: 12,
+    background: '#f1f5f9',
+    marginTop: 10,
+    borderRadius: 6
   }
 }
