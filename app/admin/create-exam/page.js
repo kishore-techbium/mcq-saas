@@ -1,7 +1,6 @@
 'use client'
 
 import { supabase } from '../../../lib/supabase'
-import { isAdmin } from '../../../lib/isAdmin'
 import { useEffect, useState } from 'react'
 
 export default function CreateExamPage() {
@@ -14,14 +13,31 @@ export default function CreateExamPage() {
   const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user || !isAdmin(data.user)) {
-        window.location.href = '/adminlogin'
-      }
-    })
-  }, [])
+useEffect(() => {
+  async function checkAdmin() {
 
+    const { data } = await supabase.auth.getUser()
+
+    if (!data?.user) {
+      window.location.href = '/'
+      return
+    }
+
+    const email = data.user.email
+
+    const { data: user } = await supabase
+      .from('students')
+      .select('role')
+      .eq('email', email)
+      .single()
+
+    if (user?.role !== 'admin') {
+      window.location.href = '/'
+    }
+  }
+
+  checkAdmin()
+}, [])
   async function createExam() {
     setStatus('')
 
