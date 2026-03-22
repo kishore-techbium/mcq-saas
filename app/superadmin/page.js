@@ -3,106 +3,63 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
-export default function SuperAdminPage() {
+export default function Dashboard() {
 
-  const [colleges, setColleges] = useState([])
-  const [name, setName] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    colleges: 0,
+    students: 0,
+    exams: 0
+  })
 
   useEffect(() => {
-    loadColleges()
+    loadStats()
   }, [])
 
-  async function loadColleges() {
-    const { data } = await supabase
+  async function loadStats() {
+
+    const { count: colleges } = await supabase
       .from('colleges')
-      .select('*')
-      .order('created_at', { ascending: false })
+      .select('*', { count: 'exact', head: true })
 
-    setColleges(data || [])
-    setLoading(false)
-  }
+    const { count: students } = await supabase
+      .from('students')
+      .select('*', { count: 'exact', head: true })
 
-  async function createCollege() {
+    const { count: exams } = await supabase
+      .from('exams')
+      .select('*', { count: 'exact', head: true })
 
-    if (!name) {
-      alert('Enter college name')
-      return
-    }
-
-    const { error } = await supabase
-      .from('colleges')
-      .insert({ name })
-
-    if (error) {
-      alert('Error creating college')
-      return
-    }
-
-    setName('')
-    loadColleges()
-  }
-
-  if (loading) {
-    return <p style={{ padding: 30 }}>Loading...</p>
+    setStats({ colleges, students, exams })
   }
 
   return (
-    <div style={{ padding: 40 }}>
+    <div>
+      <h1>Dashboard</h1>
 
-      <h1>👑 Superadmin Dashboard</h1>
-
-      {/* CREATE COLLEGE */}
-      <div style={{ marginTop: 20 }}>
-        <h3>Create College</h3>
-
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="College Name"
-          style={styles.input}
-        />
-
-        <button onClick={createCollege} style={styles.btn}>
-          Create
-        </button>
+      <div style={styles.grid}>
+        <Card title="Colleges" value={stats.colleges} />
+        <Card title="Students" value={stats.students} />
+        <Card title="Exams" value={stats.exams} />
       </div>
+    </div>
+  )
+}
 
-      {/* LIST COLLEGES */}
-      <div style={{ marginTop: 40 }}>
-        <h3>All Colleges</h3>
-
-        {colleges.map(c => (
-          <div key={c.id} style={styles.card}>
-            {c.name}
-          </div>
-        ))}
-
-        {colleges.length === 0 && <p>No colleges yet</p>}
-      </div>
-
+function Card({ title, value }) {
+  return (
+    <div style={styles.card}>
+      <h3>{title}</h3>
+      <h1>{value}</h1>
     </div>
   )
 }
 
 const styles = {
-  input: {
-    padding: 10,
-    marginRight: 10,
-    borderRadius: 6,
-    border: '1px solid #ccc'
-  },
-  btn: {
-    padding: '10px 16px',
-    background: '#2563eb',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6
-  },
+  grid: { display: 'flex', gap: 20, marginTop: 20 },
   card: {
-    padding: 12,
+    padding: 20,
     background: '#f1f5f9',
-    marginTop: 10,
-    borderRadius: 6
+    borderRadius: 10,
+    minWidth: 150
   }
 }
