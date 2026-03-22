@@ -1,7 +1,7 @@
 'use client'
 
 import { supabase } from '../../../lib/supabase'
-
+import { getAdminCollege } from '../../../lib/getAdminCollege'
 import { useEffect, useState } from 'react'
 
 export default function AvailableExamsPage() {
@@ -40,11 +40,13 @@ export default function AvailableExamsPage() {
 
   async function loadExams() {
     /* ===== FETCH EXAMS ===== */
-    const { data: examsData, error } = await supabase
-      .from('exams')
-      .select('*')
-      .order('created_at', { ascending: false })
+const collegeId = await getAdminCollege()
 
+const { data: examsData } = await supabase
+  .from('exams')
+  .select('*')
+  .eq('college_id', collegeId)   // 🔥 IMPORTANT
+  .order('created_at', { ascending: false })
     if (error) {
       console.error('Exam fetch error:', error)
       return
