@@ -3,19 +3,23 @@
 import { supabase } from '../../../lib/supabase'
 import { useEffect, useState } from 'react'
 import { getAdminCollege } from '../../../lib/getAdminCollege'
+
 export default function CreateExamPage() {
+
   const [title, setTitle] = useState('')
   const [examType, setExamType] = useState('MOCK')
-  const [examCategory, setExamCategory] = useState('JEE_MAINS') // ✅ FIX
+  const [examCategory, setExamCategory] = useState('JEE_MAINS')
   const [duration, setDuration] = useState('')
   const [allowRetake, setAllowRetake] = useState(false)
   const [cameraRequired, setCameraRequired] = useState(false)
   const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)
 
-useEffect(() => {
-  async function checkAdmin() {
+  useEffect(() => {
+    checkAdmin()
+  }, [])
 
+  async function checkAdmin() {
     const { data } = await supabase.auth.getUser()
 
     if (!data?.user) {
@@ -36,9 +40,10 @@ useEffect(() => {
     }
   }
 
-  checkAdmin()
-}, [])
+  /* ================= FIXED FUNCTION ================= */
+
   async function createExam() {
+
     setStatus('')
 
     if (!title || !duration || !examCategory) {
@@ -48,65 +53,63 @@ useEffect(() => {
 
     setSaving(true)
 
+    try {
 
-async function createExam() {
+      const collegeId = await getAdminCollege()
 
-  const collegeId = await getAdminCollege()
+      const { error } = await supabase
+        .from('exams')
+        .insert({
+          title: title.trim(),
+          exam_type: examType,
+          exam_category: examCategory,
+          duration_minutes: Number(duration),
+          allow_retake: allowRetake,
+          camera_required: cameraRequired,
+          created_by: 'ADMIN',
+          is_active: true,
+          college_id: collegeId
+        })
 
-  await supabase.from('exams').insert({
-    title: title.trim(),
-    exam_type: examType,
-    exam_category: examCategory,
-    duration_minutes: Number(duration),
-    allow_retake: allowRetake,
-    camera_required: cameraRequired,
-    created_by: 'ADMIN',
-    is_active: true,
-    college_id: collegeId   // 🔥 IMPORTANT
-  })
-}
+      if (error) {
+        console.error(error)
+        setStatus('❌ Failed to create exam')
+        setSaving(false)
+        return
+      }
 
-    setSaving(false)
+      setStatus('✅ Exam created successfully')
 
-    if (error) {
-      console.error(error)
-      setStatus('❌ Failed to create exam')
-      return
+      setTimeout(() => {
+        window.location.href = '/admin'
+      }, 1200)
+
+    } catch (err) {
+      console.error(err)
+      setStatus('❌ Something went wrong')
     }
 
-    setStatus('✅ Exam created successfully')
-
-    setTimeout(() => {
-      window.location.href = '/admin'
-    }, 1200)
+    setSaving(false)
   }
+
+  /* ================= UI ================= */
 
   return (
     <div style={styles.page}>
       <div style={styles.card}>
         <h1 style={styles.heading}>📝 Create New Exam</h1>
-        <p style={styles.subheading}>
-          Configure exam details and rules
-        </p>
 
-        {/* ===== TITLE ===== */}
         <div style={styles.field}>
-          <label style={styles.label}>
-            Exam Title <span style={styles.required}>*</span>
-          </label>
+          <label>Exam Title *</label>
           <input
             style={styles.input}
             value={title}
             onChange={e => setTitle(e.target.value)}
-            placeholder="Eg: JEE Main Mock Test – 1"
           />
         </div>
 
-        {/* ===== CATEGORY ===== */}
         <div style={styles.field}>
-          <label style={styles.label}>
-            Exam Category <span style={styles.required}>*</span>
-          </label>
+          <label>Exam Category *</label>
           <select
             style={styles.input}
             value={examCategory}
@@ -118,141 +121,47 @@ async function createExam() {
           </select>
         </div>
 
-        {/* ===== TYPE ===== */}
         <div style={styles.field}>
-          <label style={styles.label}>Exam Type</label>
+          <label>Exam Type</label>
           <select
             style={styles.input}
             value={examType}
             onChange={e => setExamType(e.target.value)}
           >
-            <option value="REGULAR">Regular Exam</option>
-            <option value="MOCK">Mock Test</option>
-            <option value="GRAND">Grand Test</option>
+            <option value="REGULAR">Regular</option>
+            <option value="MOCK">Mock</option>
+            <option value="GRAND">Grand</option>
           </select>
         </div>
 
-        {/* ===== DURATION ===== */}
         <div style={styles.field}>
-          <label style={styles.label}>
-            Duration (minutes) <span style={styles.required}>*</span>
-          </label>
+          <label>Duration *</label>
           <input
             type="number"
             style={styles.input}
             value={duration}
             onChange={e => setDuration(e.target.value)}
-            placeholder="Eg: 180"
           />
         </div>
 
-        {/* ===== OPTIONS ===== */}
-        <div style={styles.switchGroup}>
-          <label style={styles.switch}>
-            <input
-              type="checkbox"
-              checked={allowRetake}
-              onChange={e => setAllowRetake(e.target.checked)}
-            />
-            <span>Allow Retake</span>
-          </label>
-
-          <label style={styles.switch}>
-            <input
-              type="checkbox"
-              checked={cameraRequired}
-              onChange={e => setCameraRequired(e.target.checked)}
-            />
-            <span>Camera Proctoring Required</span>
-          </label>
-        </div>
-
         <button
-          style={{
-            ...styles.primaryBtn,
-            opacity: saving ? 0.6 : 1
-          }}
+          style={styles.btn}
           onClick={createExam}
           disabled={saving}
         >
-          {saving ? 'Creating Exam…' : 'Create Exam'}
+          {saving ? 'Creating...' : 'Create Exam'}
         </button>
 
-        {status && <p style={styles.status}>{status}</p>}
+        {status && <p>{status}</p>}
       </div>
     </div>
   )
 }
 
-/* ================= STYLES ================= */
-
 const styles = {
-  page: {
-    minHeight: '100vh',
-    padding: 40,
-    background: 'linear-gradient(135deg, #f8fafc, #eef2ff)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    fontFamily: 'system-ui, sans-serif'
-  },
-  card: {
-    width: '100%',
-    maxWidth: 520,
-    background: '#fff',
-    padding: 30,
-    borderRadius: 16,
-    boxShadow: '0 10px 25px rgba(0,0,0,0.08)'
-  },
-  heading: {
-    marginBottom: 6
-  },
-  subheading: {
-    color: '#555',
-    marginBottom: 24
-  },
-  field: {
-    marginBottom: 18
-  },
-  label: {
-    display: 'block',
-    marginBottom: 6,
-    fontWeight: 600
-  },
-  required: {
-    color: '#dc2626'
-  },
-  input: {
-    width: '100%',
-    padding: '10px 12px',
-    borderRadius: 8,
-    border: '1px solid #d1d5db',
-    fontSize: 14
-  },
-  switchGroup: {
-    display: 'flex',
-    gap: 20,
-    margin: '20px 0'
-  },
-  switch: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    fontSize: 14
-  },
-  primaryBtn: {
-    width: '100%',
-    padding: '12px',
-    background: '#2563eb',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 10,
-    fontSize: 16,
-    fontWeight: 600,
-    cursor: 'pointer'
-  },
-  status: {
-    marginTop: 16,
-    textAlign: 'center'
-  }
+  page: { padding: 40 },
+  card: { maxWidth: 500, margin: 'auto' },
+  input: { width: '100%', padding: 10, marginTop: 10 },
+  btn: { marginTop: 20, padding: 12, background: '#2563eb', color: '#fff' },
+  field: { marginBottom: 15 }
 }
