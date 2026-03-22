@@ -70,9 +70,10 @@ export default function CreateExamPage() {
           is_active: true,
           college_id: collegeId
         })
+
+      if (error) {
 const collegeId = await getAdminCollege()
 console.log("COLLEGE ID:", collegeId)
-      if (error) {
         console.error(error)
         setStatus('❌ Failed to create exam')
         setSaving(false)
