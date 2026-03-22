@@ -2,7 +2,7 @@
 
 import { supabase } from '../../../lib/supabase'
 import { useEffect, useState } from 'react'
-
+import { getAdminCollege } from '../../../lib/getAdminCollege'
 export default function CreateExamPage() {
   const [title, setTitle] = useState('')
   const [examType, setExamType] = useState('MOCK')
@@ -48,16 +48,23 @@ useEffect(() => {
 
     setSaving(true)
 
-    const { error } = await supabase.from('exams').insert({
-      title: title.trim(),
-      exam_type: examType,
-      exam_category: examCategory, // ✅ GUARANTEED VALUE
-      duration_minutes: Number(duration),
-      allow_retake: allowRetake,
-      camera_required: cameraRequired,
-      created_by: 'ADMIN',
-      is_active: true
-    })
+
+async function createExam() {
+
+  const collegeId = await getAdminCollege()
+
+  await supabase.from('exams').insert({
+    title: title.trim(),
+    exam_type: examType,
+    exam_category: examCategory,
+    duration_minutes: Number(duration),
+    allow_retake: allowRetake,
+    camera_required: cameraRequired,
+    created_by: 'ADMIN',
+    is_active: true,
+    college_id: collegeId   // 🔥 IMPORTANT
+  })
+}
 
     setSaving(false)
 
