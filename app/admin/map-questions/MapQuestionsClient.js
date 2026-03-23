@@ -10,7 +10,11 @@ export default function MapQuestionsPage() {
   const router = useRouter()
 
   const [loading, setLoading] = useState(true)
+
+  const [examId, setExamId] = useState(null)
   const [exam, setExam] = useState(null)
+  const [exams, setExams] = useState([])
+
   const [questions, setQuestions] = useState([])
   const [subjects, setSubjects] = useState([])
   const [selectedQuestions, setSelectedQuestions] = useState([])
@@ -24,65 +28,57 @@ export default function MapQuestionsPage() {
 
   /* ================= INIT ================= */
 
-useEffect(() => {
-  const run = async () => {
+  useEffect(() => {
+    const run = async () => {
 
-    if (typeof window === 'undefined') return
+      if (typeof window === 'undefined') return
 
-    const params = new URLSearchParams(window.location.search)
+      const params = new URLSearchParams(window.location.search)
 
-    let examId =
-      params.get('examId') ||
-      params.get('examid') ||
-      params.get('id')
+      const id =
+        params.get('examId') ||
+        params.get('examid') ||
+        params.get('id')
 
-    const collegeId = await getAdminCollege()
+      const collegeId = await getAdminCollege()
 
-    // ✅ FALLBACK: if no examId, pick first exam
-    if (!examId) {
+      // 👉 NO examId → show exam list
+      if (!id) {
 
-      console.warn("⚠️ No examId in URL → picking default exam")
+        const { data } = await supabase
+          .from('exams')
+          .select('*')
+          .eq('college_id', collegeId)
+          .order('created_at', { ascending: false })
 
-      const { data } = await supabase
-        .from('exams')
-        .select('id')
-        .eq('college_id', collegeId)
-        .limit(1)
-
-      if (data && data.length > 0) {
-        examId = data[0].id
-        console.log("Using fallback examId:", examId)
-      } else {
+        setExams(data || [])
         setLoading(false)
         return
       }
+
+      // 👉 examId exists → load exam
+      setExamId(id)
+      await initExam(id)
     }
 
-    await initExam(examId)
-  }
+    run()
+  }, [])
 
-  run()
-}, [])
   /* ================= INIT EXAM ================= */
 
-  async function initExam(examId) {
+  async function initExam(id) {
 
     try {
 
       const collegeId = await getAdminCollege()
 
-    // ✅ LOG BEFORE QUERY
-    console.log("URL:", window.location.href)
-    console.log("Extracted examId:", examId)
-    console.log("CollegeId:", collegeId)
-      
       const { data, error } = await supabase
         .from('exams')
         .select('*')
-        .eq('id', examId)
+        .eq('id', id)
         .eq('college_id', collegeId)
         .single()
-      
+
       if (error || !data) {
         alert('❌ Exam not found')
         router.push('/admin/map-questions')
@@ -218,12 +214,36 @@ useEffect(() => {
 
   if (loading) return <div style={{ padding: 30 }}>Loading...</div>
 
-  if (!exam) return <div style={{ padding: 30 }}>No exam found</div>
+  /* ===== EXAM LIST ===== */
+  if (!examId) {
+    return (
+      <div style={{ padding: 30 }}>
+        <h2>Exam Mapping</h2>
+
+        {exams.map(e => (
+          <div key={e.id} style={{ marginBottom: 12 }}>
+            <strong>{e.title}</strong>
+
+            <button
+              style={{ marginLeft: 10 }}
+              onClick={() =>
+                router.push(`/admin/map-questions?examId=${e.id}`)
+              }
+            >
+              Map Questions
+            </button>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  /* ===== MAPPING UI ===== */
 
   return (
     <div style={{ padding: 30 }}>
 
-      <h2>{exam.title}</h2>
+      <h2>{exam?.title}</h2>
 
       <div>
         Duration (minutes)
@@ -244,7 +264,6 @@ useEffect(() => {
         <>
           {sections.map((sec, i) => (
             <div key={i} style={{ marginTop: 20 }}>
-
               <select onChange={e => updateSection(i, 'subject', e.target.value)}>
                 <option value="">Select Subject</option>
                 {subjects.map(s => <option key={s}>{s}</option>)}
@@ -254,7 +273,6 @@ useEffect(() => {
                 <option value="">Select Chapter</option>
                 {getChapters(sec.subject).map(c => <option key={c}>{c}</option>)}
               </select>
-
             </div>
           ))}
 
