@@ -23,31 +23,33 @@ export default function MapQuestionsPage() {
   ])
 
   /* ================= INIT ================= */
-console.log("FULL URL:", window.location.href)
-  useEffect(() => {
-    const run = async () => {
 
-const params = new URLSearchParams(window.location.search)
+useEffect(() => {
+  const run = async () => {
 
-// try both cases (safety)
-let examId =
-  params.get('examId') ||
-  params.get('examid') ||
-  params.get('id')
+    if (typeof window === 'undefined') return
 
-console.log("Final examId:", examId)
-      console.log("URL:", window.location.href)
+    const params = new URLSearchParams(window.location.search)
 
-      if (!examId) {
-        setLoading(false)
-        return
-      }
+    const examId =
+      params.get('examId') ||
+      params.get('examid') ||
+      params.get('id')
 
-      await initExam(examId)
+    console.log("URL:", window.location.href)
+    console.log("Final examId:", examId)
+
+    if (!examId) {
+      console.warn("❌ No examId found in URL")
+      setLoading(false)
+      return
     }
 
-    run()
-  }, [])
+    await initExam(examId)
+  }
+
+  run()
+}, [])
 
   /* ================= INIT EXAM ================= */
 
