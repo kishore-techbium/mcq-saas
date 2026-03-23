@@ -31,18 +31,31 @@ useEffect(() => {
 
     const params = new URLSearchParams(window.location.search)
 
-    const examId =
+    let examId =
       params.get('examId') ||
       params.get('examid') ||
       params.get('id')
 
-    console.log("URL:", window.location.href)
-    console.log("Final examId:", examId)
+    const collegeId = await getAdminCollege()
 
+    // ✅ FALLBACK: if no examId, pick first exam
     if (!examId) {
-      console.warn("❌ No examId found in URL")
-      setLoading(false)
-      return
+
+      console.warn("⚠️ No examId in URL → picking default exam")
+
+      const { data } = await supabase
+        .from('exams')
+        .select('id')
+        .eq('college_id', collegeId)
+        .limit(1)
+
+      if (data && data.length > 0) {
+        examId = data[0].id
+        console.log("Using fallback examId:", examId)
+      } else {
+        setLoading(false)
+        return
+      }
     }
 
     await initExam(examId)
@@ -50,7 +63,6 @@ useEffect(() => {
 
   run()
 }, [])
-
   /* ================= INIT EXAM ================= */
 
   async function initExam(examId) {
