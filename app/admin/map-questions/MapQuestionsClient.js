@@ -10,7 +10,8 @@ export default function MapQuestionsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const examId = searchParams.get('examId')
-
+const [search, setSearch] = useState('')
+const [categoryFilter, setCategoryFilter] = useState('ALL')
   const [loading, setLoading] = useState(true)
   const [exam, setExam] = useState(null)
   const [exams, setExams] = useState([])
