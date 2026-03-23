@@ -170,10 +170,9 @@ const [categoryFilter, setCategoryFilter] = useState('ALL')
 
 if (!examId) {
 
-  const filtered = exams
-    .filter(e => e.title.toLowerCase().includes(search.toLowerCase()))
-    .filter(e => categoryFilter === 'ALL' || e.exam_category === categoryFilter)
-
+const filtered = (exams || [])
+  .filter(e => (e.title || '').toLowerCase().includes(search.toLowerCase()))
+  .filter(e => categoryFilter === 'ALL' || e.exam_category === categoryFilter)
   return (
     <div style={styles.container}>
 
