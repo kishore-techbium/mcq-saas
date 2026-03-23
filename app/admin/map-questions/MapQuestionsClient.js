@@ -34,7 +34,14 @@ const [successMsg, setSuccessMsg] = useState('')
     if (!examId) fetchExams()
     else initExam()
   }, [examId])
+useEffect(() => {
+  async function checkUser() {
+    const { data } = await supabase.auth.getUser()
+    console.log("USER:", data?.user)
+  }
 
+  checkUser()
+}, [])
 async function fetchExams() {
   setLoading(true)
 
