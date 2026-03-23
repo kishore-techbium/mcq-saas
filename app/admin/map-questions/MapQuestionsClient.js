@@ -24,26 +24,36 @@ export default function MapQuestionsPage() {
     { subject: '', chapter: '', count: 10, easy: 30, medium: 40, hard: 30 }
   ])
 
-  useEffect(() => {
-    if (!examId) return
-    initExam()
-  }, [examId])
+useEffect(() => {
+  if (examId === null) return  // wait until router ready
 
+  if (!examId) {
+    setLoading(false)   // important fallback
+    return
+  }
+
+  initExam()
+}, [examId])
   async function initExam() {
 
-    if (!examId) return
+  try {
 
     const collegeId = await getAdminCollege()
 
-    const { data } = await supabase
+    console.log("ExamId:", examId)
+
+    const { data, error } = await supabase
       .from('exams')
       .select('*')
       .eq('id', examId)
       .eq('college_id', collegeId)
       .single()
 
-    if (!data) {
-      alert('Exam not found')
+    console.log("Exam data:", data)
+
+    if (error || !data) {
+      console.error("Exam fetch error:", error)
+      alert("Exam not found")
       router.push('/admin/map-questions')
       return
     }
@@ -59,8 +69,12 @@ export default function MapQuestionsPage() {
     setQuestions(qs || [])
     setSubjects([...new Set((qs || []).map(q => q.subject))])
 
-    setLoading(false)
+  } catch (err) {
+    console.error("Init error:", err)
   }
+
+  setLoading(false)  // ✅ ALWAYS release loading
+}
 
   function getChapters(subject) {
     return [...new Set(
