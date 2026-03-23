@@ -287,3 +287,62 @@ const filtered = (exams || [])
     </div>
   )
 }
+
+const styles = {
+  container: {
+    padding: 40,
+    background: '#f3f4f6',
+    minHeight: '100vh'
+  },
+
+  heading: {
+    fontSize: 24,
+    fontWeight: 600,
+    marginBottom: 25
+  },
+
+  filterBar: {
+    display: 'flex',
+    gap: 15,
+    marginBottom: 25,
+    alignItems: 'center'
+  },
+
+  input: {
+    width: '100%',
+    padding: '8px 10px',
+    borderRadius: 8,
+    border: '1px solid #d1d5db',
+    height: 38
+  },
+
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    background: '#fff',
+    borderRadius: 10,
+    overflow: 'hidden'
+  },
+
+  th: {
+    padding: 14,
+    textAlign: 'left',
+    background: '#f9fafb',
+    fontWeight: 600,
+    borderBottom: '1px solid #e5e7eb'
+  },
+
+  td: {
+    padding: 14,
+    borderBottom: '1px solid #f1f5f9'
+  },
+
+  primaryBtn: {
+    padding: '8px 16px',
+    background: '#2563eb',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer'
+  }
+}
