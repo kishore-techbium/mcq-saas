@@ -1,15 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { getAdminCollege } from '../../../lib/getAdminCollege'
 
 export default function MapQuestionsPage() {
 
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const examId = searchParams.get('examId')
 
   const [loading, setLoading] = useState(true)
   const [exam, setExam] = useState(null)
@@ -24,57 +22,65 @@ export default function MapQuestionsPage() {
     { subject: '', chapter: '', count: 10, easy: 30, medium: 40, hard: 30 }
   ])
 
-useEffect(() => {
-  if (examId === null) return  // wait until router ready
+  /* ================= INIT ================= */
 
-  if (!examId) {
-    setLoading(false)   // important fallback
-    return
-  }
+  useEffect(() => {
+    const run = async () => {
 
-  initExam()
-}, [examId])
-  async function initExam() {
+      const params = new URLSearchParams(window.location.search)
+      const examId = params.get('examId')
 
-  try {
+      if (!examId) {
+        setLoading(false)
+        return
+      }
 
-    const collegeId = await getAdminCollege()
-
-    console.log("ExamId:", examId)
-
-    const { data, error } = await supabase
-      .from('exams')
-      .select('*')
-      .eq('id', examId)
-      .eq('college_id', collegeId)
-      .single()
-
-    console.log("Exam data:", data)
-
-    if (error || !data) {
-      console.error("Exam fetch error:", error)
-      alert("Exam not found")
-      router.push('/admin/map-questions')
-      return
+      await initExam(examId)
     }
 
-    setExam(data)
-    setDuration(data.duration_minutes || 60)
+    run()
+  }, [])
 
-    const { data: qs } = await supabase
-      .from('question_bank')
-      .select('*')
-      .eq('college_id', collegeId)
+  /* ================= INIT EXAM ================= */
 
-    setQuestions(qs || [])
-    setSubjects([...new Set((qs || []).map(q => q.subject))])
+  async function initExam(examId) {
 
-  } catch (err) {
-    console.error("Init error:", err)
+    try {
+
+      const collegeId = await getAdminCollege()
+
+      const { data, error } = await supabase
+        .from('exams')
+        .select('*')
+        .eq('id', examId)
+        .eq('college_id', collegeId)
+        .single()
+
+      if (error || !data) {
+        alert('❌ Exam not found')
+        router.push('/admin/map-questions')
+        return
+      }
+
+      setExam(data)
+      setDuration(data.duration_minutes || 60)
+
+      const { data: qs } = await supabase
+        .from('question_bank')
+        .select('*')
+        .eq('college_id', collegeId)
+
+      setQuestions(qs || [])
+      setSubjects([...new Set((qs || []).map(q => q.subject))])
+
+    } catch (err) {
+      console.error("Init error:", err)
+    }
+
+    setLoading(false)
   }
 
-  setLoading(false)  // ✅ ALWAYS release loading
-}
+  /* ================= HELPERS ================= */
 
   function getChapters(subject) {
     return [...new Set(
@@ -107,6 +113,16 @@ useEffect(() => {
 
     for (let sec of sections) {
 
+      if (!sec.subject || !sec.chapter) {
+        alert('Select subject and chapter')
+        return
+      }
+
+      if (sec.easy + sec.medium + sec.hard !== 100) {
+        alert('Difficulty % must equal 100')
+        return
+      }
+
       const pool = questions.filter(
         q => q.subject === sec.subject &&
              q.chapter === sec.chapter
@@ -136,6 +152,8 @@ useEffect(() => {
       setSelectedQuestions([...selectedQuestions, q])
   }
 
+  /* ================= SAVE ================= */
+
   async function saveMapping() {
 
     const collegeId = await getAdminCollege()
@@ -160,16 +178,25 @@ useEffect(() => {
         }))
       )
 
+    await supabase
+      .from('exams')
+      .update({ duration_minutes: duration })
+      .eq('id', exam.id)
+
     alert('✅ Questions mapped successfully!')
     router.push('/admin/map-questions')
   }
 
+  /* ================= UI ================= */
+
   if (loading) return <div style={{ padding: 30 }}>Loading...</div>
+
+  if (!exam) return <div style={{ padding: 30 }}>No exam found</div>
 
   return (
     <div style={{ padding: 30 }}>
 
-      <h2>{exam?.title}</h2>
+      <h2>{exam.title}</h2>
 
       <div>
         Duration (minutes)
@@ -180,24 +207,27 @@ useEffect(() => {
         />
       </div>
 
-      <div>
+      <div style={{ marginTop: 20 }}>
         <button onClick={() => setMode('SMART')}>Smart Mapping</button>
         <button onClick={() => setMode('CUSTOM')}>Custom Mapping</button>
       </div>
 
+      {/* SMART */}
       {mode === 'SMART' && (
         <>
           {sections.map((sec, i) => (
-            <div key={i}>
+            <div key={i} style={{ marginTop: 20 }}>
+
               <select onChange={e => updateSection(i, 'subject', e.target.value)}>
-                <option>Select Subject</option>
+                <option value="">Select Subject</option>
                 {subjects.map(s => <option key={s}>{s}</option>)}
               </select>
 
               <select onChange={e => updateSection(i, 'chapter', e.target.value)}>
-                <option>Select Chapter</option>
+                <option value="">Select Chapter</option>
                 {getChapters(sec.subject).map(c => <option key={c}>{c}</option>)}
               </select>
+
             </div>
           ))}
 
@@ -206,20 +236,25 @@ useEffect(() => {
         </>
       )}
 
+      {/* CUSTOM */}
       {mode === 'CUSTOM' && (
         questions.map(q => (
           <div key={q.id}>
-            <input type="checkbox" onChange={() => toggleCustom(q)} />
+            <input
+              type="checkbox"
+              checked={selectedQuestions.some(x => x.id === q.id)}
+              onChange={() => toggleCustom(q)}
+            />
             {q.question}
           </div>
         ))
       )}
 
-      <div>
+      <div style={{ marginTop: 20 }}>
         Total Selected: {selectedQuestions.length}
       </div>
 
-      <button onClick={saveMapping}>
+      <button onClick={saveMapping} style={{ marginTop: 20 }}>
         Map Questions
       </button>
 
