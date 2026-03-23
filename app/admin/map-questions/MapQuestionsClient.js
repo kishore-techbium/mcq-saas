@@ -14,7 +14,7 @@ export default function MapQuestionsPage() {
   const [examId, setExamId] = useState(null)
   const [exam, setExam] = useState(null)
   const [exams, setExams] = useState([])
-
+const [search, setSearch] = useState('')
   const [questions, setQuestions] = useState([])
   const [subjects, setSubjects] = useState([])
   const [selectedQuestions, setSelectedQuestions] = useState([])
@@ -215,29 +215,63 @@ export default function MapQuestionsPage() {
   if (loading) return <div style={{ padding: 30 }}>Loading...</div>
 
   /* ===== EXAM LIST ===== */
-  if (!examId) {
-    return (
-      <div style={{ padding: 30 }}>
-        <h2>Exam Mapping</h2>
+if (!examId) {
 
-        {exams.map(e => (
-          <div key={e.id} style={{ marginBottom: 12 }}>
-            <strong>{e.title}</strong>
+  const filtered = exams.filter(e =>
+    (e.title || '').toLowerCase().includes(search.toLowerCase())
+  )
 
-            <button
-              style={{ marginLeft: 10 }}
-              onClick={() =>
-                router.push(`/admin/map-questions?examId=${e.id}`)
-              }
-            >
-              Map Questions
-            </button>
-          </div>
-        ))}
+  return (
+    <div style={styles.container}>
+
+      <h1 style={styles.heading}>Exam Mapping</h1>
+
+      {/* SEARCH */}
+      <div style={styles.filterBar}>
+        <input
+          style={styles.input}
+          placeholder="Search exam..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
       </div>
-    )
-  }
 
+      {/* TABLE */}
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th style={styles.th}>Exam Title</th>
+            <th style={styles.th}>Category</th>
+            <th style={styles.th}>Duration</th>
+            <th style={styles.th}>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {filtered.map(e => (
+            <tr key={e.id}>
+              <td style={styles.td}>{e.title}</td>
+              <td style={styles.td}>{e.exam_category}</td>
+              <td style={styles.td}>{e.duration_minutes} min</td>
+
+              <td style={styles.td}>
+                <button
+                  style={styles.primaryBtn}
+                  onClick={() => {
+                    window.location.href = `/admin/map-questions?examId=${e.id}`
+                  }}
+                >
+                  Map Questions
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+    </div>
+  )
+}
   /* ===== MAPPING UI ===== */
 
   return (
@@ -305,4 +339,46 @@ export default function MapQuestionsPage() {
 
     </div>
   )
+}
+const styles = {
+  container: {
+    padding: 40,
+    background: '#f3f4f6',
+    minHeight: '100vh'
+  },
+  heading: {
+    fontSize: 24,
+    marginBottom: 20
+  },
+  filterBar: {
+    marginBottom: 20
+  },
+  input: {
+    padding: 10,
+    width: '100%',
+    borderRadius: 6,
+    border: '1px solid #ccc'
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    background: '#fff'
+  },
+  th: {
+    padding: 12,
+    textAlign: 'left',
+    borderBottom: '1px solid #ddd'
+  },
+  td: {
+    padding: 12,
+    borderBottom: '1px solid #eee'
+  },
+  primaryBtn: {
+    padding: '8px 14px',
+    background: '#2563eb',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer'
+  }
 }
