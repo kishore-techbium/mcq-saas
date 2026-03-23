@@ -15,15 +15,25 @@ export default function MapQuestionsPage() {
   const [exam, setExam] = useState(null)
   const [exams, setExams] = useState([])
   const [questions, setQuestions] = useState([])
+  const [subjects, setSubjects] = useState([])
   const [selectedQuestions, setSelectedQuestions] = useState([])
-  const [search, setSearch] = useState('')
+  const [duration, setDuration] = useState(60)
+
+  const [mode, setMode] = useState('SMART')
+
+  const [sections, setSections] = useState([
+    { subject: '', chapter: '', count: 10, easy: 30, medium: 40, hard: 30 }
+  ])
 
   useEffect(() => {
     if (!examId) fetchExams()
     else initExam()
   }, [examId])
 
+  /* ================= FETCH EXAMS ================= */
+
   async function fetchExams() {
+
     const collegeId = await getAdminCollege()
 
     const { data } = await supabase
@@ -35,47 +45,95 @@ export default function MapQuestionsPage() {
     setLoading(false)
   }
 
+  /* ================= INIT ================= */
+
   async function initExam() {
 
     const collegeId = await getAdminCollege()
 
-    const { data: examData } = await supabase
+    const { data } = await supabase
       .from('exams')
       .select('*')
       .eq('id', examId)
       .eq('college_id', collegeId)
       .single()
 
+    setExam(data)
+    setDuration(data?.duration_minutes || 60)
+
     const { data: qs } = await supabase
       .from('question_bank')
       .select('*')
       .eq('college_id', collegeId)
 
-    const { data: mapped } = await supabase
-      .from('exam_questions')
-      .select('question_id')
-      .eq('exam_id', examId)
-
-    const mappedIds = mapped?.map(m => m.question_id) || []
-
-    setExam(examData)
     setQuestions(qs || [])
-    setSelectedQuestions(
-      (qs || []).filter(q => mappedIds.includes(q.id))
-    )
-
+    setSubjects([...new Set((qs || []).map(q => q.subject))])
     setLoading(false)
   }
 
-  function toggleQuestion(q) {
+  /* ================= SMART ================= */
+
+  function getChapters(subject) {
+    return [...new Set(
+      questions
+        .filter(q => q.subject === subject)
+        .map(q => q.chapter)
+    )]
+  }
+
+  function addSection() {
+    setSections([
+      ...sections,
+      { subject: '', chapter: '', count: 10, easy: 30, medium: 40, hard: 30 }
+    ])
+  }
+
+  function updateSection(index, field, value) {
+    const updated = [...sections]
+    updated[index][field] = value
+    setSections(updated)
+  }
+
+  function shuffle(arr) {
+    return arr.sort(() => Math.random() - 0.5)
+  }
+
+  function generateSmart() {
+
+    let final = []
+
+    for (let sec of sections) {
+
+      const pool = questions.filter(
+        q => q.subject === sec.subject &&
+             q.chapter === sec.chapter
+      )
+
+      const easyCount = Math.round((sec.easy / 100) * sec.count)
+      const medCount = Math.round((sec.medium / 100) * sec.count)
+      const hardCount = sec.count - easyCount - medCount
+
+      final = [
+        ...final,
+        ...shuffle(pool.filter(q => q.difficulty === 'Easy')).slice(0, easyCount),
+        ...shuffle(pool.filter(q => q.difficulty === 'Medium')).slice(0, medCount),
+        ...shuffle(pool.filter(q => q.difficulty === 'Hard')).slice(0, hardCount)
+      ]
+    }
+
+    setSelectedQuestions(final)
+  }
+
+  function toggleCustom(q) {
     const exists = selectedQuestions.find(x => x.id === q.id)
 
-    if (exists) {
+    if (exists)
       setSelectedQuestions(selectedQuestions.filter(x => x.id !== q.id))
-    } else {
+    else
       setSelectedQuestions([...selectedQuestions, q])
-    }
   }
+
+  /* ================= SAVE ================= */
 
   async function saveMapping() {
 
@@ -92,9 +150,14 @@ export default function MapQuestionsPage() {
         selectedQuestions.map(q => ({
           exam_id: exam.id,
           question_id: q.id,
-          college_id: collegeId
+          college_id: collegeId   // ✅ CRITICAL FIX
         }))
       )
+
+    await supabase
+      .from('exams')
+      .update({ duration_minutes: duration })
+      .eq('id', exam.id)
 
     alert('✅ Mapping saved')
     router.push('/admin/map-questions')
@@ -106,12 +169,12 @@ export default function MapQuestionsPage() {
 
   if (!examId) {
     return (
-      <div style={styles.page}>
+      <div style={{ padding: 30 }}>
         <h2>Exam Mapping</h2>
 
         {exams.map(e => (
-          <div key={e.id} style={styles.examRow}>
-            <span>{e.title}</span>
+          <div key={e.id}>
+            {e.title}
             <button onClick={() =>
               router.push(`/admin/map-questions?examId=${e.id}`)
             }>
@@ -123,96 +186,53 @@ export default function MapQuestionsPage() {
     )
   }
 
-  /* ================= FILTER ================= */
-
-  const filtered = questions.filter(q =>
-    q.question.toLowerCase().includes(search.toLowerCase())
-  )
-
   /* ================= UI ================= */
 
   return (
-    <div style={styles.page}>
+    <div style={{ padding: 30 }}>
 
       <h2>{exam.title}</h2>
 
-      {/* SEARCH */}
       <input
-        placeholder="Search questions..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        style={styles.search}
+        type="number"
+        value={duration}
+        onChange={e => setDuration(Number(e.target.value))}
       />
 
-      <div style={styles.container}>
+      <button onClick={() => setMode('SMART')}>Smart</button>
+      <button onClick={() => setMode('CUSTOM')}>Custom</button>
 
-        {/* LEFT */}
-        <div style={styles.box}>
-          <h3>Question Bank</h3>
+      {mode === 'SMART' && (
+        <>
+          {sections.map((sec, i) => (
+            <div key={i}>
+              <select onChange={e => updateSection(i, 'subject', e.target.value)}>
+                {subjects.map(s => <option key={s}>{s}</option>)}
+              </select>
 
-          {filtered.map(q => (
-            <div key={q.id} style={styles.qRow}>
-              <input
-                type="checkbox"
-                checked={selectedQuestions.some(x => x.id === q.id)}
-                onChange={() => toggleQuestion(q)}
-              />
-              <span>{q.question}</span>
+              <select onChange={e => updateSection(i, 'chapter', e.target.value)}>
+                {getChapters(sec.subject).map(c => <option key={c}>{c}</option>)}
+              </select>
             </div>
           ))}
-        </div>
 
-        {/* RIGHT */}
-        <div style={styles.box}>
-          <h3>Selected ({selectedQuestions.length})</h3>
+          <button onClick={generateSmart}>Generate</button>
+        </>
+      )}
 
-          {selectedQuestions.map(q => (
-            <div key={q.id} style={styles.qRow}>
-              {q.question}
-            </div>
-          ))}
-        </div>
+      {mode === 'CUSTOM' && (
+        questions.map(q => (
+          <div key={q.id}>
+            <input type="checkbox" onChange={() => toggleCustom(q)} />
+            {q.question}
+          </div>
+        ))
+      )}
 
-      </div>
-
-      <button style={styles.saveBtn} onClick={saveMapping}>
-        Save Mapping
+      <button onClick={saveMapping}>
+        Map Questions
       </button>
 
     </div>
   )
-}
-
-const styles = {
-  page: { padding: 30 },
-  search: {
-    width: '100%',
-    padding: 10,
-    marginBottom: 20
-  },
-  container: {
-    display: 'flex',
-    gap: 20
-  },
-  box: {
-    flex: 1,
-    border: '1px solid #ddd',
-    padding: 10,
-    height: 400,
-    overflowY: 'auto'
-  },
-  qRow: {
-    marginBottom: 8
-  },
-  saveBtn: {
-    marginTop: 20,
-    padding: 10,
-    background: 'green',
-    color: '#fff'
-  },
-  examRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: 10
-  }
 }
