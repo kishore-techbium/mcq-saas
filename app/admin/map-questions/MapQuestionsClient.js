@@ -49,15 +49,17 @@ export default function MapQuestionsPage() {
 
       const collegeId = await getAdminCollege()
 
+    // ✅ LOG BEFORE QUERY
+    console.log("URL:", window.location.href)
+    console.log("Extracted examId:", examId)
+    console.log("CollegeId:", collegeId)
+      
       const { data, error } = await supabase
         .from('exams')
         .select('*')
         .eq('id', examId)
         .eq('college_id', collegeId)
         .single()
-      
-console.log("URL:", window.location.href)
-console.log("Extracted examId:", examId)
       
       if (error || !data) {
         alert('❌ Exam not found')
