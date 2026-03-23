@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { getAdminCollege } from '../../../lib/getAdminCollege' // ✅ added
-
-export default function MapQuestionsPage() {
+export default function MapQuestionsPage({ preloadedExams }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const examId = searchParams.get('examId')
@@ -43,6 +42,11 @@ useEffect(() => {
   checkUser()
 }, [])
 async function fetchExams() {
+  if (preloadedExams) {
+  setExams(preloadedExams)
+  setLoading(false)
+  return
+}
   setLoading(true)
 
   const { data: examData } = await supabase
