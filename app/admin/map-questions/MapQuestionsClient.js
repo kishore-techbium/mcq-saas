@@ -493,3 +493,166 @@ export default function MapQuestionsPage() {
     </div>
   )
 }
+const styles = {
+
+  container: {
+    padding: 30,
+    background: '#f3f4f6',
+    minHeight: '100vh'
+  },
+
+  heading: {
+    fontSize: 24,
+    marginBottom: 20
+  },
+
+  loading: {
+    padding: 30
+  },
+
+  filterBar: {
+    display: 'flex',
+    gap: 10,
+    marginBottom: 20
+  },
+
+  input: {
+    padding: 10,
+    borderRadius: 6,
+    border: '1px solid #ccc'
+  },
+
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    background: '#fff'
+  },
+
+  headerRow: {
+    background: '#f9fafb'
+  },
+
+  th: {
+    padding: 12,
+    fontWeight: 600
+  },
+
+  row: {
+    borderBottom: '1px solid #eee'
+  },
+
+  td: {
+    padding: 12
+  },
+
+  primaryBtn: {
+    padding: '8px 14px',
+    background: '#2563eb',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer'
+  },
+
+  secondaryBtn: {
+    padding: '8px 14px',
+    background: '#6b7280',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer'
+  },
+
+  durationBox: {
+    marginBottom: 20
+  },
+
+  tabBar: {
+    display: 'flex',
+    gap: 10,
+    marginBottom: 20
+  },
+
+  tab: {
+    padding: '8px 16px',
+    background: '#e5e7eb',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer'
+  },
+
+  activeTab: {
+    padding: '8px 16px',
+    background: '#2563eb',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer'
+  },
+
+  sectionCard: {
+    background: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 20
+  },
+
+  gridRow: {
+    display: 'flex',
+    gap: 10,
+    marginBottom: 10
+  },
+
+  difficultyRow: {
+    display: 'flex',
+    gap: 10,
+    alignItems: 'center'
+  },
+
+  smallInput: {
+    width: 60,
+    padding: 6
+  },
+
+  questionList: {
+    maxHeight: 300,
+    overflowY: 'auto',
+    marginTop: 10
+  },
+
+  questionRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: 8,
+    borderBottom: '1px solid #eee'
+  },
+
+  questionText: {
+    fontSize: 14
+  },
+
+  badge: {
+    padding: '4px 10px',
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: 600
+  },
+
+  summaryBox: {
+    background: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    marginTop: 20
+  },
+
+  saveBtn: {
+    marginTop: 20,
+    padding: '12px 20px',
+    background: 'green',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer'
+  }
+}
