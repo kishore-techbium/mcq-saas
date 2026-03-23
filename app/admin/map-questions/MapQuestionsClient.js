@@ -6,6 +6,7 @@ import { supabase } from '../../../lib/supabase'
 import { getAdminCollege } from '../../../lib/getAdminCollege'
 
 export default function MapQuestionsPage() {
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const examId = searchParams.get('examId')
@@ -13,123 +14,72 @@ export default function MapQuestionsPage() {
   const [loading, setLoading] = useState(true)
   const [exam, setExam] = useState(null)
   const [exams, setExams] = useState([])
-  const [examStats, setExamStats] = useState({})
   const [questions, setQuestions] = useState([])
-  const [subjects, setSubjects] = useState([])
   const [selectedQuestions, setSelectedQuestions] = useState([])
-  const [duration, setDuration] = useState(60)
-
   const [search, setSearch] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('ALL')
-  const [mode, setMode] = useState('SMART')
-
-  const [sections, setSections] = useState([
-    { subject: '', chapter: '', count: 10, easy: 30, medium: 40, hard: 30 }
-  ])
 
   useEffect(() => {
     if (!examId) fetchExams()
     else initExam()
   }, [examId])
 
-  /* ================= FETCH EXAMS ================= */
-
   async function fetchExams() {
+    const collegeId = await getAdminCollege()
+
+    const { data } = await supabase
+      .from('exams')
+      .select('*')
+      .eq('college_id', collegeId)
+
+    setExams(data || [])
+    setLoading(false)
+  }
+
+  async function initExam() {
 
     const collegeId = await getAdminCollege()
 
     const { data: examData } = await supabase
       .from('exams')
       .select('*')
-      .eq('college_id', collegeId) // ✅ FILTER
-      .order('created_at', { ascending: false })
-
-    const stats = {}
-
-    for (let e of examData || []) {
-
-      const { data: mapped } = await supabase
-        .from('exam_questions')
-        .select(`
-          question_id,
-          question_bank (
-            subject
-          )
-        `)
-        .eq('exam_id', e.id)
-
-      let subjectMap = {}
-      let total = 0
-
-      mapped?.forEach(row => {
-        if (row.question_bank) {
-          total++
-          const sub = row.question_bank.subject
-          subjectMap[sub] = (subjectMap[sub] || 0) + 1
-        }
-      })
-
-      stats[e.id] = {
-        total,
-        subjects: subjectMap
-      }
-    }
-
-    setExams(examData || [])
-    setExamStats(stats)
-    setLoading(false)
-  }
-
-  /* ================= INIT EXAM ================= */
-
-  async function initExam() {
-
-    const collegeId = await getAdminCollege()
-
-    const { data } = await supabase
-      .from('exams')
-      .select('*')
       .eq('id', examId)
-      .eq('college_id', collegeId) // ✅ FILTER
+      .eq('college_id', collegeId)
       .single()
-
-    setExam(data || null)
-    setDuration(data?.duration_minutes || 60)
 
     const { data: qs } = await supabase
       .from('question_bank')
       .select('*')
-      .eq('college_id', collegeId) // ✅ FILTER
+      .eq('college_id', collegeId)
 
+    const { data: mapped } = await supabase
+      .from('exam_questions')
+      .select('question_id')
+      .eq('exam_id', examId)
+
+    const mappedIds = mapped?.map(m => m.question_id) || []
+
+    setExam(examData)
     setQuestions(qs || [])
-    setSubjects([...new Set((qs || []).map(q => q.subject))])
+    setSelectedQuestions(
+      (qs || []).filter(q => mappedIds.includes(q.id))
+    )
+
     setLoading(false)
   }
 
-  /* ================= LOGIC ================= */
-
-  function getChapters(subject) {
-    return [...new Set(
-      questions
-        .filter(q => q.subject === subject)
-        .map(q => q.chapter)
-    )]
-  }
-
-  function toggleCustom(q) {
+  function toggleQuestion(q) {
     const exists = selectedQuestions.find(x => x.id === q.id)
-    if (exists)
+
+    if (exists) {
       setSelectedQuestions(selectedQuestions.filter(x => x.id !== q.id))
-    else
+    } else {
       setSelectedQuestions([...selectedQuestions, q])
+    }
   }
 
   async function saveMapping() {
 
-    if (!exam || selectedQuestions.length === 0) {
-      alert('Select questions first')
-      return
-    }
+    const collegeId = await getAdminCollege()
 
     await supabase
       .from('exam_questions')
@@ -141,34 +91,30 @@ export default function MapQuestionsPage() {
       .insert(
         selectedQuestions.map(q => ({
           exam_id: exam.id,
-          question_id: q.id
+          question_id: q.id,
+          college_id: collegeId
         }))
       )
 
-    await supabase
-      .from('exams')
-      .update({ duration_minutes: duration })
-      .eq('id', exam.id)
-
-    alert('✅ Questions mapped successfully!')
+    alert('✅ Mapping saved')
     router.push('/admin/map-questions')
   }
 
   if (loading) return <div>Loading...</div>
 
-  /* ================= UI ================= */
+  /* ================= EXAM LIST ================= */
 
   if (!examId) {
     return (
-      <div style={{ padding: 30 }}>
+      <div style={styles.page}>
         <h2>Exam Mapping</h2>
 
         {exams.map(e => (
-          <div key={e.id} style={{ marginBottom: 10 }}>
-            {e.title}
-            <button
-              onClick={() => router.push(`/admin/map-questions?examId=${e.id}`)}
-            >
+          <div key={e.id} style={styles.examRow}>
+            <span>{e.title}</span>
+            <button onClick={() =>
+              router.push(`/admin/map-questions?examId=${e.id}`)
+            }>
               Map
             </button>
           </div>
@@ -177,27 +123,96 @@ export default function MapQuestionsPage() {
     )
   }
 
+  /* ================= FILTER ================= */
+
+  const filtered = questions.filter(q =>
+    q.question.toLowerCase().includes(search.toLowerCase())
+  )
+
+  /* ================= UI ================= */
+
   return (
-    <div style={{ padding: 30 }}>
+    <div style={styles.page}>
 
       <h2>{exam.title}</h2>
 
-      <h3>Select Questions</h3>
+      {/* SEARCH */}
+      <input
+        placeholder="Search questions..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={styles.search}
+      />
 
-      {questions.map(q => (
-        <div key={q.id}>
-          <input
-            type="checkbox"
-            onChange={() => toggleCustom(q)}
-          />
-          {q.question}
+      <div style={styles.container}>
+
+        {/* LEFT */}
+        <div style={styles.box}>
+          <h3>Question Bank</h3>
+
+          {filtered.map(q => (
+            <div key={q.id} style={styles.qRow}>
+              <input
+                type="checkbox"
+                checked={selectedQuestions.some(x => x.id === q.id)}
+                onChange={() => toggleQuestion(q)}
+              />
+              <span>{q.question}</span>
+            </div>
+          ))}
         </div>
-      ))}
 
-      <button onClick={saveMapping}>
+        {/* RIGHT */}
+        <div style={styles.box}>
+          <h3>Selected ({selectedQuestions.length})</h3>
+
+          {selectedQuestions.map(q => (
+            <div key={q.id} style={styles.qRow}>
+              {q.question}
+            </div>
+          ))}
+        </div>
+
+      </div>
+
+      <button style={styles.saveBtn} onClick={saveMapping}>
         Save Mapping
       </button>
 
     </div>
   )
+}
+
+const styles = {
+  page: { padding: 30 },
+  search: {
+    width: '100%',
+    padding: 10,
+    marginBottom: 20
+  },
+  container: {
+    display: 'flex',
+    gap: 20
+  },
+  box: {
+    flex: 1,
+    border: '1px solid #ddd',
+    padding: 10,
+    height: 400,
+    overflowY: 'auto'
+  },
+  qRow: {
+    marginBottom: 8
+  },
+  saveBtn: {
+    marginTop: 20,
+    padding: 10,
+    background: 'green',
+    color: '#fff'
+  },
+  examRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginBottom: 10
+  }
 }
