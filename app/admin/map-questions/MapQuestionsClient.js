@@ -10,11 +10,11 @@ export default function MapQuestionsPage() {
   const router = useRouter()
 
   const [loading, setLoading] = useState(true)
-
   const [examId, setExamId] = useState(null)
   const [exam, setExam] = useState(null)
   const [exams, setExams] = useState([])
-const [search, setSearch] = useState('')
+  const [search, setSearch] = useState('')
+
   const [questions, setQuestions] = useState([])
   const [subjects, setSubjects] = useState([])
   const [selectedQuestions, setSelectedQuestions] = useState([])
@@ -42,9 +42,7 @@ const [search, setSearch] = useState('')
 
       const collegeId = await getAdminCollege()
 
-      // 👉 NO examId → show exam list
       if (!id) {
-
         const { data } = await supabase
           .from('exams')
           .select('*')
@@ -56,15 +54,12 @@ const [search, setSearch] = useState('')
         return
       }
 
-      // 👉 examId exists → load exam
       setExamId(id)
       await initExam(id)
     }
 
     run()
   }, [])
-
-  /* ================= INIT EXAM ================= */
 
   async function initExam(id) {
 
@@ -107,17 +102,12 @@ const [search, setSearch] = useState('')
 
   function getChapters(subject) {
     return [...new Set(
-      questions
-        .filter(q => q.subject === subject)
-        .map(q => q.chapter)
+      questions.filter(q => q.subject === subject).map(q => q.chapter)
     )]
   }
 
   function addSection() {
-    setSections([
-      ...sections,
-      { subject: '', chapter: '', count: 10, easy: 30, medium: 40, hard: 30 }
-    ])
+    setSections([...sections, { subject: '', chapter: '', count: 10, easy: 30, medium: 40, hard: 30 }])
   }
 
   function updateSection(index, field, value) {
@@ -135,16 +125,6 @@ const [search, setSearch] = useState('')
     let final = []
 
     for (let sec of sections) {
-
-      if (!sec.subject || !sec.chapter) {
-        alert('Select subject and chapter')
-        return
-      }
-
-      if (sec.easy + sec.medium + sec.hard !== 100) {
-        alert('Difficulty % must equal 100')
-        return
-      }
 
       const pool = questions.filter(
         q => q.subject === sec.subject &&
@@ -168,14 +148,11 @@ const [search, setSearch] = useState('')
 
   function toggleCustom(q) {
     const exists = selectedQuestions.find(x => x.id === q.id)
-
     if (exists)
       setSelectedQuestions(selectedQuestions.filter(x => x.id !== q.id))
     else
       setSelectedQuestions([...selectedQuestions, q])
   }
-
-  /* ================= SAVE ================= */
 
   async function saveMapping() {
 
@@ -186,25 +163,15 @@ const [search, setSearch] = useState('')
       return
     }
 
-    await supabase
-      .from('exam_questions')
-      .delete()
-      .eq('exam_id', exam.id)
+    await supabase.from('exam_questions').delete().eq('exam_id', exam.id)
 
-    await supabase
-      .from('exam_questions')
-      .insert(
-        selectedQuestions.map(q => ({
-          exam_id: exam.id,
-          question_id: q.id,
-          college_id: collegeId
-        }))
-      )
-
-    await supabase
-      .from('exams')
-      .update({ duration_minutes: duration })
-      .eq('id', exam.id)
+    await supabase.from('exam_questions').insert(
+      selectedQuestions.map(q => ({
+        exam_id: exam.id,
+        question_id: q.id,
+        college_id: collegeId
+      }))
+    )
 
     alert('✅ Questions mapped successfully!')
     router.push('/admin/map-questions')
@@ -215,224 +182,101 @@ const [search, setSearch] = useState('')
   if (loading) return <div style={{ padding: 30 }}>Loading...</div>
 
   /* ===== EXAM LIST ===== */
-if (!examId) {
 
-  const filtered = exams.filter(e =>
-    (e.title || '').toLowerCase().includes(search.toLowerCase())
-  )
+  if (!examId) {
+    const filtered = exams.filter(e =>
+      (e.title || '').toLowerCase().includes(search.toLowerCase())
+    )
 
-  return (
-    <div style={styles.container}>
+    return (
+      <div style={styles.container}>
+        <h1 style={styles.heading}>Exam Mapping</h1>
 
-      <h1 style={styles.heading}>Exam Mapping</h1>
-
-      {/* SEARCH */}
-      <div style={styles.filterBar}>
         <input
-          style={styles.input}
+          style={styles.search}
           placeholder="Search exam..."
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
-      </div>
 
-      {/* TABLE */}
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={styles.th}>Exam Title</th>
-            <th style={styles.th}>Category</th>
-            <th style={styles.th}>Duration</th>
-            <th style={styles.th}>Action</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {filtered.map(e => (
-            <tr key={e.id}>
-              <td style={styles.td}>{e.title}</td>
-              <td style={styles.td}>{e.exam_category}</td>
-              <td style={styles.td}>{e.duration_minutes} min</td>
-
-              <td style={styles.td}>
-                <button
-                  style={styles.primaryBtn}
-                  onClick={() => {
-                    window.location.href = `/admin/map-questions?examId=${e.id}`
-                  }}
-                >
-                  Map Questions
-                </button>
-              </td>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th>Exam</th>
+              <th>Category</th>
+              <th>Duration</th>
+              <th></th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
 
-    </div>
-  )
-}
+          <tbody>
+            {filtered.map(e => (
+              <tr key={e.id}>
+                <td>{e.title}</td>
+                <td>{e.exam_category}</td>
+                <td>{e.duration_minutes} min</td>
+                <td>
+                  <button
+                    style={styles.btn}
+                    onClick={() =>
+                      window.location.href = `/admin/map-questions?examId=${e.id}`
+                    }
+                  >
+                    Map Questions
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
   /* ===== MAPPING UI ===== */
 
   return (
-  <div style={styles.container}>
+    <div style={styles.container}>
 
-    <h2 style={styles.heading}>{exam?.title}</h2>
+      <h2 style={styles.heading}>{exam?.title}</h2>
 
-    {/* Duration */}
-    <div style={styles.card}>
-      <label>Duration (minutes)</label>
-      <input
-        style={styles.inputFull}
-        type="number"
-        value={duration}
-        onChange={e => setDuration(Number(e.target.value))}
-      />
-    </div>
-
-    {/* Toggle */}
-    <div style={styles.toggleWrap}>
-      <button
-        style={mode === 'SMART' ? styles.activeTab : styles.inactiveTab}
-        onClick={() => setMode('SMART')}
-      >
-        Smart Mapping
-      </button>
-
-      <button
-        style={mode === 'CUSTOM' ? styles.activeTab : styles.inactiveTab}
-        onClick={() => setMode('CUSTOM')}
-      >
-        Custom Mapping
-      </button>
-    </div>
-
-    {/* SMART */}
-    {mode === 'SMART' && (
-      <>
-        <div style={styles.card}>
-          {sections.map((sec, i) => (
-            <div key={i} style={styles.sectionRow}>
-
-              <select
-                style={styles.select}
-                onChange={e => updateSection(i, 'subject', e.target.value)}
-              >
-                <option value="">Select Subject</option>
-                {subjects.map(s => <option key={s}>{s}</option>)}
-              </select>
-
-              <select
-                style={styles.select}
-                onChange={e => updateSection(i, 'chapter', e.target.value)}
-              >
-                <option value="">Select Chapter</option>
-                {getChapters(sec.subject).map(c => <option key={c}>{c}</option>)}
-              </select>
-
-              <input
-                style={styles.smallInput}
-                type="number"
-                value={sec.count}
-                onChange={e => updateSection(i, 'count', Number(e.target.value))}
-              />
-
-              <div style={styles.diffRow}>
-                <span>Easy %</span>
-                <input
-                  style={styles.diffInput}
-                  value={sec.easy}
-                  onChange={e => updateSection(i, 'easy', Number(e.target.value))}
-                />
-
-                <span>Medium %</span>
-                <input
-                  style={styles.diffInput}
-                  value={sec.medium}
-                  onChange={e => updateSection(i, 'medium', Number(e.target.value))}
-                />
-
-                <span>Hard %</span>
-                <input
-                  style={styles.diffInput}
-                  value={sec.hard}
-                  onChange={e => updateSection(i, 'hard', Number(e.target.value))}
-                />
-              </div>
-
-            </div>
-          ))}
-        </div>
-
-        <div style={styles.actionRow}>
-          <button style={styles.secondaryBtn} onClick={addSection}>
-            + Add More Section
-          </button>
-
-          <button style={styles.primaryBtn} onClick={generateSmart}>
-            Generate Questions
-          </button>
-        </div>
-      </>
-    )}
-
-    {/* CUSTOM */}
-    {mode === 'CUSTOM' && (
       <div style={styles.card}>
-        {questions.map(q => (
-          <div key={q.id} style={styles.qRow}>
-            <input
-              type="checkbox"
-              checked={selectedQuestions.some(x => x.id === q.id)}
-              onChange={() => toggleCustom(q)}
-            />
-            <span>{q.question}</span>
-          </div>
-        ))}
-      </div>
-    )}
-
-    {/* SUMMARY */}
-    <div style={styles.summary}>
-      <h3>Selection Summary</h3>
-      <p>Total Selected: {selectedQuestions.length}</p>
-    </div>
-
-    {/* FINAL BUTTON */}
-    <button style={styles.submitBtn} onClick={saveMapping}>
-      Map Questions
-    </button>
-
-  </div>
-)
-      <h2>{exam?.title}</h2>
-
-      <div>
-        Duration (minutes)
+        <label>Duration (minutes)</label>
         <input
+          style={styles.input}
           type="number"
           value={duration}
           onChange={e => setDuration(Number(e.target.value))}
         />
       </div>
 
-      <div style={{ marginTop: 20 }}>
-        <button onClick={() => setMode('SMART')}>Smart Mapping</button>
-        <button onClick={() => setMode('CUSTOM')}>Custom Mapping</button>
+      <div style={styles.tabs}>
+        <button
+          style={mode === 'SMART' ? styles.activeTab : styles.tab}
+          onClick={() => setMode('SMART')}
+        >
+          Smart Mapping
+        </button>
+
+        <button
+          style={mode === 'CUSTOM' ? styles.activeTab : styles.tab}
+          onClick={() => setMode('CUSTOM')}
+        >
+          Custom Mapping
+        </button>
       </div>
 
-      {/* SMART */}
       {mode === 'SMART' && (
-        <>
+        <div style={styles.card}>
           {sections.map((sec, i) => (
-            <div key={i} style={{ marginTop: 20 }}>
+            <div key={i} style={styles.row}>
               <select onChange={e => updateSection(i, 'subject', e.target.value)}>
-                <option value="">Select Subject</option>
+                <option>Select Subject</option>
                 {subjects.map(s => <option key={s}>{s}</option>)}
               </select>
 
               <select onChange={e => updateSection(i, 'chapter', e.target.value)}>
-                <option value="">Select Chapter</option>
+                <option>Select Chapter</option>
                 {getChapters(sec.subject).map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
@@ -440,148 +284,33 @@ if (!examId) {
 
           <button onClick={addSection}>+ Add Section</button>
           <button onClick={generateSmart}>Generate Questions</button>
-        </>
+        </div>
       )}
 
-      {/* CUSTOM */}
-      {mode === 'CUSTOM' && (
-        questions.map(q => (
-          <div key={q.id}>
-            <input
-              type="checkbox"
-              checked={selectedQuestions.some(x => x.id === q.id)}
-              onChange={() => toggleCustom(q)}
-            />
-            {q.question}
-          </div>
-        ))
-      )}
-
-      <div style={{ marginTop: 20 }}>
+      <div style={styles.summary}>
         Total Selected: {selectedQuestions.length}
       </div>
 
-      <button onClick={saveMapping} style={{ marginTop: 20 }}>
+      <button style={styles.submit} onClick={saveMapping}>
         Map Questions
       </button>
 
     </div>
   )
 }
+
 const styles = {
-  container: {
-    padding: 30,
-    background: '#f3f4f6',
-    minHeight: '100vh'
-  },
-
-  heading: {
-    fontSize: 24,
-    marginBottom: 20
-  },
-
-  card: {
-    background: '#fff',
-    padding: 20,
-    borderRadius: 10,
-    marginBottom: 20
-  },
-
-  inputFull: {
-    width: '100%',
-    padding: 10,
-    marginTop: 8,
-    borderRadius: 6,
-    border: '1px solid #ccc'
-  },
-
-  toggleWrap: {
-    display: 'flex',
-    gap: 10,
-    marginBottom: 20
-  },
-
-  activeTab: {
-    padding: '8px 16px',
-    background: '#2563eb',
-    color: '#fff',
-    borderRadius: 6,
-    border: 'none'
-  },
-
-  inactiveTab: {
-    padding: '8px 16px',
-    background: '#e5e7eb',
-    borderRadius: 6,
-    border: 'none'
-  },
-
-  sectionRow: {
-    marginBottom: 15
-  },
-
-  select: {
-    padding: 8,
-    marginRight: 10
-  },
-
-  smallInput: {
-    width: 60,
-    padding: 8
-  },
-
-  diffRow: {
-    marginTop: 10,
-    display: 'flex',
-    gap: 10,
-    alignItems: 'center'
-  },
-
-  diffInput: {
-    width: 60,
-    padding: 6
-  },
-
-  actionRow: {
-    display: 'flex',
-    gap: 10
-  },
-
-  primaryBtn: {
-    padding: '10px 16px',
-    background: '#2563eb',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6
-  },
-
-  secondaryBtn: {
-    padding: '10px 16px',
-    background: '#6b7280',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6
-  },
-
-  summary: {
-    background: '#fff',
-    padding: 20,
-    borderRadius: 10,
-    marginTop: 20
-  },
-
-  submitBtn: {
-    marginTop: 20,
-    padding: '12px 20px',
-    background: 'green',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6
-  },
-
-  qRow: {
-    display: 'flex',
-    gap: 10,
-    marginBottom: 10
-  }
+  container: { padding: 30, background: '#f3f4f6', minHeight: '100vh' },
+  heading: { fontSize: 22, marginBottom: 20 },
+  card: { background: '#fff', padding: 20, borderRadius: 8, marginBottom: 20 },
+  input: { width: '100%', padding: 10, marginTop: 10 },
+  tabs: { display: 'flex', gap: 10, marginBottom: 20 },
+  tab: { padding: 8, background: '#ddd' },
+  activeTab: { padding: 8, background: '#2563eb', color: '#fff' },
+  row: { marginBottom: 10 },
+  summary: { marginTop: 20 },
+  submit: { marginTop: 20, padding: 10, background: 'green', color: '#fff' },
+  table: { width: '100%', background: '#fff' },
+  search: { width: '100%', padding: 10, marginBottom: 20 },
+  btn: { padding: 8, background: '#2563eb', color: '#fff' }
 }
