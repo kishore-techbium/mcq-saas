@@ -235,7 +235,7 @@ export default function MapQuestionsPage() {
   }
 
   /* UI PART REMAINS EXACTLY SAME */
-}
+
   /* ================= UI ================= */
 
   if (loading) return <div style={styles.loading}>Loading...</div>
