@@ -55,7 +55,10 @@ export default function MapQuestionsPage() {
         .eq('id', examId)
         .eq('college_id', collegeId)
         .single()
-
+      
+console.log("URL:", window.location.href)
+console.log("Extracted examId:", examId)
+      
       if (error || !data) {
         alert('❌ Exam not found')
         router.push('/admin/map-questions')
