@@ -23,12 +23,20 @@ export default function MapQuestionsPage() {
   ])
 
   /* ================= INIT ================= */
-
+console.log("FULL URL:", window.location.href)
   useEffect(() => {
     const run = async () => {
 
-      const params = new URLSearchParams(window.location.search)
-      const examId = params.get('examId')
+const params = new URLSearchParams(window.location.search)
+
+// try both cases (safety)
+let examId =
+  params.get('examId') ||
+  params.get('examid') ||
+  params.get('id')
+
+console.log("Final examId:", examId)
+      console.log("URL:", window.location.href)
 
       if (!examId) {
         setLoading(false)
