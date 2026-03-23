@@ -275,8 +275,136 @@ if (!examId) {
   /* ===== MAPPING UI ===== */
 
   return (
-    <div style={{ padding: 30 }}>
+  <div style={styles.container}>
 
+    <h2 style={styles.heading}>{exam?.title}</h2>
+
+    {/* Duration */}
+    <div style={styles.card}>
+      <label>Duration (minutes)</label>
+      <input
+        style={styles.inputFull}
+        type="number"
+        value={duration}
+        onChange={e => setDuration(Number(e.target.value))}
+      />
+    </div>
+
+    {/* Toggle */}
+    <div style={styles.toggleWrap}>
+      <button
+        style={mode === 'SMART' ? styles.activeTab : styles.inactiveTab}
+        onClick={() => setMode('SMART')}
+      >
+        Smart Mapping
+      </button>
+
+      <button
+        style={mode === 'CUSTOM' ? styles.activeTab : styles.inactiveTab}
+        onClick={() => setMode('CUSTOM')}
+      >
+        Custom Mapping
+      </button>
+    </div>
+
+    {/* SMART */}
+    {mode === 'SMART' && (
+      <>
+        <div style={styles.card}>
+          {sections.map((sec, i) => (
+            <div key={i} style={styles.sectionRow}>
+
+              <select
+                style={styles.select}
+                onChange={e => updateSection(i, 'subject', e.target.value)}
+              >
+                <option value="">Select Subject</option>
+                {subjects.map(s => <option key={s}>{s}</option>)}
+              </select>
+
+              <select
+                style={styles.select}
+                onChange={e => updateSection(i, 'chapter', e.target.value)}
+              >
+                <option value="">Select Chapter</option>
+                {getChapters(sec.subject).map(c => <option key={c}>{c}</option>)}
+              </select>
+
+              <input
+                style={styles.smallInput}
+                type="number"
+                value={sec.count}
+                onChange={e => updateSection(i, 'count', Number(e.target.value))}
+              />
+
+              <div style={styles.diffRow}>
+                <span>Easy %</span>
+                <input
+                  style={styles.diffInput}
+                  value={sec.easy}
+                  onChange={e => updateSection(i, 'easy', Number(e.target.value))}
+                />
+
+                <span>Medium %</span>
+                <input
+                  style={styles.diffInput}
+                  value={sec.medium}
+                  onChange={e => updateSection(i, 'medium', Number(e.target.value))}
+                />
+
+                <span>Hard %</span>
+                <input
+                  style={styles.diffInput}
+                  value={sec.hard}
+                  onChange={e => updateSection(i, 'hard', Number(e.target.value))}
+                />
+              </div>
+
+            </div>
+          ))}
+        </div>
+
+        <div style={styles.actionRow}>
+          <button style={styles.secondaryBtn} onClick={addSection}>
+            + Add More Section
+          </button>
+
+          <button style={styles.primaryBtn} onClick={generateSmart}>
+            Generate Questions
+          </button>
+        </div>
+      </>
+    )}
+
+    {/* CUSTOM */}
+    {mode === 'CUSTOM' && (
+      <div style={styles.card}>
+        {questions.map(q => (
+          <div key={q.id} style={styles.qRow}>
+            <input
+              type="checkbox"
+              checked={selectedQuestions.some(x => x.id === q.id)}
+              onChange={() => toggleCustom(q)}
+            />
+            <span>{q.question}</span>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {/* SUMMARY */}
+    <div style={styles.summary}>
+      <h3>Selection Summary</h3>
+      <p>Total Selected: {selectedQuestions.length}</p>
+    </div>
+
+    {/* FINAL BUTTON */}
+    <button style={styles.submitBtn} onClick={saveMapping}>
+      Map Questions
+    </button>
+
+  </div>
+)
       <h2>{exam?.title}</h2>
 
       <div>
@@ -342,43 +470,118 @@ if (!examId) {
 }
 const styles = {
   container: {
-    padding: 40,
+    padding: 30,
     background: '#f3f4f6',
     minHeight: '100vh'
   },
+
   heading: {
     fontSize: 24,
     marginBottom: 20
   },
-  filterBar: {
+
+  card: {
+    background: '#fff',
+    padding: 20,
+    borderRadius: 10,
     marginBottom: 20
   },
-  input: {
-    padding: 10,
+
+  inputFull: {
     width: '100%',
+    padding: 10,
+    marginTop: 8,
     borderRadius: 6,
     border: '1px solid #ccc'
   },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    background: '#fff'
+
+  toggleWrap: {
+    display: 'flex',
+    gap: 10,
+    marginBottom: 20
   },
-  th: {
-    padding: 12,
-    textAlign: 'left',
-    borderBottom: '1px solid #ddd'
+
+  activeTab: {
+    padding: '8px 16px',
+    background: '#2563eb',
+    color: '#fff',
+    borderRadius: 6,
+    border: 'none'
   },
-  td: {
-    padding: 12,
-    borderBottom: '1px solid #eee'
+
+  inactiveTab: {
+    padding: '8px 16px',
+    background: '#e5e7eb',
+    borderRadius: 6,
+    border: 'none'
   },
+
+  sectionRow: {
+    marginBottom: 15
+  },
+
+  select: {
+    padding: 8,
+    marginRight: 10
+  },
+
+  smallInput: {
+    width: 60,
+    padding: 8
+  },
+
+  diffRow: {
+    marginTop: 10,
+    display: 'flex',
+    gap: 10,
+    alignItems: 'center'
+  },
+
+  diffInput: {
+    width: 60,
+    padding: 6
+  },
+
+  actionRow: {
+    display: 'flex',
+    gap: 10
+  },
+
   primaryBtn: {
-    padding: '8px 14px',
+    padding: '10px 16px',
     background: '#2563eb',
     color: '#fff',
     border: 'none',
-    borderRadius: 6,
-    cursor: 'pointer'
+    borderRadius: 6
+  },
+
+  secondaryBtn: {
+    padding: '10px 16px',
+    background: '#6b7280',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6
+  },
+
+  summary: {
+    background: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    marginTop: 20
+  },
+
+  submitBtn: {
+    marginTop: 20,
+    padding: '12px 20px',
+    background: 'green',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6
+  },
+
+  qRow: {
+    display: 'flex',
+    gap: 10,
+    marginBottom: 10
   }
 }
