@@ -167,25 +167,76 @@ export default function MapQuestionsPage() {
 
   /* ================= EXAM LIST ================= */
 
-  if (!examId) {
-    return (
-      <div style={{ padding: 30 }}>
-        <h2>Exam Mapping</h2>
+if (!examId) {
 
-        {exams.map(e => (
-          <div key={e.id}>
-            {e.title}
-            <button onClick={() =>
-              router.push(`/admin/map-questions?examId=${e.id}`)
-            }>
-              Map
-            </button>
-          </div>
-        ))}
+  const filtered = exams
+    .filter(e => e.title.toLowerCase().includes(search.toLowerCase()))
+    .filter(e => categoryFilter === 'ALL' || e.exam_category === categoryFilter)
+
+  return (
+    <div style={styles.container}>
+
+      <h1 style={styles.heading}>Exam Mapping</h1>
+
+      {/* FILTER BAR */}
+      <div style={styles.filterBar}>
+        <input
+          style={styles.input}
+          placeholder="Search exam..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+
+        <select
+          style={styles.input}
+          value={categoryFilter}
+          onChange={e => setCategoryFilter(e.target.value)}
+        >
+          <option value="ALL">All Categories</option>
+          {[...new Set(exams.map(e => e.exam_category))].map(c =>
+            <option key={c}>{c}</option>
+          )}
+        </select>
       </div>
-    )
-  }
 
+      {/* TABLE */}
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th style={styles.th}>Exam</th>
+            <th style={styles.th}>Category</th>
+            <th style={styles.th}>Duration</th>
+            <th style={styles.th}>Mapped</th>
+            <th style={styles.th}>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {filtered.map(e => (
+            <tr key={e.id}>
+              <td style={styles.td}>{e.title}</td>
+              <td style={styles.td}>{e.exam_category}</td>
+              <td style={styles.td}>{e.duration_minutes} min</td>
+              <td style={styles.td}>--</td>
+
+              <td style={styles.td}>
+                <button
+                  style={styles.primaryBtn}
+                  onClick={() =>
+                    router.push(`/admin/map-questions?examId=${e.id}`)
+                  }
+                >
+                  Map Questions
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+    </div>
+  )
+}
   /* ================= UI ================= */
 
   return (
