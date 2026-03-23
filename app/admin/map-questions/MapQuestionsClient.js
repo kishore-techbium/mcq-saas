@@ -29,10 +29,18 @@ const [successMsg, setSuccessMsg] = useState('')
 
   /* ================= INIT ================= */
 
-  useEffect(() => {
-    if (!examId) fetchExams()
-    else initExam()
-  }, [examId])
+useEffect(() => {
+  if (!examId) {
+    if (preloadedExams && preloadedExams.length > 0) {
+      setExams(preloadedExams)
+      setLoading(false)
+    } else {
+      fetchExams()
+    }
+  } else {
+    initExam()
+  }
+}, [examId, preloadedExams])
 useEffect(() => {
   async function checkUser() {
     const { data } = await supabase.auth.getUser()
