@@ -40,6 +40,34 @@ export default function UploadQuestionsPage() {
     setExams(data || [])
   }
 
+  /* ================= TEMPLATE DOWNLOAD ================= */
+
+  function downloadTemplate() {
+
+    const sampleData = [
+      {
+        exam_category: 'JEE_MAINS',
+        subject: 'Physics',
+        chapter: 'Kinematics',
+        question: 'Sample Question?',
+        option_a: 'Option A',
+        option_b: 'Option B',
+        option_c: 'Option C',
+        option_d: 'Option D',
+        correct_answer: 'A'
+      }
+    ]
+
+    const worksheet = XLSX.utils.json_to_sheet(sampleData)
+    const workbook = XLSX.utils.book_new()
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template')
+
+    XLSX.writeFile(workbook, 'question_template.xlsx')
+  }
+
+  /* ================= PREVIEW ================= */
+
   async function handlePreview() {
     if (!file) {
       alert('Please select a file first')
@@ -54,6 +82,8 @@ export default function UploadQuestionsPage() {
     setPreviewRows(rows)
     setIsPreview(true)
   }
+
+  /* ================= UPLOAD ================= */
 
   async function handleUpload() {
 
@@ -88,7 +118,13 @@ export default function UploadQuestionsPage() {
 
       <div style={styles.card}>
 
-        <h1 style={styles.heading}>📤 Upload Question Bank</h1>
+        <div style={styles.headerRow}>
+          <h1 style={styles.heading}>📤 Upload Question Bank</h1>
+
+          <button style={styles.templateBtn} onClick={downloadTemplate}>
+            ⬇ Download Template
+          </button>
+        </div>
 
         {/* FILE INPUT */}
         <div style={styles.section}>
@@ -135,7 +171,7 @@ export default function UploadQuestionsPage() {
           )}
         </div>
 
-        {/* PREVIEW TABLE */}
+        {/* PREVIEW */}
         {isPreview && (
           <div style={styles.previewBox}>
             <h3 style={{ marginBottom: 10 }}>Preview</h3>
@@ -145,10 +181,10 @@ export default function UploadQuestionsPage() {
                 <thead>
                   <tr>
                     <th>Question</th>
-                    <th>Option A</th>
-                    <th>Option B</th>
-                    <th>Option C</th>
-                    <th>Option D</th>
+                    <th>A</th>
+                    <th>B</th>
+                    <th>C</th>
+                    <th>D</th>
                     <th>Answer</th>
                   </tr>
                 </thead>
@@ -197,10 +233,23 @@ const styles = {
     borderRadius: 12,
     boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
   },
+  headerRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20
+  },
   heading: {
     fontSize: 22,
-    fontWeight: 600,
-    marginBottom: 20
+    fontWeight: 600
+  },
+  templateBtn: {
+    padding: '8px 14px',
+    background: '#f59e0b',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer'
   },
   section: {
     marginBottom: 20
