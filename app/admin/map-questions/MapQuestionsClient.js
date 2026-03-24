@@ -63,11 +63,20 @@ async function fetchExams() {
 } */
   setLoading(true) 
 
-  const { data: examData } = await supabase
+  /*const { data: examData } = await supabase
+    .from('exams')
+    .select('*')
+    .order('created_at', { ascending: false })*/
+let examData = exams   // ✅ USE EXISTING FILTERED EXAMS
+
+if (!examData || examData.length === 0) {
+  const { data } = await supabase
     .from('exams')
     .select('*')
     .order('created_at', { ascending: false })
-
+  examData = data || []
+}
+  
   const stats = {}
 
 for (let e of examData || []) {
@@ -98,8 +107,6 @@ console.log("MAPPED DATA:", mapped)
     subjects: subjectMap
   }
 }
-
-  setExams(examData || [])
   setExamStats(stats)
   setLoading(false)   // ✅ CRITICAL
 }
