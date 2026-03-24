@@ -8,6 +8,8 @@ export default function StudentProfile() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
+  const [joinCode, setJoinCode] = useState('')
+
   const [profile, setProfile] = useState({
     id: '',
     email: '',
@@ -34,14 +36,12 @@ export default function StudentProfile() {
     const userId = auth.user.id
     const email = auth.user.email
 
-    /* 1️⃣ Try to load existing profile */
     const { data: row } = await supabase
       .from('students')
       .select('*')
       .eq('id', userId)
       .maybeSingle()
 
-    /* 2️⃣ If profile doesn't exist, create it */
     if (!row) {
       const { data: inserted, error } = await supabase
         .from('students')
@@ -75,37 +75,59 @@ export default function StudentProfile() {
   }
 
   async function saveProfile() {
-  setSaving(true)
-  setMessage('')
+    setSaving(true)
+    setMessage('')
 
-  const { data: auth } = await supabase.auth.getUser()
-  const userId = auth.user.id
+    const { data: auth } = await supabase.auth.getUser()
+    const userId = auth.user.id
 
-  const { error } = await supabase
-    .from('students')
-    .upsert(
-      {
-        id: userId,
-        email: profile.email,
-        first_name: profile.first_name || null,
-        last_name: profile.last_name || null,
-        phone: profile.phone || null,
-        college_name: profile.college_name || null,
-        address: profile.address || null
-      },
-      { onConflict: 'id' }
-    )
+    // 🔥 STEP 1: Validate Join Code
+    const { data: codeData, error: codeError } = await supabase
+      .from('college_codes')
+      .select('college_id')
+      .eq('code', joinCode)
+      .maybeSingle()
 
-  if (error) {
-    console.error('PROFILE SAVE ERROR:', error)
-    alert(error.message)
-    setMessage('❌ Failed to save profile')
-  } else {
-    setMessage('✅ Profile updated successfully')
+    if (!codeData || codeError) {
+      alert('Invalid Join Code')
+      setSaving(false)
+      return
+    }
+
+    const collegeId = codeData.college_id
+
+    // 🔥 STEP 2: Save profile + college_id
+    const { error } = await supabase
+      .from('students')
+      .upsert(
+        {
+          id: userId,
+          email: profile.email,
+          first_name: profile.first_name || null,
+          last_name: profile.last_name || null,
+          phone: profile.phone || null,
+          college_name: profile.college_name || null,
+          address: profile.address || null,
+          college_id: collegeId   // ✅ IMPORTANT
+        },
+        { onConflict: 'id' }
+      )
+
+    if (error) {
+      console.error('PROFILE SAVE ERROR:', error)
+      alert(error.message)
+      setMessage('❌ Failed to save profile')
+    } else {
+      setMessage('✅ Profile updated successfully')
+
+      // 🔥 Redirect to dashboard
+      setTimeout(() => {
+        window.location.href = '/student/dashboard'
+      }, 1000)
+    }
+
+    setSaving(false)
   }
-
-  setSaving(false)
-}
 
   if (loading) {
     return <p style={{ padding: 40 }}>Loading profile…</p>
@@ -119,11 +141,7 @@ export default function StudentProfile() {
         {/* EMAIL */}
         <div style={styles.field}>
           <label>Email (login)</label>
-          <input
-            value={profile.email}
-            disabled
-            style={styles.inputDisabled}
-          />
+          <input value={profile.email} disabled style={styles.inputDisabled} />
         </div>
 
         {/* FIRST NAME */}
@@ -149,6 +167,7 @@ export default function StudentProfile() {
             style={styles.input}
           />
         </div>
+
         {/* PHONE */}
         <div style={styles.field}>
           <label>Phone Number</label>
@@ -159,9 +178,20 @@ export default function StudentProfile() {
             }
             style={styles.input}
           />
-        </div>        
+        </div>
 
-        {/* COLLEGE */}
+        {/* 🔥 JOIN CODE (NEW) */}
+        <div style={styles.field}>
+          <label>Join Code</label>
+          <input
+            placeholder="Enter join code provided by admin"
+            value={joinCode}
+            onChange={e => setJoinCode(e.target.value)}
+            style={styles.input}
+          />
+        </div>
+
+        {/* COLLEGE NAME */}
         <div style={styles.field}>
           <label>College Name</label>
           <input
@@ -186,23 +216,15 @@ export default function StudentProfile() {
           />
         </div>
 
-        <button
-          onClick={saveProfile}
-          disabled={saving}
-          style={styles.saveBtn}
-        >
+        <button onClick={saveProfile} disabled={saving} style={styles.saveBtn}>
           {saving ? 'Saving…' : 'Save Profile'}
         </button>
 
-        {message && (
-          <p style={{ marginTop: 10 }}>{message}</p>
-        )}
+        {message && <p style={{ marginTop: 10 }}>{message}</p>}
       </div>
     </div>
   )
 }
-
-/* ================= STYLES ================= */
 
 const styles = {
   page: {
