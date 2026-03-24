@@ -90,40 +90,56 @@ export default function AvailableExamsPage() {
     if (!cat) return ''
     return cat.replaceAll('_', ' ').toUpperCase()
   }
-
-  async function toggleExam(id, active) {
+async function toggleExam(id, active) {
   const collegeId = await getAdminCollege()
 
-  const { error } = await supabase
+  console.log('Toggle Clicked:', { id, active, collegeId })
+
+  const { data, error } = await supabase
     .from('exams')
     .update({ is_active: !active })
     .eq('id', id)
-    .eq('college_id', collegeId)   // ✅ IMPORTANT
+    .eq('college_id', collegeId)
+    .select()
+
+  console.log('Update response:', data, error)
 
   if (error) {
-    console.error('Toggle error:', error)
-    alert('Failed to update exam')
+    alert('Update failed: ' + error.message)
+    return
+  }
+
+  if (!data || data.length === 0) {
+    alert('No rows updated → check college_id or RLS')
     return
   }
 
   loadExams()
 }
-
 async function deleteExam(id) {
   const confirmText = prompt('Type DELETE to confirm')
   if (confirmText !== 'DELETE') return
 
   const collegeId = await getAdminCollege()
 
-  const { error } = await supabase
+  console.log('Delete Clicked:', { id, collegeId })
+
+  const { data, error } = await supabase
     .from('exams')
     .delete()
     .eq('id', id)
-    .eq('college_id', collegeId)   // ✅ IMPORTANT
+    .eq('college_id', collegeId)
+    .select()
+
+  console.log('Delete response:', data, error)
 
   if (error) {
-    console.error('Delete error:', error)
-    alert('Failed to delete exam')
+    alert('Delete failed: ' + error.message)
+    return
+  }
+
+  if (!data || data.length === 0) {
+    alert('No rows deleted → check college_id or RLS')
     return
   }
 
