@@ -92,22 +92,43 @@ export default function AvailableExamsPage() {
   }
 
   async function toggleExam(id, active) {
-    await supabase
-      .from('exams')
-      .update({ is_active: !active })
-      .eq('id', id)
+  const collegeId = await getAdminCollege()
 
-    loadExams()
+  const { error } = await supabase
+    .from('exams')
+    .update({ is_active: !active })
+    .eq('id', id)
+    .eq('college_id', collegeId)   // ✅ IMPORTANT
+
+  if (error) {
+    console.error('Toggle error:', error)
+    alert('Failed to update exam')
+    return
   }
 
-  async function deleteExam(id) {
-    const confirmText = prompt('Type DELETE to confirm')
-    if (confirmText !== 'DELETE') return
+  loadExams()
+}
 
-    await supabase.from('exams').delete().eq('id', id)
-    loadExams()
+async function deleteExam(id) {
+  const confirmText = prompt('Type DELETE to confirm')
+  if (confirmText !== 'DELETE') return
+
+  const collegeId = await getAdminCollege()
+
+  const { error } = await supabase
+    .from('exams')
+    .delete()
+    .eq('id', id)
+    .eq('college_id', collegeId)   // ✅ IMPORTANT
+
+  if (error) {
+    console.error('Delete error:', error)
+    alert('Failed to delete exam')
+    return
   }
 
+  loadExams()
+}
   if (loading) return <p>Loading exams...</p>
 
   return (
