@@ -7,19 +7,15 @@ import { useRouter } from 'next/navigation'
 export default function AuthCallback() {
 
   const router = useRouter()
-  const hasRun = useRef(false) // ✅ prevents re-run
+  const hasRun = useRef(false)
 
- useEffect(() => {
-  // ✅ VERY IMPORTANT: run ONLY on callback page
-  if (window.location.pathname !== '/auth/callback') {
-    return
-  }
+  useEffect(() => {
+    if (window.location.pathname !== '/auth/callback') return
+    if (hasRun.current) return
 
-  if (hasRun.current) return
-  hasRun.current = true
-
-  handleAuth()
-}, [])
+    hasRun.current = true
+    handleAuth()
+  }, [])
 
   async function handleAuth() {
 
@@ -33,38 +29,78 @@ export default function AuthCallback() {
     }
 
     const email = userData.user.email
+    const userId = userData.user.id
 
-    const { data: user } = await supabase
+    // ✅ FIX 1: use maybeSingle + fetch full row
+    let { data: user, error } = await supabase
       .from('students')
-      .select('role')
+      .select('*')
       .eq('email', email)
-      .single()
+      .maybeSingle()
+
+    if (error) {
+      console.error("Fetch error:", error)
+    }
+
+    // ✅ FIX 2: create user if not exists
+    if (!user) {
+      console.log("🟡 New user → creating profile")
+
+      const { data: newUser, error: insertError } = await supabase
+        .from('students')
+        .insert({
+          id: userId,
+          email: email,
+          role: 'student'
+        })
+        .select()
+        .single()
+
+      if (insertError) {
+        console.error("Insert error:", insertError)
+        router.replace('/')
+        return
+      }
+
+      user = newUser
+
+      // 👉 new users go to profile
+      router.replace('/student/profile')
+      return
+    }
 
     console.log("🟢 USER ROLE:", user?.role)
 
-    // ✅ SAFE REDIRECT (only once)
-    if (user?.role === 'superadmin') {
+    // ✅ ROLE BASED REDIRECT
+    if (user.role === 'superadmin') {
       router.replace('/superadmin')
+      return
     }
-    else if (user?.role === 'admin') {
+
+    if (user.role === 'admin') {
       router.replace('/admin')
+      return
     }
-   else if (user?.role === 'student') {
 
-  // ✅ check profile completeness
-  const isProfileComplete =
-    user.first_name &&
-    user.phone &&
-    user.exam_preference
+    if (user.role === 'student') {
 
-  if (!isProfileComplete) {
-    console.log("🟡 Incomplete profile → redirecting to profile")
-    router.replace('/signup')
-  } else {
-    console.log("🟢 Profile complete → select-category")
-    router.replace('/select-category')
-  }
-}
+      const isProfileComplete =
+        user.first_name &&
+        user.phone
+
+      if (!isProfileComplete) {
+        console.log("🟡 Incomplete profile → profile page")
+        router.replace('/student/profile')
+      } else {
+        console.log("🟢 Profile complete → dashboard")
+        router.replace('/student/dashboard')
+      }
+
+      return
+    }
+
+    // fallback
+    router.replace('/')
   }
 
   return (
