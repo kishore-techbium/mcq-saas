@@ -243,7 +243,7 @@ for (let e of examData || []) {
     // 4️⃣ SUCCESS POPUP + REDIRECT
     alert('✅ Questions mapped successfully!')
 
-    router.push('/admin/map-questions')
+    window.location.href = '/admin/map-questions'
 
   } catch (err) {
     console.error(err)
