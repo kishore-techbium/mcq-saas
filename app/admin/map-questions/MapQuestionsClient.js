@@ -67,7 +67,6 @@ async function fetchExams() {
 for (let e of examData || []) {
 
   const { data: mapped } = await supabase
-console.log("MAPPED DATA:", mapped)
     .from('exam_questions')
     .select(`
       question_id,
@@ -76,7 +75,7 @@ console.log("MAPPED DATA:", mapped)
       )
     `)
     .eq('exam_id', e.id)
-
+console.log("MAPPED DATA:", mapped)
   let subjectMap = {}
   let total = 0
 
