@@ -7,15 +7,8 @@ import * as XLSX from 'xlsx'
 import { getAdminCollege } from '../../../lib/getAdminCollege'
 
 const REQUIRED_COLUMNS = [
-  'exam_category',
-  'subject',
-  'chapter',
-  'question',
-  'option_a',
-  'option_b',
-  'option_c',
-  'option_d',
-  'correct_answer'
+  'exam_category','subject','chapter','question',
+  'option_a','option_b','option_c','option_d','correct_answer'
 ]
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
@@ -35,13 +28,10 @@ export default function UploadQuestionsPage() {
   const [uploading, setUploading] = useState(false)
   const [toast, setToast] = useState(null)
 
-  useEffect(() => {
-    loadExams()
-  }, [])
+  useEffect(() => { loadExams() }, [])
 
   async function loadExams() {
     const collegeId = await getAdminCollege()
-
     const { data } = await supabase
       .from('exams')
       .select('*')
@@ -50,185 +40,124 @@ export default function UploadQuestionsPage() {
     setExams(data || [])
   }
 
-  function showToast(message, type = 'success') {
+  function showToast(message, type='success') {
     setToast({ message, type })
-    setTimeout(() => setToast(null), 3000)
+    setTimeout(()=>setToast(null),3000)
   }
 
-  /* ================= TEMPLATE ================= */
-
   function downloadTemplate() {
-    const sampleData = [{
-      exam_category: 'JEE_MAINS',
-      subject: 'Physics',
-      chapter: 'Kinematics',
-      question: 'Sample Question?',
-      option_a: 'A',
-      option_b: 'B',
-      option_c: 'C',
-      option_d: 'D',
-      correct_answer: 'A'
-    }]
-
-    const ws = XLSX.utils.json_to_sheet(sampleData)
+    const ws = XLSX.utils.json_to_sheet([{
+      exam_category:'JEE_MAINS',subject:'Physics',chapter:'Kinematics',
+      question:'Sample?',option_a:'A',option_b:'B',option_c:'C',option_d:'D',correct_answer:'A'
+    }])
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Template')
     XLSX.writeFile(wb, 'question_template.xlsx')
   }
 
-  /* ================= VALIDATION ================= */
-
-  function validateRow(row, index) {
-    const rowErrors = []
-
-    REQUIRED_COLUMNS.forEach(col => {
-      if (!row[col] || String(row[col]).trim() === '') {
-        rowErrors.push(`Row ${index + 2}: Missing ${col}`)
+  function validateRow(row,index){
+    const errs=[]
+    REQUIRED_COLUMNS.forEach(col=>{
+      if(!row[col] || String(row[col]).trim()===''){
+        errs.push(`Row ${index+2}: Missing ${col}`)
       }
     })
-
-    if (
-      row.correct_answer &&
-      !['A', 'B', 'C', 'D'].includes(String(row.correct_answer).trim())
-    ) {
-      rowErrors.push(`Row ${index + 2}: correct_answer must be A/B/C/D`)
+    if(row.correct_answer && !['A','B','C','D'].includes(row.correct_answer)){
+      errs.push(`Row ${index+2}: Invalid answer`)
     }
-
-    return rowErrors
+    return errs
   }
 
-  /* ================= PREVIEW ================= */
+  async function handlePreview(){
+    if(!file) return showToast('Select file','error')
+    if(file.size>MAX_FILE_SIZE) return showToast('File too large','error')
 
-  async function handlePreview() {
+    try{
+      const buffer=await file.arrayBuffer()
+      const wb=XLSX.read(buffer)
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]])
 
-    if (!file) {
-      showToast('Please select file', 'error')
-      return
-    }
+      if(!rows.length) return showToast('Empty file','error')
 
-    if (file.size > MAX_FILE_SIZE) {
-      showToast('File too large (max 5MB)', 'error')
-      return
-    }
-
-    setErrors([])
-
-    try {
-      const buffer = await file.arrayBuffer()
-      const wb = XLSX.read(buffer)
-      const sheet = wb.Sheets[wb.SheetNames[0]]
-      const rows = XLSX.utils.sheet_to_json(sheet)
-
-      if (!rows.length) {
-        showToast('Empty file', 'error')
-        return
+      const headers=Object.keys(rows[0])
+      const missing=REQUIRED_COLUMNS.filter(c=>!headers.includes(c))
+      if(missing.length){
+        setErrors(missing.map(m=>`Missing ${m}`))
+        return showToast('Missing columns','error')
       }
 
-      const headers = Object.keys(rows[0])
-      const missing = REQUIRED_COLUMNS.filter(c => !headers.includes(c))
+      let allErrors=[]
+      rows.forEach((r,i)=>allErrors.push(...validateRow(r,i)))
 
-      if (missing.length) {
-        setErrors(missing.map(m => `Missing column: ${m}`))
-        showToast('Missing columns', 'error')
-        return
-      }
-
-      let allErrors = []
-      rows.forEach((row, i) => {
-        allErrors.push(...validateRow(row, i))
-      })
-
-      if (allErrors.length) {
+      if(allErrors.length){
         setErrors(allErrors)
-        showToast('Validation failed', 'error')
-        return
+        return showToast('Validation failed','error')
       }
 
       setPreviewRows(rows)
       setIsPreview(true)
 
-    } catch {
-      showToast('Invalid file', 'error')
+    }catch{
+      showToast('Invalid file','error')
     }
   }
 
-  /* ================= UPLOAD ================= */
+  async function handleUpload(){
 
-  async function handleUpload() {
+    if(!previewRows.length) return
 
-    if (!previewRows.length) return
-
-    const collegeId = await getAdminCollege()
+    const collegeId=await getAdminCollege()
 
     setUploading(true)
     setProgress(40)
 
-    try {
+    try{
 
-      const payload = previewRows.map(r => ({
-        ...r,
-        college_id: collegeId
-      }))
+      const payload=previewRows.map(r=>({...r,college_id:collegeId}))
 
-      const { data: inserted, error } = await supabase
+      const {data:inserted,error}=await supabase
         .from('question_bank')
         .insert(payload)
         .select()
 
-      if (error) {
-        showToast('Upload failed', 'error')
-        setUploading(false)
-        return
-      }
+      if(error) throw error
 
-      if (selectedExam) {
+      if(selectedExam){
         await supabase.from('exam_questions').insert(
-          inserted.map(q => ({
-            exam_id: selectedExam,
-            question_id: q.id
-          }))
+          inserted.map(q=>({exam_id:selectedExam,question_id:q.id}))
         )
       }
 
       setProgress(100)
       showToast('Uploaded successfully')
 
-      // redirect after short delay
-      setTimeout(() => {
-        router.push('/admin')
-      }, 1200)
+      setTimeout(()=>router.push('/admin'),1000)
 
-    } catch {
-      showToast('Upload failed', 'error')
+    }catch{
+      showToast('Upload failed','error')
     }
 
     setUploading(false)
   }
 
-  /* ================= UI ================= */
-
   return (
     <div style={styles.page}>
       <div style={styles.card}>
 
-        <div style={styles.headerRow}>
-          <h1 style={styles.heading}>📤 Upload Question Bank</h1>
+        <h1 style={styles.heading}>📤 Upload Question Bank</h1>
 
-          <button style={styles.templateBtn} onClick={downloadTemplate}>
-            ⬇ Download Template
-          </button>
+        <button style={styles.templateBtn} onClick={downloadTemplate}>
+          Download Template
+        </button>
+
+        <div style={styles.section}>
+          <input type="file" onChange={e=>setFile(e.target.files[0])}/>
         </div>
 
         <div style={styles.section}>
-          <label>Upload Excel</label>
-          <input type="file" onChange={(e) => setFile(e.target.files[0])} />
-        </div>
-
-        <div style={styles.section}>
-          <label>Map to Exam</label>
-          <select onChange={(e) => setSelectedExam(e.target.value)}>
-            <option value="">Select</option>
-            {exams.map(e => (
+          <select onChange={e=>setSelectedExam(e.target.value)}>
+            <option value="">Select Exam</option>
+            {exams.map(e=>(
               <option key={e.id} value={e.id}>{e.title}</option>
             ))}
           </select>
@@ -240,61 +169,49 @@ export default function UploadQuestionsPage() {
           </button>
         )}
 
-{isPreview && previewRows.length > 0 && (
-  <div style={styles.previewBox}>
-    <h3>Preview ({previewRows.length} questions)</h3>
-
-    <div style={styles.tableWrapper}>
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Question</th>
-            <th>A</th>
-            <th>B</th>
-            <th>C</th>
-            <th>D</th>
-            <th>Answer</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {previewRows.slice(0, 10).map((row, i) => (
-            <tr key={i}>
-              <td>{i + 1}</td>
-              <td>{row.question}</td>
-              <td>{row.option_a}</td>
-              <td>{row.option_b}</td>
-              <td>{row.option_c}</td>
-              <td>{row.option_d}</td>
-              <td>{row.correct_answer}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-
-    {previewRows.length > 10 && (
-      <p style={{ marginTop: 10 }}>
-        Showing first 10 rows out of {previewRows.length}
-      </p>
-    )}
-  </div>
-)}
+        {isPreview && (
+          <button style={styles.uploadBtn} onClick={handleUpload}>
             {uploading ? `Uploading ${progress}%` : 'Upload Questions'}
           </button>
         )}
 
-        {errors.length > 0 && (
+        {/* ✅ PREVIEW TABLE */}
+        {isPreview && previewRows.length>0 && (
+          <div style={styles.previewBox}>
+            <h3>Preview ({previewRows.length})</h3>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th>#</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Ans</th>
+                </tr>
+              </thead>
+              <tbody>
+                {previewRows.slice(0,10).map((r,i)=>(
+                  <tr key={i}>
+                    <td>{i+1}</td>
+                    <td>{r.question}</td>
+                    <td>{r.option_a}</td>
+                    <td>{r.option_b}</td>
+                    <td>{r.option_c}</td>
+                    <td>{r.option_d}</td>
+                    <td>{r.correct_answer}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {errors.length>0 && (
           <div style={styles.errorBox}>
-            {errors.slice(0, 5).map((e, i) => <div key={i}>{e}</div>)}
+            {errors.slice(0,5).map((e,i)=><div key={i}>{e}</div>)}
           </div>
         )}
 
         {toast && (
           <div style={{
             ...styles.toast,
-            background: toast.type === 'error' ? '#dc2626' : '#16a34a'
+            background: toast.type==='error'?'#dc2626':'#16a34a'
           }}>
             {toast.message}
           </div>
@@ -305,90 +222,16 @@ export default function UploadQuestionsPage() {
   )
 }
 
-/* styles unchanged */
-
 const styles = {
-  page: {
-    minHeight: '100vh',
-    background: '#f3f4f6',
-    padding: 30,
-    display: 'flex',
-    justifyContent: 'center'
-  },
-  card: {
-    width: '100%',
-    maxWidth: 900,
-    background: '#fff',
-    padding: 25,
-    borderRadius: 12,
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
-  },
-  headerRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: 600
-  },
-  templateBtn: {
-    padding: '8px 14px',
-    background: '#f59e0b',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6,
-    cursor: 'pointer'
-  },
-  section: {
-    marginBottom: 20
-  },
-  label: {
-    display: 'block',
-    marginBottom: 6,
-    fontWeight: 500
-  },
-  input: {
-    width: '100%',
-    padding: 10,
-    borderRadius: 6,
-    border: '1px solid #ccc'
-  },
-  fileName: {
-    marginTop: 8,
-    color: 'green',
-    fontSize: 14
-  },
-  buttonRow: {
-    marginBottom: 20
-  },
-  previewBtn: {
-    padding: 10,
-    background: '#2563eb',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6,
-    cursor: 'pointer'
-  },
-  uploadBtn: {
-    padding: 10,
-    background: '#16a34a',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6,
-    cursor: 'pointer'
-  },
-  previewBox: {
-    marginTop: 20
-  },
-  tableWrapper: {
-    overflowX: 'auto',
-    border: '1px solid #ddd',
-    borderRadius: 8
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse'
-  }
+  page:{padding:30,display:'flex',justifyContent:'center'},
+  card:{maxWidth:900,width:'100%',background:'#fff',padding:20},
+  heading:{fontSize:22},
+  templateBtn:{marginBottom:20},
+  section:{marginBottom:15},
+  previewBtn:{background:'#2563eb',color:'#fff',padding:10},
+  uploadBtn:{background:'#16a34a',color:'#fff',padding:10},
+  previewBox:{marginTop:20},
+  table:{width:'100%',borderCollapse:'collapse'},
+  errorBox:{background:'#fee2e2',marginTop:10},
+  toast:{position:'fixed',bottom:20,right:20,color:'#fff',padding:10}
 }
