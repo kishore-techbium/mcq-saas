@@ -50,12 +50,12 @@ useEffect(() => {
   checkUser()
 }, [])
 async function fetchExams() {
-  if (preloadedExams) {
+/*  if (preloadedExams) {
   setExams(preloadedExams)
   setLoading(false)
   return
-}
-  setLoading(true)
+} */
+  setLoading(true) 
 
   const { data: examData } = await supabase
     .from('exams')
