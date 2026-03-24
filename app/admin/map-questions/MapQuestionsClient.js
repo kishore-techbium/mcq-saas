@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { getAdminCollege } from '../../../lib/getAdminCollege' // ✅ added
+
 export default function MapQuestionsPage({ preloadedExams }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const examId = searchParams.get('examId')
-const [saving, setSaving] = useState(false)
-const [successMsg, setSuccessMsg] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [successMsg, setSuccessMsg] = useState('')
   const [loading, setLoading] = useState(true)
   const [exam, setExam] = useState(null)
   const [exams, setExams] = useState([])
@@ -30,16 +31,21 @@ const [successMsg, setSuccessMsg] = useState('')
   /* ================= INIT ================= */
 
 useEffect(() => {
-  if (!examId) {
-    if (preloadedExams && preloadedExams.length > 0) {
-      setExams(preloadedExams)
-      setLoading(false)
+useEffect(() => {
+  async function load() {
+    if (!examId) {
+      if (preloadedExams && preloadedExams.length > 0) {
+        setExams(preloadedExams)
+        await fetchExams()
+      } else {
+        await fetchExams()
+      }
     } else {
-      fetchExams()
+      initExam()
     }
-  } else {
-    initExam()
   }
+
+  load()
 }, [examId, preloadedExams])
 useEffect(() => {
   async function checkUser() {
@@ -107,9 +113,12 @@ console.log("MAPPED DATA:", mapped)
     setExam(data || null)
     setDuration(data?.duration_minutes || 60)
 
-    const { data: qs } = await supabase
-      .from('question_bank')
-      .select('*')
+const collegeId = await getAdminCollege()
+
+const { data: qs } = await supabase
+  .from('question_bank')
+  .select('*')
+  .eq('college_id', collegeId)
 
     setQuestions(qs || [])
     setSubjects([...new Set((qs || []).map(q => q.subject))])
