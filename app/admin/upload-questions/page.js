@@ -240,11 +240,47 @@ export default function UploadQuestionsPage() {
           </button>
         )}
 
-        {isPreview && (
-          <button style={styles.uploadBtn} onClick={handleUpload}>
-            {uploading ? `Uploading ${progress}%` : 'Upload Questions'}
-          </button>
-        )}
+{isPreview && previewRows.length > 0 && (
+  <div style={styles.previewBox}>
+    <h3>Preview ({previewRows.length} questions)</h3>
+
+    <div style={styles.tableWrapper}>
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Question</th>
+            <th>A</th>
+            <th>B</th>
+            <th>C</th>
+            <th>D</th>
+            <th>Answer</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {previewRows.slice(0, 10).map((row, i) => (
+            <tr key={i}>
+              <td>{i + 1}</td>
+              <td>{row.question}</td>
+              <td>{row.option_a}</td>
+              <td>{row.option_b}</td>
+              <td>{row.option_c}</td>
+              <td>{row.option_d}</td>
+              <td>{row.correct_answer}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    {previewRows.length > 10 && (
+      <p style={{ marginTop: 10 }}>
+        Showing first 10 rows out of {previewRows.length}
+      </p>
+    )}
+  </div>
+)}
 
         {errors.length > 0 && (
           <div style={styles.errorBox}>
