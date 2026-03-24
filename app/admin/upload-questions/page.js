@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase'
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
 import { getAdminCollege } from '../../../lib/getAdminCollege'
+import { useRouter } from 'next/navigation'
 
 const REQUIRED_COLUMNS = [
   'exam_category',
@@ -24,7 +25,7 @@ export default function UploadQuestionsPage() {
   const [isPreview, setIsPreview] = useState(false)
   const [selectedExam, setSelectedExam] = useState('')
   const [exams, setExams] = useState([])
-
+  const router = useRouter()
   useEffect(() => {
     loadExams()
   }, [])
@@ -108,9 +109,14 @@ export default function UploadQuestionsPage() {
       )
     }
 
-    alert('Uploaded successfully')
-    setPreviewRows([])
-    setIsPreview(false)
+alert('Uploaded successfully')
+
+// reset state
+setPreviewRows([])
+setIsPreview(false)
+
+// redirect
+router.push('/admin')   // or '/admin/dashboard' (based on your route)
   }
 
   return (
