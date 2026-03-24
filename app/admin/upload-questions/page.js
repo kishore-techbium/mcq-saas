@@ -281,6 +281,9 @@ export default function UploadQuestionsPage() {
     )}
   </div>
 )}
+            {uploading ? `Uploading ${progress}%` : 'Upload Questions'}
+          </button>
+        )}
 
         {errors.length > 0 && (
           <div style={styles.errorBox}>
