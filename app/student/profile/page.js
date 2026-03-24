@@ -50,7 +50,7 @@ export default function StudentProfile() {
           email
         })
         .select()
-        .single()
+      .maybeSingle()
 
       if (error) {
         alert('Failed to create profile')
