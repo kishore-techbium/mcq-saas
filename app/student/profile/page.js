@@ -36,11 +36,13 @@ export default function StudentProfile() {
     const userId = auth.user.id
     const email = auth.user.email
 
-    const { data: row } = await supabase
-      .from('students')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()
+const { data: user } = await supabase
+  .from('students')
+  .select('role')
+  .eq('email', email)
+  .maybeSingle()
+
+const role = user?.role
 
     if (!row) {
       const { data: inserted, error } = await supabase
