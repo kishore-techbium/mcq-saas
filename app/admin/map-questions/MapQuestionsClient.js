@@ -31,7 +31,7 @@ export default function MapQuestionsPage({ preloadedExams }) {
   /* ================= INIT ================= */
 
 useEffect(() => {
-useEffect(() => {
+
   async function load() {
     if (!examId) {
       if (preloadedExams && preloadedExams.length > 0) {
