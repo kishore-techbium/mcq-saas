@@ -61,7 +61,8 @@ export default function AvailableExamsPage() {
         console.error(error)
         return
       }
-
+console.log('Admin College:', collegeId)
+console.log('Exam Data:', examsData)
       const examIds = (examsData || []).map(e => e.id)
 
       const { data: mappings } = await supabase
