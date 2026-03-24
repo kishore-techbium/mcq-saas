@@ -5,16 +5,18 @@ import { getAdminCollege } from '../../../lib/getAdminCollege'
 import { useEffect, useState } from 'react'
 
 export default function AvailableExamsPage() {
-  const [exams, setExams] = useState([])
-  const [loading, setLoading] = useState(true)
+const [exams, setExams] = useState([])
+const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    init()
-  }, [])
+useEffect(() => {
+init()
+}, [])
 
-  async function init() {
-  const { data } = await supabase.auth.getUser()
+async function init() {
+try {
+const { data } = await supabase.auth.getUser()
 
+```
   if (!data?.user) {
     window.location.href = '/'
     return
@@ -22,156 +24,151 @@ export default function AvailableExamsPage() {
 
   const email = data.user.email
 
-  const { data: user } = await supabase
+  const { data: user, error } = await supabase
     .from('students')
     .select('role')
     .eq('email', email)
     .single()
 
-  // ✅ NEW ROLE CHECK
+  if (error) {
+    console.error('User fetch error:', error)
+    return
+  }
+
   if (user?.role !== 'admin') {
     window.location.href = '/'
     return
   }
 
   await loadExams()
+} catch (err) {
+  console.error('Init error:', err)
+} finally {
   setLoading(false)
 }
+```
 
-  async function loadExams() {
-    /* ===== FETCH EXAMS ===== */
+}
+
+async function loadExams() {
+try {
 const collegeId = await getAdminCollege()
 
-const { data: examsData } = await supabase
-  .from('exams')
-  .select('*')
-  .eq('college_id', collegeId)   // 🔥 IMPORTANT
-  .order('created_at', { ascending: false })
-    if (error) {
-      console.error('Exam fetch error:', error)
-      return
-    }
-
-    /* ===== FETCH QUESTION COUNTS ===== */
-    const examIds = examsData.map(e => e.id)
-    const questionCountMap = {}
-
-    if (examIds.length > 0) {
-      const { data: mappings } = await supabase
-        .from('exam_questions')
-        .select('exam_id')
-        .in('exam_id', examIds)
-
-      ;(mappings || []).forEach(row => {
-        questionCountMap[row.exam_id] =
-          (questionCountMap[row.exam_id] || 0) + 1
-      })
-    }
-
-    const enriched = examsData.map(exam => ({
-      ...exam,
-      question_count: questionCountMap[exam.id] || 0
-    }))
-
-    setExams(enriched)
+```
+  if (!collegeId) {
+    console.error('No college_id found for admin')
+    return
   }
 
-  async function toggleExam(id, active) {
-    await supabase
-      .from('exams')
-      .update({ is_active: !active })
-      .eq('id', id)
+  /* ===== FETCH EXAMS ===== */
+  const { data: examsData, error } = await supabase
+    .from('exams')
+    .select('*')
+    .eq('college_id', collegeId) // ✅ multi-tenant filter
+    .order('created_at', { ascending: false })
 
-    loadExams()
+  if (error) {
+    console.error('Exam fetch error:', error)
+    return
   }
 
-  async function deleteExam(id) {
-    const confirmText = prompt('Type DELETE to confirm')
-    if (confirmText !== 'DELETE') return
-
-    await supabase.from('exams').delete().eq('id', id)
-    loadExams()
+  if (!examsData || examsData.length === 0) {
+    setExams([])
+    return
   }
 
-  if (loading) {
-    return <p style={{ padding: 30 }}>Loading exams…</p>
+  /* ===== FETCH QUESTION COUNTS ===== */
+  const examIds = examsData.map(e => e.id)
+  const questionCountMap = {}
+
+  const { data: mappings, error: mapError } = await supabase
+    .from('exam_questions')
+    .select('exam_id')
+    .in('exam_id', examIds)
+
+  if (mapError) {
+    console.error('Mapping fetch error:', mapError)
   }
 
-  return (
-    <div style={styles.page}>
-      <h1 style={styles.heading}>📚 Available Exams</h1>
-      <p style={styles.subheading}>
-        View and manage all created exams
-      </p>
+  ;(mappings || []).forEach(row => {
+    questionCountMap[row.exam_id] =
+      (questionCountMap[row.exam_id] || 0) + 1
+  })
 
-      <div style={styles.card}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Category</th>
-              <th>Type</th>
-              <th>Duration</th>
-              <th>Questions</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
+  const enriched = examsData.map(exam => ({
+    ...exam,
+    question_count: questionCountMap[exam.id] || 0
+  }))
 
-          <tbody>
-            {exams.map(exam => (
-              <tr key={exam.id}>
-                <td>{exam.title}</td>
-                <td>
-                  <span style={styles.categoryBadge}>
-                    {prettyCategory(exam.exam_category)}
-                  </span>
-                </td>
-                <td>{exam.exam_type}</td>
-                <td>{exam.duration_minutes} min</td>
-                <td>
-                  <strong>{exam.question_count}</strong>
-                </td>
-                <td>
-                  <span
-                    style={{
-                      ...styles.statusBadge,
-                      background: exam.is_active ? '#dcfce7' : '#fee2e2',
-                      color: exam.is_active ? '#166534' : '#991b1b'
-                    }}
-                  >
-                    {exam.is_active ? 'ACTIVE' : 'INACTIVE'}
-                  </span>
-                </td>
-                <td>
-                  <button
-                    style={styles.secondaryBtn}
-                    onClick={() => toggleExam(exam.id, exam.is_active)}
-                  >
-                    {exam.is_active ? 'Deactivate' : 'Activate'}
-                  </button>
-                  <button
-                    style={styles.dangerBtn}
-                    onClick={() => deleteExam(exam.id)}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
+  setExams(enriched)
+} catch (err) {
+  console.error('Load exams error:', err)
+}
+```
 
-            {exams.length === 0 && (
-              <tr>
-                <td colSpan="7" style={{ textAlign: 'center', padding: 20 }}>
-                  No exams found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+}
+
+async function toggleExam(id, active) {
+await supabase
+.from('exams')
+.update({ is_active: !active })
+.eq('id', id)
+
+```
+loadExams()
+```
+
+}
+
+async function deleteExam(id) {
+const confirmText = prompt('Type DELETE to confirm')
+if (confirmText !== 'DELETE') return
+
+```
+await supabase.from('exams').delete().eq('id', id)
+loadExams()
+```
+
+}
+
+if (loading) {
+return <p style={{ padding: 30 }}>Loading exams…</p>
+}
+
+return (
+<div style={{ padding: 20 }}> <h1>📚 Available Exams</h1>
+
+```
+  {exams.length === 0 ? (
+    <p>No exams found</p>
+  ) : (
+    exams.map(exam => (
+      <div key={exam.id} style={{
+        border: '1px solid #ddd',
+        padding: 15,
+        marginBottom: 10,
+        borderRadius: 8
+      }}>
+        <h3>{exam.title}</h3>
+        <p>Questions: {exam.question_count}</p>
+        <p>Status: {exam.is_active ? 'Active' : 'Inactive'}</p>
+
+        <button onClick={() => toggleExam(exam.id, exam.is_active)}>
+          Toggle
+        </button>
+
+        <button
+          onClick={() => deleteExam(exam.id)}
+          style={{ marginLeft: 10, color: 'red' }}
+        >
+          Delete
+        </button>
       </div>
-    </div>
-  )
+    ))
+  )}
+</div>
+
+)
 }
 
 /* ================= HELPERS ================= */
