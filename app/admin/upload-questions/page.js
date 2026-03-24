@@ -2,9 +2,9 @@
 
 import { supabase } from '../../../lib/supabase'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 import { getAdminCollege } from '../../../lib/getAdminCollege'
-import { useRouter } from 'next/navigation'
 
 const REQUIRED_COLUMNS = [
   'exam_category',
@@ -18,14 +18,23 @@ const REQUIRED_COLUMNS = [
   'correct_answer'
 ]
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024
+
 export default function UploadQuestionsPage() {
+
+  const router = useRouter()
 
   const [file, setFile] = useState(null)
   const [previewRows, setPreviewRows] = useState([])
   const [isPreview, setIsPreview] = useState(false)
   const [selectedExam, setSelectedExam] = useState('')
   const [exams, setExams] = useState([])
-  const router = useRouter()
+
+  const [errors, setErrors] = useState([])
+  const [progress, setProgress] = useState(0)
+  const [uploading, setUploading] = useState(false)
+  const [toast, setToast] = useState(null)
+
   useEffect(() => {
     loadExams()
   }, [])
@@ -41,87 +50,165 @@ export default function UploadQuestionsPage() {
     setExams(data || [])
   }
 
-  /* ================= TEMPLATE DOWNLOAD ================= */
+  function showToast(message, type = 'success') {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  /* ================= TEMPLATE ================= */
 
   function downloadTemplate() {
+    const sampleData = [{
+      exam_category: 'JEE_MAINS',
+      subject: 'Physics',
+      chapter: 'Kinematics',
+      question: 'Sample Question?',
+      option_a: 'A',
+      option_b: 'B',
+      option_c: 'C',
+      option_d: 'D',
+      correct_answer: 'A'
+    }]
 
-    const sampleData = [
-      {
-        exam_category: 'JEE_MAINS',
-        subject: 'Physics',
-        chapter: 'Kinematics',
-        question: 'Sample Question?',
-        option_a: 'Option A',
-        option_b: 'Option B',
-        option_c: 'Option C',
-        option_d: 'Option D',
-        correct_answer: 'A'
+    const ws = XLSX.utils.json_to_sheet(sampleData)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Template')
+    XLSX.writeFile(wb, 'question_template.xlsx')
+  }
+
+  /* ================= VALIDATION ================= */
+
+  function validateRow(row, index) {
+    const rowErrors = []
+
+    REQUIRED_COLUMNS.forEach(col => {
+      if (!row[col] || String(row[col]).trim() === '') {
+        rowErrors.push(`Row ${index + 2}: Missing ${col}`)
       }
-    ]
+    })
 
-    const worksheet = XLSX.utils.json_to_sheet(sampleData)
-    const workbook = XLSX.utils.book_new()
+    if (
+      row.correct_answer &&
+      !['A', 'B', 'C', 'D'].includes(String(row.correct_answer).trim())
+    ) {
+      rowErrors.push(`Row ${index + 2}: correct_answer must be A/B/C/D`)
+    }
 
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Template')
-
-    XLSX.writeFile(workbook, 'question_template.xlsx')
+    return rowErrors
   }
 
   /* ================= PREVIEW ================= */
 
   async function handlePreview() {
+
     if (!file) {
-      alert('Please select a file first')
+      showToast('Please select file', 'error')
       return
     }
 
-    const buffer = await file.arrayBuffer()
-    const wb = XLSX.read(buffer)
-    const sheet = wb.Sheets[wb.SheetNames[0]]
-    const rows = XLSX.utils.sheet_to_json(sheet)
+    if (file.size > MAX_FILE_SIZE) {
+      showToast('File too large (max 5MB)', 'error')
+      return
+    }
 
-    setPreviewRows(rows)
-    setIsPreview(true)
+    setErrors([])
+
+    try {
+      const buffer = await file.arrayBuffer()
+      const wb = XLSX.read(buffer)
+      const sheet = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json(sheet)
+
+      if (!rows.length) {
+        showToast('Empty file', 'error')
+        return
+      }
+
+      const headers = Object.keys(rows[0])
+      const missing = REQUIRED_COLUMNS.filter(c => !headers.includes(c))
+
+      if (missing.length) {
+        setErrors(missing.map(m => `Missing column: ${m}`))
+        showToast('Missing columns', 'error')
+        return
+      }
+
+      let allErrors = []
+      rows.forEach((row, i) => {
+        allErrors.push(...validateRow(row, i))
+      })
+
+      if (allErrors.length) {
+        setErrors(allErrors)
+        showToast('Validation failed', 'error')
+        return
+      }
+
+      setPreviewRows(rows)
+      setIsPreview(true)
+
+    } catch {
+      showToast('Invalid file', 'error')
+    }
   }
 
   /* ================= UPLOAD ================= */
 
   async function handleUpload() {
 
+    if (!previewRows.length) return
+
     const collegeId = await getAdminCollege()
 
-    const payload = previewRows.map(row => ({
-      ...row,
-      college_id: collegeId
-    }))
+    setUploading(true)
+    setProgress(40)
 
-    const { data: inserted } = await supabase
-      .from('question_bank')
-      .insert(payload)
-      .select()
+    try {
 
-    if (selectedExam) {
-      await supabase.from('exam_questions').insert(
-        inserted.map(q => ({
-          exam_id: selectedExam,
-          question_id: q.id
-        }))
-      )
+      const payload = previewRows.map(r => ({
+        ...r,
+        college_id: collegeId
+      }))
+
+      const { data: inserted, error } = await supabase
+        .from('question_bank')
+        .insert(payload)
+        .select()
+
+      if (error) {
+        showToast('Upload failed', 'error')
+        setUploading(false)
+        return
+      }
+
+      if (selectedExam) {
+        await supabase.from('exam_questions').insert(
+          inserted.map(q => ({
+            exam_id: selectedExam,
+            question_id: q.id
+          }))
+        )
+      }
+
+      setProgress(100)
+      showToast('Uploaded successfully')
+
+      // redirect after short delay
+      setTimeout(() => {
+        router.push('/admin')
+      }, 1200)
+
+    } catch {
+      showToast('Upload failed', 'error')
     }
 
-alert('Uploaded successfully')
-
-// reset state
-setPreviewRows([])
-setIsPreview(false)
-
-// redirect
-router.push('/admin')   // or '/admin/dashboard' (based on your route)
+    setUploading(false)
   }
+
+  /* ================= UI ================= */
 
   return (
     <div style={styles.page}>
-
       <div style={styles.card}>
 
         <div style={styles.headerRow}>
@@ -132,89 +219,45 @@ router.push('/admin')   // or '/admin/dashboard' (based on your route)
           </button>
         </div>
 
-        {/* FILE INPUT */}
         <div style={styles.section}>
-          <label style={styles.label}>Upload Excel / CSV</label>
-
-          <input
-            type="file"
-            onChange={(e) => setFile(e.target.files[0])}
-            style={styles.input}
-          />
-
-          {file && (
-            <p style={styles.fileName}>Selected: {file.name}</p>
-          )}
+          <label>Upload Excel</label>
+          <input type="file" onChange={(e) => setFile(e.target.files[0])} />
         </div>
 
-        {/* EXAM SELECT */}
         <div style={styles.section}>
-          <label style={styles.label}>Map to Exam (Optional)</label>
-
-          <select
-            onChange={(e) => setSelectedExam(e.target.value)}
-            style={styles.input}
-          >
-            <option value="">Select Exam</option>
+          <label>Map to Exam</label>
+          <select onChange={(e) => setSelectedExam(e.target.value)}>
+            <option value="">Select</option>
             {exams.map(e => (
               <option key={e.id} value={e.id}>{e.title}</option>
             ))}
           </select>
         </div>
 
-        {/* BUTTONS */}
-        <div style={styles.buttonRow}>
-          {!isPreview && (
-            <button style={styles.previewBtn} onClick={handlePreview}>
-              Preview
-            </button>
-          )}
+        {!isPreview && (
+          <button style={styles.previewBtn} onClick={handlePreview}>
+            Preview
+          </button>
+        )}
 
-          {isPreview && (
-            <button style={styles.uploadBtn} onClick={handleUpload}>
-              Upload Questions
-            </button>
-          )}
-        </div>
-
-        {/* PREVIEW */}
         {isPreview && (
-          <div style={styles.previewBox}>
-            <h3 style={{ marginBottom: 10 }}>Preview</h3>
+          <button style={styles.uploadBtn} onClick={handleUpload}>
+            {uploading ? `Uploading ${progress}%` : 'Upload Questions'}
+          </button>
+        )}
 
-            <div style={styles.tableWrapper}>
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Question</th>
-                    <th>A</th>
-                    <th>B</th>
-                    <th>C</th>
-                    <th>D</th>
-                    <th>Answer</th>
-                  </tr>
-                </thead>
+        {errors.length > 0 && (
+          <div style={styles.errorBox}>
+            {errors.slice(0, 5).map((e, i) => <div key={i}>{e}</div>)}
+          </div>
+        )}
 
-                <tbody>
-                  {previewRows.slice(0, 10).map((row, i) => (
-                    <tr key={i}>
-                      <td>{row.question}</td>
-                      <td>{row.option_a}</td>
-                      <td>{row.option_b}</td>
-                      <td>{row.option_c}</td>
-                      <td>{row.option_d}</td>
-                      <td>{row.correct_answer}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {previewRows.length > 10 && (
-              <p style={{ marginTop: 10 }}>
-                Showing first 10 rows out of {previewRows.length}
-              </p>
-            )}
+        {toast && (
+          <div style={{
+            ...styles.toast,
+            background: toast.type === 'error' ? '#dc2626' : '#16a34a'
+          }}>
+            {toast.message}
           </div>
         )}
 
@@ -222,6 +265,8 @@ router.push('/admin')   // or '/admin/dashboard' (based on your route)
     </div>
   )
 }
+
+/* styles unchanged */
 
 const styles = {
   page: {
