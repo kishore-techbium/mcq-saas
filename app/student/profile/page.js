@@ -25,57 +25,63 @@ export default function StudentProfile() {
   }, [])
 
   async function init() {
-    setLoading(true)
+  setLoading(true)
 
-    const { data: auth } = await supabase.auth.getUser()
-    if (!auth.user) {
-      window.location.href = '/'
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) {
+    window.location.href = '/'
+    return
+  }
+
+  const userId = auth.user.id
+  const email = auth.user.email
+
+  // ✅ Get full profile (not just role)
+  const { data: user, error } = await supabase
+    .from('students')
+    .select('*')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Fetch error:', error)
+    setLoading(false)
+    return
+  }
+
+  // ✅ If no profile → create
+  if (!user) {
+    const { data: inserted, error: insertError } = await supabase
+      .from('students')
+      .insert({
+        id: userId,
+        email
+      })
+      .select()
+      .single()
+
+    if (insertError) {
+      alert('Failed to create profile')
+      setLoading(false)
       return
     }
 
-    const userId = auth.user.id
-    const email = auth.user.email
-
-const { data: user } = await supabase
-  .from('students')
-  .select('role')
-  .eq('email', email)
-  .maybeSingle()
-
-const role = user?.role
-
-    if (!row) {
-      const { data: inserted, error } = await supabase
-        .from('students')
-        .insert({
-          id: userId,
-          email
-        })
-        .select()
-      .maybeSingle()
-
-      if (error) {
-        alert('Failed to create profile')
-        setLoading(false)
-        return
-      }
-
-      setProfile(inserted)
-    } else {
-      setProfile({
-        id: row.id,
-        email: row.email,
-        first_name: row.first_name || '',
-        last_name: row.last_name || '',
-        phone: row.phone || '',
-        college_name: row.college_name || '',
-        address: row.address || ''
-      })
-    }
-
-    setLoading(false)
+    setProfile(inserted)
+  } else {
+    // ✅ If exists → load
+    setProfile({
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      phone: user.phone || '',
+      college_name: user.college_name || '',
+      address: user.address || ''
+    })
   }
 
+  setLoading(false)
+}
   async function saveProfile() {
     setSaving(true)
     setMessage('')
