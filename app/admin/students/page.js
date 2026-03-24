@@ -3,6 +3,7 @@
 import { supabase } from '../../../lib/supabase'
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
+import { getStudentsWithCollege } from '../../../lib/db'
 
 export default function StudentListPage() {
   const [students, setStudents] = useState([])
@@ -16,11 +17,7 @@ export default function StudentListPage() {
   setLoading(true)
 
   // 1️⃣ Fetch students
-  const { data: studentData } = await supabase
-    .from('students')
-    .select('*')
-    .order('created_at', { ascending: false })
-
+const studentData = await getStudentsWithCollege()
   // 2️⃣ Fetch attempt counts grouped
   const { data: attempts } = await supabase
     .from('exam_sessions')
