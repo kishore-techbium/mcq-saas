@@ -30,7 +30,7 @@ export default function AvailableExamsPage() {
         .single()
 
       if (error) {
-        console.error('User fetch error:', error)
+        console.error(error)
         return
       }
 
@@ -41,7 +41,7 @@ export default function AvailableExamsPage() {
 
       await loadExams()
     } catch (err) {
-      console.error('Init error:', err)
+      console.error(err)
     } finally {
       setLoading(false)
     }
@@ -51,61 +51,44 @@ export default function AvailableExamsPage() {
     try {
       const collegeId = await getAdminCollege()
 
-      if (!collegeId) {
-        console.error('No college_id found')
-        return
-      }
-
       const { data: examsData, error } = await supabase
         .from('exams')
         .select('*')
-        .eq('college_id', collegeId)
+        .eq('college_id', collegeId) // ✅ FILTER ADDED
         .order('created_at', { ascending: false })
 
       if (error) {
-        console.error('Exam fetch error:', error)
+        console.error(error)
         return
       }
 
-      if (!examsData || examsData.length === 0) {
-        setExams([])
-        return
-      }
+      const examIds = (examsData || []).map(e => e.id)
 
-      const examIds = examsData.map(e => e.id)
-      const questionCountMap = {}
-
-      const { data: mappings, error: mapError } = await supabase
+      const { data: mappings } = await supabase
         .from('exam_questions')
         .select('exam_id')
         .in('exam_id', examIds)
 
-      if (mapError) {
-        console.error('Mapping error:', mapError)
-      }
+      const countMap = {}
 
-      ;(mappings || []).forEach(row => {
-        questionCountMap[row.exam_id] =
-          (questionCountMap[row.exam_id] || 0) + 1
+      ;(mappings || []).forEach(m => {
+        countMap[m.exam_id] = (countMap[m.exam_id] || 0) + 1
       })
 
-      const enriched = examsData.map(exam => ({
-        ...exam,
-        question_count: questionCountMap[exam.id] || 0
+      const finalData = (examsData || []).map(e => ({
+        ...e,
+        question_count: countMap[e.id] || 0
       }))
 
-      setExams(enriched)
+      setExams(finalData)
     } catch (err) {
-      console.error('Load exams error:', err)
+      console.error(err)
     }
   }
 
   function prettyCategory(cat) {
-    if (!cat) return 'General'
-
-    return cat
-      .replaceAll('_', ' ')
-      .replace(/\b\w/g, l => l.toUpperCase())
+    if (!cat) return ''
+    return cat.replaceAll('_', ' ').toUpperCase()
   }
 
   async function toggleExam(id, active) {
@@ -125,150 +108,90 @@ export default function AvailableExamsPage() {
     loadExams()
   }
 
-  if (loading) {
-    return (
-      <div style={styles.center}>
-        <p style={styles.loading}>Loading exams…</p>
-      </div>
-    )
-  }
+  if (loading) return <p>Loading exams...</p>
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.heading}>📚 Available Exams</h1>
+    <div style={{ padding: 20 }}>
+      <h1>Available Exams</h1>
+      <p style={{ color: '#666' }}>View and manage all created exams</p>
 
-      {exams.length === 0 ? (
-        <div style={styles.emptyBox}>
-          <p>No exams found for your college</p>
-        </div>
-      ) : (
-        <div style={styles.grid}>
-          {exams.map(exam => (
-            <div key={exam.id} style={styles.card}>
-              <div style={styles.cardHeader}>
-                <h3 style={styles.title}>{exam.title}</h3>
-                <span
-                  style={{
-                    ...styles.badge,
-                    backgroundColor: exam.is_active ? '#d4edda' : '#f8d7da',
-                    color: exam.is_active ? '#155724' : '#721c24'
-                  }}
-                >
-                  {exam.is_active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
+      <div style={{
+        marginTop: 20,
+        background: '#fff',
+        borderRadius: 10,
+        padding: 15
+      }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ textAlign: 'left' }}>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Type</th>
+              <th>Duration</th>
+              <th>Questions</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
 
-              <p style={styles.meta}>
-                Category: <b>{prettyCategory(exam.exam_category)}</b>
-              </p>
+          <tbody>
+            {exams.map(exam => (
+              <tr key={exam.id}>
+                <td>{exam.title}</td>
 
-              <p style={styles.meta}>
-                Questions: <b>{exam.question_count}</b>
-              </p>
+                <td>
+                  <span style={{
+                    background: '#d0e7ff',
+                    padding: '5px 10px',
+                    borderRadius: 10,
+                    fontSize: 12
+                  }}>
+                    {prettyCategory(exam.exam_category)}
+                  </span>
+                </td>
 
-              <p style={styles.meta}>
-                Duration: <b>{exam.duration_minutes} mins</b>
-              </p>
+                <td>{exam.exam_type || 'MOCK'}</td>
 
-              <div style={styles.actions}>
-                <button
-                  style={styles.toggleBtn}
-                  onClick={() => toggleExam(exam.id, exam.is_active)}
-                >
-                  Toggle Status
-                </button>
+                <td>{exam.duration_minutes} min</td>
 
-                <button
-                  style={styles.deleteBtn}
-                  onClick={() => deleteExam(exam.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                <td><b>{exam.question_count}</b></td>
+
+                <td>
+                  <span style={{
+                    background: exam.is_active ? '#d4edda' : '#f8d7da',
+                    color: exam.is_active ? 'green' : 'red',
+                    padding: '5px 10px',
+                    borderRadius: 10,
+                    fontSize: 12
+                  }}>
+                    {exam.is_active ? 'ACTIVE' : 'INACTIVE'}
+                  </span>
+                </td>
+
+                <td>
+                  <button
+                    onClick={() => toggleExam(exam.id, exam.is_active)}
+                    style={{ marginRight: 10 }}
+                  >
+                    {exam.is_active ? 'Deactivate' : 'Activate'}
+                  </button>
+
+                  <button
+                    onClick={() => deleteExam(exam.id)}
+                    style={{ color: 'red' }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {exams.length === 0 && (
+          <p style={{ marginTop: 20 }}>No exams found</p>
+        )}
+      </div>
     </div>
   )
-}
-
-const styles = {
-  container: {
-    padding: '30px',
-    fontFamily: 'system-ui, sans-serif',
-    backgroundColor: '#f7f9fc',
-    minHeight: '100vh'
-  },
-  heading: {
-    marginBottom: '20px'
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: '20px'
-  },
-  card: {
-    background: '#fff',
-    borderRadius: '12px',
-    padding: '18px',
-    boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
-    border: '1px solid #eee'
-  },
-  cardHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  title: {
-    margin: 0
-  },
-  badge: {
-    padding: '4px 10px',
-    borderRadius: '20px',
-    fontSize: '12px'
-  },
-  meta: {
-    margin: '8px 0',
-    color: '#555'
-  },
-  actions: {
-    marginTop: '12px',
-    display: 'flex',
-    gap: '10px'
-  },
-  toggleBtn: {
-    flex: 1,
-    padding: '8px',
-    borderRadius: '6px',
-    border: 'none',
-    background: '#007bff',
-    color: '#fff',
-    cursor: 'pointer'
-  },
-  deleteBtn: {
-    flex: 1,
-    padding: '8px',
-    borderRadius: '6px',
-    border: 'none',
-    background: '#dc3545',
-    color: '#fff',
-    cursor: 'pointer'
-  },
-  emptyBox: {
-    padding: '40px',
-    textAlign: 'center',
-    background: '#fff',
-    borderRadius: '10px',
-    border: '1px dashed #ccc'
-  },
-  center: {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '60vh'
-  },
-  loading: {
-    fontSize: '18px'
-  }
 }
