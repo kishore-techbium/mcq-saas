@@ -12,7 +12,6 @@ useEffect(() => {
 init()
 }, [])
 
-/* ================= INIT ================= */
 async function init() {
 try {
 const { data } = await supabase.auth.getUser()
@@ -51,7 +50,6 @@ const { data } = await supabase.auth.getUser()
 
 }
 
-/* ================= LOAD EXAMS ================= */
 async function loadExams() {
 try {
 const collegeId = await getAdminCollege()
@@ -108,7 +106,6 @@ const collegeId = await getAdminCollege()
 
 }
 
-/* ================= HELPERS ================= */
 function prettyCategory(cat) {
 if (!cat) return 'General'
 
@@ -120,7 +117,6 @@ return cat
 
 }
 
-/* ================= ACTIONS ================= */
 async function toggleExam(id, active) {
 await supabase
 .from('exams')
@@ -144,18 +140,12 @@ loadExams()
 
 }
 
-/* ================= UI ================= */
 if (loading) {
-return (
-
-Loading exams…
-
+return ( <div style={styles.center}> <p style={styles.loading}>Loading exams…</p> </div>
 )
 }
 
-return (
-
-📚 Available Exams
+return ( <div style={styles.container}> <h1 style={styles.heading}>📚 Available Exams</h1>
 
 ```
   {exams.length === 0 ? (
@@ -166,7 +156,6 @@ return (
     <div style={styles.grid}>
       {exams.map(exam => (
         <div key={exam.id} style={styles.card}>
-          
           <div style={styles.cardHeader}>
             <h3 style={styles.title}>{exam.title}</h3>
             <span
@@ -217,7 +206,6 @@ return (
 )
 }
 
-/* ================= STYLES ================= */
 const styles = {
 container: {
 padding: '30px',
@@ -225,17 +213,14 @@ fontFamily: 'system-ui, sans-serif',
 backgroundColor: '#f7f9fc',
 minHeight: '100vh'
 },
-
 heading: {
 marginBottom: '20px'
 },
-
 grid: {
 display: 'grid',
 gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
 gap: '20px'
 },
-
 card: {
 background: '#fff',
 borderRadius: '12px',
@@ -243,34 +228,28 @@ padding: '18px',
 boxShadow: '0 4px 10px rgba(0,0,0,0.05)',
 border: '1px solid #eee'
 },
-
 cardHeader: {
 display: 'flex',
 justifyContent: 'space-between',
 alignItems: 'center'
 },
-
 title: {
 margin: 0
 },
-
 badge: {
 padding: '4px 10px',
 borderRadius: '20px',
 fontSize: '12px'
 },
-
 meta: {
 margin: '8px 0',
 color: '#555'
 },
-
 actions: {
 marginTop: '12px',
 display: 'flex',
 gap: '10px'
 },
-
 toggleBtn: {
 flex: 1,
 padding: '8px',
@@ -280,7 +259,6 @@ background: '#007bff',
 color: '#fff',
 cursor: 'pointer'
 },
-
 deleteBtn: {
 flex: 1,
 padding: '8px',
@@ -290,7 +268,6 @@ background: '#dc3545',
 color: '#fff',
 cursor: 'pointer'
 },
-
 emptyBox: {
 padding: '40px',
 textAlign: 'center',
@@ -298,14 +275,12 @@ background: '#fff',
 borderRadius: '10px',
 border: '1px dashed #ccc'
 },
-
 center: {
 display: 'flex',
 justifyContent: 'center',
 alignItems: 'center',
 height: '60vh'
 },
-
 loading: {
 fontSize: '18px'
 }
