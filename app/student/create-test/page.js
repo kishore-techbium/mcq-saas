@@ -27,19 +27,7 @@ export default function CreateTest() {
     const params = new URLSearchParams(window.location.search)
     const rawCat = params.get('category')
 
-    const CATEGORY_MAP = {
-      JEE_MAINS: 'JEE MAINS',
-      JEE_ADVANCED: 'JEE ADVANCED',
-      NEET: 'NEET UG'
-    }
-
-    const cat = CATEGORY_MAP[rawCat]
-
-    if (!cat) {
-      alert('Invalid exam category')
-      window.location.href = '/select-category'
-      return
-    }
+    const cat = rawCat
 
     setCategory(cat)
 
