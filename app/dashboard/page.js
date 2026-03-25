@@ -1,6 +1,7 @@
 'use client'
 
 import { supabase } from '../../lib/supabase'
+import { fromWithCollege } from '../../lib/supabaseWithCollege'
 import { useEffect, useState } from 'react'
 
 export default function StudentDashboard() {
@@ -84,12 +85,13 @@ export default function StudentDashboard() {
   /* ================= ADMIN EXAMS ================= */
 
   async function loadAdminExams(studentId, cat) {
-    const { data: exams } = await supabase
-      .from('exams')
-      .select('*')
-      .eq('is_active', true)
-      .eq('exam_category', cat)
-      .order('created_at', { ascending: false })
+const examsQuery = await fromWithCollege('exams')
+
+const { data: exams } = await examsQuery
+  .select('*')
+  .eq('is_active', true)
+  .eq('exam_category', cat)
+  .order('created_at', { ascending: false })
 
     if (!exams || exams.length === 0) {
       setAvailableExams([])
