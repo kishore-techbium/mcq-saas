@@ -31,7 +31,7 @@ export default function AuthCallback() {
     const email = userData.user.email
     const userId = userData.user.id
 
-    // ✅ FIX 1: use maybeSingle + fetch full row
+    // 🔍 FETCH USER
     let { data: user, error } = await supabase
       .from('students')
       .select('*')
@@ -42,7 +42,7 @@ export default function AuthCallback() {
       console.error("Fetch error:", error)
     }
 
-    // ✅ FIX 2: create user if not exists
+    // 🟡 NEW USER → CREATE
     if (!user) {
       console.log("🟡 New user → creating profile")
 
@@ -51,7 +51,8 @@ export default function AuthCallback() {
         .insert({
           id: userId,
           email: email,
-          role: 'student'
+          role: 'student',
+          user_id: userId   // 🔥 IMPORTANT
         })
         .select()
         .single()
@@ -64,29 +65,41 @@ export default function AuthCallback() {
 
       user = newUser
 
-      // 👉 new users go to profile
       router.replace('/student/profile')
       return
     }
 
+    // 🔥 AUTO-FIX OLD USERS (CRITICAL)
+    if (!user.user_id) {
+      console.log("🟡 Fixing missing user_id")
+
+      await supabase
+        .from('students')
+        .update({ user_id: userId })
+        .eq('email', email)
+    }
+
     console.log("🟢 USER ROLE:", user?.role)
 
-    // ✅ ROLE BASED REDIRECT
+    // 👑 SUPERADMIN
     if (user.role === 'superadmin') {
       router.replace('/superadmin')
       return
     }
 
+    // 👨‍💼 ADMIN
     if (user.role === 'admin') {
       router.replace('/admin')
       return
     }
 
+    // 👨‍🎓 STUDENT
     if (user.role === 'student') {
 
       const isProfileComplete =
         user.first_name &&
-        user.phone
+        user.phone &&
+        user.college_id
 
       if (!isProfileComplete) {
         console.log("🟡 Incomplete profile → profile page")
