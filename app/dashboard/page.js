@@ -85,9 +85,7 @@ export default function StudentDashboard() {
   /* ================= ADMIN EXAMS ================= */
 
   async function loadAdminExams(studentId, cat) {
-const examsQuery = await fromWithCollege('exams')
-
-const { data: exams } = await examsQuery
+const { data: exams } = await (await fromWithCollege('exams'))
   .select('*')
   .eq('is_active', true)
   .eq('exam_category', cat)
