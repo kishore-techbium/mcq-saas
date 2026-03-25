@@ -26,7 +26,7 @@ export default function SelectCategory() {
       .from('students')
       .select('exam_preference')
       .eq('email', email)
-      .single()
+      .maybeSingle()
 
     if (student?.exam_preference) {
       setExamPref(student.exam_preference)
