@@ -7,7 +7,7 @@ export default function StudentProfile() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-
+const [examPref, setExamPref] = useState('')
   const [joinCode, setJoinCode] = useState('')
 
   const [profile, setProfile] = useState({
@@ -69,15 +69,17 @@ export default function StudentProfile() {
     setProfile(inserted)
   } else {
     // ✅ If exists → load
-    setProfile({
-      id: user.id,
-      email: user.email,
-      first_name: user.first_name || '',
-      last_name: user.last_name || '',
-      phone: user.phone || '',
-      college_name: user.college_name || '',
-      address: user.address || ''
-    })
+setProfile({
+  id: user.id,
+  email: user.email,
+  first_name: user.first_name || '',
+  last_name: user.last_name || '',
+  phone: user.phone || '',
+  college_name: user.college_name || '',
+  address: user.address || ''
+})
+
+setExamPref(user.exam_preference || '')
   }
 
   setLoading(false)
@@ -116,7 +118,8 @@ export default function StudentProfile() {
           phone: profile.phone || null,
           college_name: profile.college_name || null,
           address: profile.address || null,
-          college_id: collegeId   // ✅ IMPORTANT
+          college_id: collegeId,   // ✅ IMPORTANT
+          exam_preference: examPref,
         },
         { onConflict: 'id' }
       )
@@ -130,7 +133,7 @@ export default function StudentProfile() {
 
       // 🔥 Redirect to dashboard
       setTimeout(() => {
-        window.location.href = '/student/dashboard'
+        window.location.href = '/select-category'
       }, 1000)
     }
 
@@ -187,6 +190,31 @@ export default function StudentProfile() {
             style={styles.input}
           />
         </div>
+<div style={styles.field}>
+  <label>Exam Preference</label>
+
+  <div style={{ display: 'flex', gap: 20, marginTop: 6 }}>
+    <label>
+      <input
+        type="radio"
+        value="JEE"
+        checked={examPref === 'JEE'}
+        onChange={(e) => setExamPref(e.target.value)}
+      />
+      JEE
+    </label>
+
+    <label>
+      <input
+        type="radio"
+        value="NEET"
+        checked={examPref === 'NEET'}
+        onChange={(e) => setExamPref(e.target.value)}
+      />
+      NEET
+    </label>
+  </div>
+</div>
 
         {/* 🔥 JOIN CODE (NEW) */}
         <div style={styles.field}>
