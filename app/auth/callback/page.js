@@ -106,7 +106,7 @@ export default function AuthCallback() {
         router.replace('/student/profile')
       } else {
         console.log("🟢 Profile complete → dashboard")
-        router.replace('app/select-category')
+        router.replace('/select-category')
       }
 
       return
