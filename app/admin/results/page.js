@@ -24,7 +24,7 @@ async function init() {
   const allowed = await useAdminGuard()
   if (!allowed) return
 
-  await loadData() // or loadExams / whatever
+  await loadResults() // or loadExams / whatever
   setLoading(false)
 }
 
