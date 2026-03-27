@@ -8,6 +8,22 @@ export default function AdminDashboard() {
   const [cleaning, setCleaning] = useState(false)
   const [progress, setProgress] = useState(0)
 
+  // 🔥 NEW STATES
+  const [collegeCode, setCollegeCode] = useState('')
+  const [adminName, setAdminName] = useState('')
+  const [collegeId, setCollegeId] = useState('')
+
+  /* ================= CODE GENERATOR ================= */
+
+  function generateCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let code = ''
+    for (let i = 0; i < 6; i++) {
+      code += chars[Math.floor(Math.random() * chars.length)]
+    }
+    return code
+  }
+
   /* ================= AUTH GUARD (UPDATED) ================= */
 
   useEffect(() => {
@@ -23,15 +39,26 @@ export default function AdminDashboard() {
 
       const { data: user } = await supabase
         .from('students')
-        .select('role')
+        .select('role, first_name, college_id')
         .eq('email', email)
         .single()
 
-      // ✅ NEW ROLE CHECK
       if (user?.role !== 'admin') {
         window.location.href = '/'
         return
       }
+
+      setAdminName(user.first_name || 'Admin')
+      setCollegeId(user.college_id)
+
+      // 🔥 FETCH COLLEGE CODE
+      const { data: codeData } = await supabase
+        .from('college_codes')
+        .select('code')
+        .eq('college_id', user.college_id)
+        .maybeSingle()
+
+      setCollegeCode(codeData?.code || 'Not Generated')
 
       setCheckingAuth(false)
     }
@@ -39,19 +66,35 @@ export default function AdminDashboard() {
     checkAdmin()
   }, [])
 
-  if (checkingAuth) {
-    return <p style={{ padding: 30 }}>Checking admin access…</p>
-  }
-
   /* ================= LOGOUT ================= */
 
   async function logoutAdmin() {
     await supabase.auth.signOut()
-    // ❌ removed localStorage logic
     window.location.href = '/'
   }
 
-  /* ================= DUPLICATE CLEANER WITH PROGRESS ================= */
+  /* ================= REGENERATE CODE ================= */
+
+  async function regenerateCode() {
+    const newCode = generateCode()
+
+    const { error } = await supabase
+      .from('college_codes')
+      .upsert(
+        {
+          college_id: collegeId,
+          code: newCode
+        },
+        { onConflict: 'college_id' }
+      )
+
+    if (!error) {
+      setCollegeCode(newCode)
+      alert('College code updated successfully')
+    }
+  }
+
+  /* ================= DUPLICATE CLEANER ================= */
 
   async function cleanDuplicates() {
     const confirmText = prompt(
@@ -126,6 +169,10 @@ export default function AdminDashboard() {
 
   /* ================= UI ================= */
 
+  if (checkingAuth) {
+    return <p style={{ padding: 30 }}>Checking admin access…</p>
+  }
+
   return (
     <div style={styles.page}>
       <div style={styles.header}>
@@ -136,9 +183,27 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        <button onClick={logoutAdmin} style={styles.logoutBtn}>
-          Logout
-        </button>
+        {/* 🔥 NEW RIGHT SECTION */}
+        <div style={{ textAlign: 'right' }}>
+          <p><strong>Welcome, {adminName}</strong></p>
+
+          <p style={{ marginTop: 8 }}>
+            College Code: <strong>{collegeCode}</strong>
+          </p>
+
+          <button
+            onClick={regenerateCode}
+            style={styles.regenBtn}
+          >
+            Regenerate
+          </button>
+
+          <br />
+
+          <button onClick={logoutAdmin} style={styles.logoutBtn}>
+            Logout
+          </button>
+        </div>
       </div>
 
       <div style={styles.grid}>
@@ -280,7 +345,9 @@ const styles = {
   },
   heading: { fontSize: 32, marginBottom: 6 },
   subheading: { color: '#555' },
+
   logoutBtn: {
+    marginTop: 10,
     padding: '10px 18px',
     background: '#dc2626',
     color: '#fff',
@@ -289,11 +356,23 @@ const styles = {
     fontWeight: 700,
     cursor: 'pointer'
   },
+
+  regenBtn: {
+    marginTop: 6,
+    padding: '6px 12px',
+    borderRadius: 6,
+    border: 'none',
+    background: '#2563eb',
+    color: '#fff',
+    cursor: 'pointer'
+  },
+
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
     gap: 18
   },
+
   card: {
     minHeight: 170,
     padding: 20,
@@ -303,8 +382,10 @@ const styles = {
     flexDirection: 'column',
     justifyContent: 'space-between'
   },
+
   cardTitle: { margin: 0, fontSize: 20 },
   cardDesc: { marginTop: 10, color: '#444', fontSize: 14 },
+
   primaryBtn: {
     padding: '10px 18px',
     background: '#2563eb',
@@ -312,6 +393,7 @@ const styles = {
     border: 'none',
     borderRadius: 8
   },
+
   purpleBtn: {
     padding: '10px 18px',
     background: '#7c3aed',
@@ -319,11 +401,13 @@ const styles = {
     border: 'none',
     borderRadius: 8
   },
+
   maintenance: {
     marginTop: 50,
     paddingTop: 30,
     borderTop: '1px solid #e5e7eb'
   },
+
   dangerBtn: {
     marginTop: 10,
     padding: '12px 20px',
@@ -333,6 +417,7 @@ const styles = {
     borderRadius: 8,
     fontWeight: 700
   },
+
   progressWrapper: {
     marginTop: 15,
     background: '#e5e7eb',
@@ -340,11 +425,13 @@ const styles = {
     height: 10,
     overflow: 'hidden'
   },
+
   progressBar: {
     height: 10,
     background: '#dc2626',
     transition: 'width 0.3s ease'
   },
+
   statusBox: {
     marginTop: 20,
     background: '#f1f5f9',
