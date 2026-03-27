@@ -74,25 +74,39 @@ export default function AdminDashboard() {
   }
 
   /* ================= REGENERATE CODE ================= */
+async function regenerateCode() {
+  const { data: auth } = await supabase.auth.getUser()
+  const user = auth.user
 
-  async function regenerateCode() {
-    const newCode = generateCode()
+  // 🔥 STEP 1: Ensure user_id is updated
+  await supabase
+    .from('students')
+    .update({ user_id: user.id })
+    .eq('email', user.email)
+    .is('user_id', null)
 
-    const { error } = await supabase
-      .from('college_codes')
-      .upsert(
-        {
-          college_id: collegeId,
-          code: newCode
-        },
-        { onConflict: 'college_id' }
-      )
+  const newCode = generateCode()
 
-    if (!error) {
-      setCollegeCode(newCode)
-      alert('College code updated successfully')
-    }
+  // 🔥 STEP 2: Upsert college code
+  const { error } = await supabase
+    .from('college_codes')
+    .upsert(
+      {
+        college_id: collegeId,
+        code: newCode
+      },
+      { onConflict: 'college_id' }
+    )
+
+  if (!error) {
+    setCollegeCode(newCode)
+    alert('College code updated successfully')
+  } else {
+    alert('Failed to update code')
+    console.error(error)
   }
+}
+
 
   /* ================= DUPLICATE CLEANER ================= */
 
