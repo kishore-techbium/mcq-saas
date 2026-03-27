@@ -98,22 +98,22 @@ export default function Colleges() {
       <table style={styles.table}>
         <thead>
           <tr>
-            <th>College</th>
-            <th>Students</th>
-            <th>Exams</th>
-            <th>Proctored</th>
-            <th>Action</th>
+            <th style={styles.th}>College</th>
+            <th style={styles.th}>Students</th>
+            <th style={styles.th}>Exams</th>
+            <th style={styles.th}>Proctored</th>
+            <th style={styles.th}>Action</th>
           </tr>
         </thead>
 
         <tbody>
           {colleges.map(c => (
             <tr key={c.id}>
-              <td>{c.name}</td>
-              <td>{c.studentsCount}</td>
-              <td>{c.examsCount}</td>
-              <td>{c.proctoredCount}</td>
-              <td>
+              <td style={styles.td}>{c.name}</td>
+              <td style={styles.td}>{c.studentsCount}</td>
+              <td style={styles.td}>{c.examsCount}</td>
+              <td style={styles.td}>{c.proctoredCount}</td>
+              <td style={styles.td}>
                 <button onClick={() => deleteCollege(c.id)} style={styles.deleteBtn}>
                   Delete
                 </button>
@@ -152,7 +152,20 @@ const styles = {
 
   table: {
     width: '100%',
-    borderCollapse: 'collapse'
+    borderCollapse: 'collapse',
+    marginTop: 10
+  },
+
+  th: {
+    border: '1px solid #e5e7eb',
+    padding: '10px',
+    background: '#f9fafb',
+    textAlign: 'left'
+  },
+
+  td: {
+    border: '1px solid #e5e7eb',
+    padding: '10px'
   },
 
   deleteBtn: {
