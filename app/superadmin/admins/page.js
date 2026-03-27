@@ -16,10 +16,9 @@ export default function Admins() {
 
   async function loadData() {
 
-    // ✅ JOIN college name
     const { data: admins } = await supabase
       .from('students')
-      .select('*, colleges(name)')
+      .select('*')
       .eq('role', 'admin')
 
     const { data: colleges } = await supabase
@@ -28,6 +27,10 @@ export default function Admins() {
 
     setAdmins(admins || [])
     setColleges(colleges || [])
+  }
+
+  function getCollegeName(id) {
+    return colleges.find(c => c.id === id)?.name || '—'
   }
 
   async function createAdmin() {
@@ -64,10 +67,7 @@ export default function Admins() {
           style={styles.input}
         />
 
-        <select
-          onChange={(e) => setCollegeId(e.target.value)}
-          style={styles.input}
-        >
+        <select onChange={(e) => setCollegeId(e.target.value)} style={styles.input}>
           <option>Select College</option>
           {colleges.map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
@@ -79,20 +79,29 @@ export default function Admins() {
         </button>
       </div>
 
-      {admins.map(a => (
-        <div key={a.id} style={styles.row}>
-          <div>
-            <strong>{a.email}</strong>
-            <div style={{ fontSize: 13, color: '#555' }}>
-              {a.colleges?.name || 'No College'}
-            </div>
-          </div>
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>College</th>
+            <th>Action</th>
+          </tr>
+        </thead>
 
-          <button onClick={() => deleteAdmin(a.id)} style={styles.deleteBtn}>
-            Delete
-          </button>
-        </div>
-      ))}
+        <tbody>
+          {admins.map(a => (
+            <tr key={a.id}>
+              <td>{a.email}</td>
+              <td>{getCollegeName(a.college_id)}</td>
+              <td>
+                <button onClick={() => deleteAdmin(a.id)} style={styles.deleteBtn}>
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -121,20 +130,16 @@ const styles = {
     borderRadius: 8
   },
 
-  row: {
-    marginTop: 10,
-    padding: 12,
-    background: '#f1f5f9',
-    display: 'flex',
-    justifyContent: 'space-between',
-    borderRadius: 8
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse'
   },
 
   deleteBtn: {
     background: '#dc2626',
     color: '#fff',
     border: 'none',
-    padding: '6px 12px',
+    padding: '6px 10px',
     borderRadius: 6
   }
 }
