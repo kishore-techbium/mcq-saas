@@ -64,7 +64,7 @@ export default function CreateExamPage() {
           duration_minutes: Number(duration),
           allow_retake: allowRetake,
           camera_required: cameraRequired,
-          created_by: 'ADMIN',
+          created_by: user.user.id,
           is_active: true,
           college_id: collegeId
         })
