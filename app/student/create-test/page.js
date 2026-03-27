@@ -33,6 +33,7 @@ export default function CreateTest() {
 
     const { data } = await supabase.rpc('get_subjects', {
       p_category: cat
+console.log('Category:', cat)
     })
 
     const uniqueSubjects = (data || []).map(d => d.subject)
