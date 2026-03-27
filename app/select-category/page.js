@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 export default function SelectCategory() {
 
   const [examPref, setExamPref] = useState('')
+  const [studentName, setStudentName] = useState('') // ✅ NEW
 
   useEffect(() => {
     checkUser()
@@ -24,21 +25,19 @@ export default function SelectCategory() {
 
     const { data: student } = await supabase
       .from('students')
-      .select('exam_preference')
+      .select('exam_preference, first_name') // ✅ added first_name only
       .eq('email', email)
       .maybeSingle()
 
     if (student?.exam_preference) {
       setExamPref(student.exam_preference)
     }
+
+    setStudentName(student?.first_name || 'Student') // ✅ NEW
   }
 
   function go(cat) {
     window.location.href = `/student-home?category=${cat}`
-  }
-
-  function goProfile() {
-    window.location.href = '/student/profile'
   }
 
   async function logout() {
@@ -52,9 +51,12 @@ export default function SelectCategory() {
 
         {/* TOP ACTIONS */}
         <div style={styles.topActions}>
-          <button onClick={goProfile} style={styles.profileBtn}>
-            👤 My Profile
-          </button>
+          
+          {/* ✅ REPLACED PROFILE BUTTON WITH NAME */}
+          <span style={styles.welcomeText}>
+            Welcome, {studentName}
+          </span>
+
           <button onClick={logout} style={styles.logoutBtn}>
             Logout
           </button>
@@ -62,7 +64,6 @@ export default function SelectCategory() {
 
         <h1>Welcome to MCQ Platform 🚀</h1>
 
-        {/* ✅ NEW CONTENT */}
         <p style={{ color: '#555', marginBottom: 20 }}>
           Practice high-quality MCQs, track your performance, and improve your rank with real exam-level questions.
         </p>
@@ -70,8 +71,6 @@ export default function SelectCategory() {
         <p style={{ color: '#2563eb', fontWeight: 600, marginBottom: 30 }}>
           Showing exams for: {examPref === 'NEET' ? 'NEET UG' : 'JEE'}
         </p>
-
-        {/* ✅ SHOW ONLY RELEVANT EXAMS */}
 
         {examPref === 'JEE' && (
           <>
@@ -130,18 +129,17 @@ const styles = {
     top: 16,
     right: 16,
     display: 'flex',
-    gap: 8
+    gap: 10,
+    alignItems: 'center'
   },
-  profileBtn: {
-    padding: '6px 10px',
-    borderRadius: 8,
-    border: 'none',
-    background: '#111827',
-    color: '#fff',
+
+  // ✅ NEW STYLE (minimal, matches theme)
+  welcomeText: {
     fontSize: 13,
     fontWeight: 600,
-    cursor: 'pointer'
+    color: '#111827'
   },
+
   logoutBtn: {
     padding: '6px 10px',
     borderRadius: 8,
@@ -152,6 +150,7 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer'
   },
+
   btn: {
     width: '100%',
     padding: '14px 16px',
