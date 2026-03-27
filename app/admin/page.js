@@ -78,16 +78,25 @@ async function regenerateCode() {
   const { data: auth } = await supabase.auth.getUser()
   const user = auth.user
 
-  // 🔥 STEP 1: Ensure user_id is updated
+  // 🔥 STEP 1: Get college name
+  const { data: college } = await supabase
+    .from('colleges')
+    .select('name')
+    .eq('id', collegeId)
+    .single()
+
+  // 🔥 STEP 2: Update user_id + college_name
   await supabase
     .from('students')
-    .update({ user_id: user.id })
+    .update({
+      user_id: user.id,
+      college_name: college?.name || null
+    })
     .eq('email', user.email)
-    .is('user_id', null)
 
+  // 🔥 STEP 3: Generate code
   const newCode = generateCode()
 
-  // 🔥 STEP 2: Upsert college code
   const { error } = await supabase
     .from('college_codes')
     .upsert(
@@ -106,7 +115,6 @@ async function regenerateCode() {
     console.error(error)
   }
 }
-
 
   /* ================= DUPLICATE CLEANER ================= */
 
