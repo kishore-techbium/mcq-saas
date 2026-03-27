@@ -50,15 +50,15 @@ export default function StudentProfile() {
     }
 
     // ✅ If no profile → create
-    if (!user) {
-      const { data: inserted, error: insertError } = await supabase
-        .from('students')
-        .insert({
-          email,
-          user_id: userId   // ✅ CRITICAL FIX
-        })
-        .select()
-        .single()
+const { data: inserted, error: insertError } = await supabase
+  .from('students')
+  .upsert({
+    id: userId,
+    email,
+    user_id: userId   // ✅ IMPORTANT
+  }, { onConflict: 'email' })
+  .select()
+  .single()
 
       if (insertError) {
         alert('Failed to create profile')
