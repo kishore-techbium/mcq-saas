@@ -54,7 +54,8 @@ export default function CreateExamPage() {
     try {
 
       const collegeId = await getAdminCollege()
-
+const { data: auth } = await supabase.auth.getUser()
+const user = auth.user
       const { error } = await supabase
         .from('exams')
         .insert({
@@ -64,7 +65,7 @@ export default function CreateExamPage() {
           duration_minutes: Number(duration),
           allow_retake: allowRetake,
           camera_required: cameraRequired,
-          created_by: user.user.id,
+          created_by: user.id,
           is_active: true,
           college_id: collegeId
         })
