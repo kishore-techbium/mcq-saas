@@ -458,7 +458,11 @@ async function submitExam() {
                 checked={answers[q.id] === opt}
                 onChange={() => selectAnswer(opt)}
               />
-              {opt}. {q[`option_${opt.toLowerCase()}`]}
+              {opt}. {
+  q.options
+    ? q.options[opt.charCodeAt(0) - 65]
+    : q[`option_${opt.toLowerCase()}`]
+}
             </label>
           ))}
 
