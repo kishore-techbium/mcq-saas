@@ -7,7 +7,7 @@ export default function StudentProfile() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
-const [examPref, setExamPref] = useState('')
+  const [examPref, setExamPref] = useState('')
   const [joinCode, setJoinCode] = useState('')
 
   const [profile, setProfile] = useState({
@@ -25,65 +25,65 @@ const [examPref, setExamPref] = useState('')
   }, [])
 
   async function init() {
-  setLoading(true)
+    setLoading(true)
 
-  const { data: auth } = await supabase.auth.getUser()
-  if (!auth.user) {
-    window.location.href = '/'
-    return
-  }
+    const { data: auth } = await supabase.auth.getUser()
+    if (!auth.user) {
+      window.location.href = '/'
+      return
+    }
 
-  const userId = auth.user.id
-  const email = auth.user.email
+    const userId = auth.user.id
+    const email = auth.user.email
 
-  // ✅ Get full profile (not just role)
-  const { data: user, error } = await supabase
-    .from('students')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle()
-
-  if (error) {
-    console.error('Fetch error:', error)
-    setLoading(false)
-    return
-  }
-
-  // ✅ If no profile → create
-  if (!user) {
-    const { data: inserted, error: insertError } = await supabase
+    // ✅ FIX 1: use user_id instead of id
+    const { data: user, error } = await supabase
       .from('students')
-      .insert({
-        id: userId,
-        email
-      })
-      .select()
-      .single()
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle()
 
-    if (insertError) {
-      alert('Failed to create profile')
+    if (error) {
+      console.error('Fetch error:', error)
       setLoading(false)
       return
     }
 
-    setProfile(inserted)
-  } else {
-    // ✅ If exists → load
-setProfile({
-  id: user.id,
-  email: user.email,
-  first_name: user.first_name || '',
-  last_name: user.last_name || '',
-  phone: user.phone || '',
-  college_name: user.college_name || '',
-  address: user.address || ''
-})
+    // ✅ If no profile → create
+    if (!user) {
+      const { data: inserted, error: insertError } = await supabase
+        .from('students')
+        .insert({
+          email,
+          user_id: userId   // ✅ CRITICAL FIX
+        })
+        .select()
+        .single()
 
-setExamPref(user.exam_preference || '')
+      if (insertError) {
+        alert('Failed to create profile')
+        setLoading(false)
+        return
+      }
+
+      setProfile(inserted)
+    } else {
+      setProfile({
+        id: user.id,
+        email: user.email,
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        phone: user.phone || '',
+        college_name: user.college_name || '',
+        address: user.address || ''
+      })
+
+      setExamPref(user.exam_preference || '')
+    }
+
+    setLoading(false)
   }
 
-  setLoading(false)
-}
   async function saveProfile() {
     setSaving(true)
     setMessage('')
@@ -91,7 +91,7 @@ setExamPref(user.exam_preference || '')
     const { data: auth } = await supabase.auth.getUser()
     const userId = auth.user.id
 
-    // 🔥 STEP 1: Validate Join Code
+    // 🔥 Validate Join Code
     const { data: codeData, error: codeError } = await supabase
       .from('college_codes')
       .select('college_id')
@@ -106,22 +106,22 @@ setExamPref(user.exam_preference || '')
 
     const collegeId = codeData.college_id
 
-    // 🔥 STEP 2: Save profile + college_id
+    // ✅ FIX 2: include user_id in upsert
     const { error } = await supabase
       .from('students')
       .upsert(
         {
-          id: userId,
           email: profile.email,
           first_name: profile.first_name || null,
           last_name: profile.last_name || null,
           phone: profile.phone || null,
           college_name: profile.college_name || null,
           address: profile.address || null,
-          college_id: collegeId,   // ✅ IMPORTANT
+          college_id: collegeId,
           exam_preference: examPref,
+          user_id: userId   // ✅ CRITICAL FIX
         },
-        { onConflict: 'id' }
+        { onConflict: 'email' } // safer than id
       )
 
     if (error) {
@@ -131,7 +131,6 @@ setExamPref(user.exam_preference || '')
     } else {
       setMessage('✅ Profile updated successfully')
 
-      // 🔥 Redirect to dashboard
       setTimeout(() => {
         window.location.href = '/select-category'
       }, 1000)
@@ -149,13 +148,11 @@ setExamPref(user.exam_preference || '')
       <h1>👤 My Profile</h1>
 
       <div style={styles.card}>
-        {/* EMAIL */}
         <div style={styles.field}>
           <label>Email (login)</label>
           <input value={profile.email} disabled style={styles.inputDisabled} />
         </div>
 
-        {/* FIRST NAME */}
         <div style={styles.field}>
           <label>First Name</label>
           <input
@@ -167,7 +164,6 @@ setExamPref(user.exam_preference || '')
           />
         </div>
 
-        {/* LAST NAME */}
         <div style={styles.field}>
           <label>Last Name</label>
           <input
@@ -179,7 +175,6 @@ setExamPref(user.exam_preference || '')
           />
         </div>
 
-        {/* PHONE */}
         <div style={styles.field}>
           <label>Phone Number</label>
           <input
@@ -190,33 +185,32 @@ setExamPref(user.exam_preference || '')
             style={styles.input}
           />
         </div>
-<div style={styles.field}>
-  <label>Exam Preference</label>
 
-  <div style={{ display: 'flex', gap: 20, marginTop: 6 }}>
-    <label>
-      <input
-        type="radio"
-        value="JEE"
-        checked={examPref === 'JEE'}
-        onChange={(e) => setExamPref(e.target.value)}
-      />
-      JEE
-    </label>
+        <div style={styles.field}>
+          <label>Exam Preference</label>
+          <div style={{ display: 'flex', gap: 20, marginTop: 6 }}>
+            <label>
+              <input
+                type="radio"
+                value="JEE"
+                checked={examPref === 'JEE'}
+                onChange={(e) => setExamPref(e.target.value)}
+              />
+              JEE
+            </label>
 
-    <label>
-      <input
-        type="radio"
-        value="NEET"
-        checked={examPref === 'NEET'}
-        onChange={(e) => setExamPref(e.target.value)}
-      />
-      NEET
-    </label>
-  </div>
-</div>
+            <label>
+              <input
+                type="radio"
+                value="NEET"
+                checked={examPref === 'NEET'}
+                onChange={(e) => setExamPref(e.target.value)}
+              />
+              NEET
+            </label>
+          </div>
+        </div>
 
-        {/* 🔥 JOIN CODE (NEW) */}
         <div style={styles.field}>
           <label>Join Code</label>
           <input
@@ -227,7 +221,6 @@ setExamPref(user.exam_preference || '')
           />
         </div>
 
-        {/* COLLEGE NAME */}
         <div style={styles.field}>
           <label>College Name</label>
           <input
@@ -239,7 +232,6 @@ setExamPref(user.exam_preference || '')
           />
         </div>
 
-        {/* ADDRESS */}
         <div style={styles.field}>
           <label>Address</label>
           <textarea
@@ -263,46 +255,11 @@ setExamPref(user.exam_preference || '')
 }
 
 const styles = {
-  page: {
-    padding: 40,
-    fontFamily: 'system-ui, sans-serif',
-    maxWidth: 600
-  },
-  card: {
-    marginTop: 20,
-    padding: 24,
-    background: '#f8fafc',
-    borderRadius: 12
-  },
-  field: {
-    display: 'flex',
-    flexDirection: 'column',
-    marginBottom: 14
-  },
-  input: {
-    padding: 10,
-    borderRadius: 6,
-    border: '1px solid #ccc'
-  },
-  inputDisabled: {
-    padding: 10,
-    borderRadius: 6,
-    border: '1px solid #ddd',
-    background: '#eee'
-  },
-  textarea: {
-    padding: 10,
-    borderRadius: 6,
-    border: '1px solid #ccc'
-  },
-  saveBtn: {
-    marginTop: 10,
-    padding: 12,
-    background: '#2563eb',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 8,
-    fontSize: 15,
-    cursor: 'pointer'
-  }
+  page: { padding: 40, fontFamily: 'system-ui, sans-serif', maxWidth: 600 },
+  card: { marginTop: 20, padding: 24, background: '#f8fafc', borderRadius: 12 },
+  field: { display: 'flex', flexDirection: 'column', marginBottom: 14 },
+  input: { padding: 10, borderRadius: 6, border: '1px solid #ccc' },
+  inputDisabled: { padding: 10, borderRadius: 6, border: '1px solid #ddd', background: '#eee' },
+  textarea: { padding: 10, borderRadius: 6, border: '1px solid #ccc' },
+  saveBtn: { marginTop: 10, padding: 12, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, cursor: 'pointer' }
 }
