@@ -16,10 +16,12 @@ export default function Admins() {
 
   async function loadData() {
 
-    const { data: admins } = await supabase
+    const { data: admins, error } = await supabase
       .from('students')
       .select('*')
-      .eq('role', 'admin')   // ✅ no .single()
+      .eq('role', 'admin')
+
+    if (error) console.error('Load admins error:', error)
 
     const { data: colleges } = await supabase
       .from('colleges')
@@ -40,18 +42,38 @@ export default function Admins() {
       return
     }
 
-    await supabase.from('students').insert({
+    const { error } = await supabase.from('students').insert({
       email,
       role: 'admin',
       college_id: collegeId
     })
 
+    if (error) {
+      console.error('Create admin error:', error)
+      alert(error.message)   // 🔥 now you will see RLS errors
+      return
+    }
+
     setEmail('')
+    setCollegeId('')
     loadData()
   }
 
   async function deleteAdmin(id) {
-    await supabase.from('students').delete().eq('id', id)
+
+    if (!confirm('Delete this admin?')) return
+
+    const { error } = await supabase
+      .from('students')
+      .delete()
+      .eq('id', id)
+
+    if (error) {
+      console.error('Delete error:', error)
+      alert(error.message)
+      return
+    }
+
     loadData()
   }
 
