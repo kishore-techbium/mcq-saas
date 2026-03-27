@@ -18,22 +18,18 @@ export default function Colleges() {
       .from('colleges')
       .select('*')
 
-    // 🔥 ENRICH DATA WITH STATS
     const enriched = await Promise.all((colleges || []).map(async (c) => {
 
-      // Students count
       const { count: studentsCount } = await supabase
         .from('students')
         .select('*', { count: 'exact', head: true })
         .eq('college_id', c.id)
 
-      // Exams count
       const { count: examsCount } = await supabase
         .from('exams')
         .select('*', { count: 'exact', head: true })
         .eq('college_id', c.id)
 
-      // Proctored exams (safe fallback)
       let proctoredCount = 0
       try {
         const { count } = await supabase
@@ -43,31 +39,13 @@ export default function Colleges() {
           .eq('is_proctored', true)
 
         proctoredCount = count || 0
-      } catch {
-        proctoredCount = 0
-      }
-
-      // Top student (latest best score)
-      let topStudent = '-'
-      try {
-        const { data } = await supabase
-          .from('exam_sessions')
-          .select('score, students(first_name)')
-          .eq('college_id', c.id)
-          .order('score', { ascending: false })
-          .limit(1)
-
-        if (data?.[0]) {
-          topStudent = `${data[0].students?.first_name || ''} (${data[0].score})`
-        }
       } catch {}
 
       return {
         ...c,
         studentsCount: studentsCount || 0,
         examsCount: examsCount || 0,
-        proctoredCount,
-        topStudent
+        proctoredCount
       }
     }))
 
@@ -86,9 +64,6 @@ export default function Colleges() {
 
   async function deleteCollege(id) {
 
-    if (!confirm('Delete college?')) return
-
-    // 🔒 Prevent delete if students exist
     const { count } = await supabase
       .from('students')
       .select('*', { count: 'exact', head: true })
@@ -120,20 +95,33 @@ export default function Colleges() {
         </button>
       </div>
 
-      {colleges.map(c => (
-        <div key={c.id} style={styles.card}>
-          <h3>{c.name}</h3>
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th>College</th>
+            <th>Students</th>
+            <th>Exams</th>
+            <th>Proctored</th>
+            <th>Action</th>
+          </tr>
+        </thead>
 
-          <p>👨‍🎓 Students: {c.studentsCount}</p>
-          <p>📝 Exams: {c.examsCount}</p>
-          <p>🎥 Proctored: {c.proctoredCount}</p>
-          <p>👑 Top Student: {c.topStudent}</p>
-
-          <button onClick={() => deleteCollege(c.id)} style={styles.deleteBtn}>
-            Delete
-          </button>
-        </div>
-      ))}
+        <tbody>
+          {colleges.map(c => (
+            <tr key={c.id}>
+              <td>{c.name}</td>
+              <td>{c.studentsCount}</td>
+              <td>{c.examsCount}</td>
+              <td>{c.proctoredCount}</td>
+              <td>
+                <button onClick={() => deleteCollege(c.id)} style={styles.deleteBtn}>
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -162,20 +150,16 @@ const styles = {
     borderRadius: 8
   },
 
-  card: {
-    marginTop: 12,
-    padding: 16,
-    background: '#f8fafc',
-    borderRadius: 10,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse'
   },
 
   deleteBtn: {
-    marginTop: 10,
     background: '#dc2626',
     color: '#fff',
     border: 'none',
-    padding: '6px 12px',
+    padding: '6px 10px',
     borderRadius: 6
   }
 }
