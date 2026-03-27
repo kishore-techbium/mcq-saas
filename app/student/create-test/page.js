@@ -19,25 +19,41 @@ export default function CreateTest() {
 
   async function init() {
     const { data: auth } = await supabase.auth.getUser()
+
     if (!auth.user) {
       window.location.href = '/'
       return
     }
 
-    const params = new URLSearchParams(window.location.search)
-    const rawCat = params.get('category')
+    const email = auth.user.email
 
-    const cat = rawCat
+    // 🔥 GET STUDENT PREFERENCE
+    const { data: student } = await supabase
+      .from('students')
+      .select('exam_preference')
+      .eq('email', email)
+      .single()
+
+    let cat = 'JEE_MAINS'
+
+    if (student?.exam_preference === 'NEET') {
+      cat = 'NEET'
+    } else if (student?.exam_preference === 'JEE') {
+      cat = 'JEE_MAINS'
+    }
 
     setCategory(cat)
 
+    console.log('Resolved Category:', cat)
+
+    // 🔥 LOAD SUBJECTS
     const { data } = await supabase.rpc('get_subjects', {
       p_category: cat
-console.log('Category:', cat)
     })
 
     const uniqueSubjects = (data || []).map(d => d.subject)
     setSubjects(uniqueSubjects)
+
     setLoading(false)
   }
 
@@ -72,6 +88,7 @@ console.log('Category:', cat)
 
       const count = data || 0
       setMaxQuestions(count)
+
       if (questionCount > count) setQuestionCount(count)
     }
   }
@@ -96,6 +113,7 @@ console.log('Category:', cat)
       <h1>Create Your Own Test</h1>
       <p style={{ color: '#555' }}>{pretty(category)}</p>
 
+      {/* SUBJECTS */}
       <div style={styles.section}>
         <h3>1️⃣ Select Subject</h3>
 
@@ -122,6 +140,7 @@ console.log('Category:', cat)
         </div>
       </div>
 
+      {/* CHAPTERS */}
       {selectedSubject && (
         <div style={styles.section}>
           <h3>2️⃣ Select Chapters</h3>
@@ -148,6 +167,7 @@ console.log('Category:', cat)
         </div>
       )}
 
+      {/* QUESTION COUNT */}
       {selectedChapters.length > 0 && (
         <div style={styles.section}>
           <h3>3️⃣ Number of Questions</h3>
@@ -177,12 +197,15 @@ console.log('Category:', cat)
   )
 }
 
+/* ================= HELPERS ================= */
+
 function pretty(cat) {
   if (cat === 'JEE_MAINS') return 'JEE Mains'
-  if (cat === 'JEE_ADVANCED') return 'JEE Advanced'
   if (cat === 'NEET') return 'NEET UG'
   return ''
 }
+
+/* ================= STYLES ================= */
 
 const styles = {
   page: {
