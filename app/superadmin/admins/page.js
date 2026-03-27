@@ -7,21 +7,22 @@ export default function Admins() {
 
   const [admins, setAdmins] = useState([])
   const [colleges, setColleges] = useState([])
+
   const [email, setEmail] = useState('')
   const [collegeId, setCollegeId] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
 
   useEffect(() => {
     loadData()
   }, [])
 
   async function loadData() {
-
-    const { data: admins, error } = await supabase
+    const { data: admins } = await supabase
       .from('students')
       .select('*')
       .eq('role', 'admin')
-
-    if (error) console.error('Load admins error:', error)
 
     const { data: colleges } = await supabase
       .from('colleges')
@@ -38,42 +39,36 @@ export default function Admins() {
   async function createAdmin() {
 
     if (!email || !collegeId) {
-      alert('Fill all fields')
+      alert('Fill required fields')
       return
     }
 
     const { error } = await supabase.from('students').insert({
       email,
       role: 'admin',
-      college_id: collegeId
+      college_id: collegeId,
+      first_name: firstName || null,
+      last_name: lastName || null,
+      phone: phone || null
     })
 
     if (error) {
-      console.error('Create admin error:', error)
-      alert(error.message)   // 🔥 now you will see RLS errors
+      alert(error.message)
       return
     }
 
     setEmail('')
     setCollegeId('')
+    setFirstName('')
+    setLastName('')
+    setPhone('')
     loadData()
   }
 
   async function deleteAdmin(id) {
-
     if (!confirm('Delete this admin?')) return
 
-    const { error } = await supabase
-      .from('students')
-      .delete()
-      .eq('id', id)
-
-    if (error) {
-      console.error('Delete error:', error)
-      alert(error.message)
-      return
-    }
-
+    await supabase.from('students').delete().eq('id', id)
     loadData()
   }
 
@@ -82,18 +77,12 @@ export default function Admins() {
       <h1 style={styles.heading}>Admins</h1>
 
       <div style={styles.form}>
-        <input
-          placeholder="Admin Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={styles.input}
-        />
+        <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} style={styles.input} />
+        <input placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} style={styles.input} />
+        <input placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} style={styles.input} />
+        <input placeholder="Phone" value={phone} onChange={e => setPhone(e.target.value)} style={styles.input} />
 
-        <select
-          value={collegeId}
-          onChange={(e) => setCollegeId(e.target.value)}
-          style={styles.input}
-        >
+        <select value={collegeId} onChange={e => setCollegeId(e.target.value)} style={styles.input}>
           <option value="">Select College</option>
           {colleges.map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
@@ -109,6 +98,8 @@ export default function Admins() {
         <thead>
           <tr>
             <th style={styles.th}>Email</th>
+            <th style={styles.th}>Name</th>
+            <th style={styles.th}>Phone</th>
             <th style={styles.th}>College</th>
             <th style={styles.th}>Action</th>
           </tr>
@@ -118,6 +109,8 @@ export default function Admins() {
           {admins.map(a => (
             <tr key={a.id}>
               <td style={styles.td}>{a.email}</td>
+              <td style={styles.td}>{a.first_name} {a.last_name}</td>
+              <td style={styles.td}>{a.phone}</td>
               <td style={styles.td}>{getCollegeName(a.college_id)}</td>
               <td style={styles.td}>
                 <button onClick={() => deleteAdmin(a.id)} style={styles.deleteBtn}>
@@ -133,12 +126,13 @@ export default function Admins() {
 }
 
 const styles = {
-  page: { padding: 30 },
+  page: { padding: 30, color: '#111' },  // ✅ text visible fix
   heading: { fontSize: 26, marginBottom: 20 },
 
   form: {
     display: 'flex',
     gap: 10,
+    flexWrap: 'wrap',
     marginBottom: 20
   },
 
@@ -158,26 +152,23 @@ const styles = {
 
   table: {
     width: '100%',
-    borderCollapse: 'collapse',
-    marginTop: 10
+    borderCollapse: 'collapse'
   },
 
   th: {
-    border: '1px solid #e5e7eb',
-    padding: '10px',
-    background: '#f9fafb',
-    textAlign: 'left'
+    padding: 10,
+    background: '#f1f5f9',
+    border: '1px solid #ddd'
   },
 
   td: {
-    border: '1px solid #e5e7eb',
-    padding: '10px'
+    padding: 10,
+    border: '1px solid #ddd'
   },
 
   deleteBtn: {
     background: '#dc2626',
     color: '#fff',
-    border: 'none',
     padding: '6px 10px',
     borderRadius: 6
   }
