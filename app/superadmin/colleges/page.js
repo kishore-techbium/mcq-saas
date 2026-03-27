@@ -36,7 +36,7 @@ export default function Colleges() {
           .from('exams')
           .select('*', { count: 'exact', head: true })
           .eq('college_id', c.id)
-          .eq('is_proctored', true)
+          .is('is_proctored', true)
 
         proctoredCount = count || 0
       } catch {}
