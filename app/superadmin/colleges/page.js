@@ -6,7 +6,11 @@ import { supabase } from '../../../lib/supabase'
 export default function Colleges() {
 
   const [colleges, setColleges] = useState([])
+
   const [name, setName] = useState('')
+  const [city, setCity] = useState('')
+  const [district, setDistrict] = useState('')
+  const [state, setState] = useState('')
 
   useEffect(() => {
     loadColleges()
@@ -14,9 +18,7 @@ export default function Colleges() {
 
   async function loadColleges() {
 
-    const { data: colleges } = await supabase
-      .from('colleges')
-      .select('*')
+    const { data: colleges } = await supabase.from('colleges').select('*')
 
     const enriched = await Promise.all((colleges || []).map(async (c) => {
 
@@ -30,21 +32,10 @@ export default function Colleges() {
         .select('*', { count: 'exact', head: true })
         .eq('college_id', c.id)
 
-      let proctoredCount = 0
-      try {
-        const { count } = await supabase
-          .from('exams')
-          .select('*', { count: 'exact', head: true })
-          .eq('college_id', c.id)
-
-        proctoredCount = count || 0
-      } catch {}
-
       return {
         ...c,
         studentsCount: studentsCount || 0,
-        examsCount: examsCount || 0,
-        proctoredCount
+        examsCount: examsCount || 0
       }
     }))
 
@@ -53,11 +44,20 @@ export default function Colleges() {
 
   async function createCollege() {
 
-    if (!name) return alert('Enter name')
+    if (!name) return alert('Enter college name')
 
-    await supabase.from('colleges').insert({ name })
+    await supabase.from('colleges').insert({
+      name,
+      city,
+      district,
+      state
+    })
 
     setName('')
+    setCity('')
+    setDistrict('')
+    setState('')
+
     loadColleges()
   }
 
@@ -82,25 +82,23 @@ export default function Colleges() {
       <h1 style={styles.heading}>Colleges</h1>
 
       <div style={styles.form}>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="College Name"
-          style={styles.input}
-        />
+        <input placeholder="College Name" value={name} onChange={e => setName(e.target.value)} style={styles.input} />
+        <input placeholder="City" value={city} onChange={e => setCity(e.target.value)} style={styles.input} />
+        <input placeholder="District" value={district} onChange={e => setDistrict(e.target.value)} style={styles.input} />
+        <input placeholder="State" value={state} onChange={e => setState(e.target.value)} style={styles.input} />
 
-        <button onClick={createCollege} style={styles.btn}>
-          Create
-        </button>
+        <button onClick={createCollege} style={styles.btn}>Create</button>
       </div>
 
       <table style={styles.table}>
         <thead>
           <tr>
             <th style={styles.th}>College</th>
+            <th style={styles.th}>City</th>
+            <th style={styles.th}>District</th>
+            <th style={styles.th}>State</th>
             <th style={styles.th}>Students</th>
             <th style={styles.th}>Exams</th>
-            <th style={styles.th}>Proctored</th>
             <th style={styles.th}>Action</th>
           </tr>
         </thead>
@@ -109,9 +107,11 @@ export default function Colleges() {
           {colleges.map(c => (
             <tr key={c.id}>
               <td style={styles.td}>{c.name}</td>
+              <td style={styles.td}>{c.city}</td>
+              <td style={styles.td}>{c.district}</td>
+              <td style={styles.td}>{c.state}</td>
               <td style={styles.td}>{c.studentsCount}</td>
               <td style={styles.td}>{c.examsCount}</td>
-              <td style={styles.td}>{c.proctoredCount}</td>
               <td style={styles.td}>
                 <button onClick={() => deleteCollege(c.id)} style={styles.deleteBtn}>
                   Delete
@@ -126,12 +126,13 @@ export default function Colleges() {
 }
 
 const styles = {
-  page: { padding: 30 },
+  page: { padding: 30, color: '#111' }, // ✅ visibility fix
   heading: { fontSize: 26, marginBottom: 20 },
 
   form: {
     display: 'flex',
     gap: 10,
+    flexWrap: 'wrap',
     marginBottom: 20
   },
 
@@ -145,32 +146,17 @@ const styles = {
     padding: '10px 16px',
     background: '#16a34a',
     color: '#fff',
-    border: 'none',
     borderRadius: 8
   },
 
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    marginTop: 10
-  },
+  table: { width: '100%', borderCollapse: 'collapse' },
 
-  th: {
-    border: '1px solid #e5e7eb',
-    padding: '10px',
-    background: '#f9fafb',
-    textAlign: 'left'
-  },
-
-  td: {
-    border: '1px solid #e5e7eb',
-    padding: '10px'
-  },
+  th: { padding: 10, background: '#f1f5f9', border: '1px solid #ddd' },
+  td: { padding: 10, border: '1px solid #ddd' },
 
   deleteBtn: {
     background: '#dc2626',
     color: '#fff',
-    border: 'none',
     padding: '6px 10px',
     borderRadius: 6
   }
