@@ -19,7 +19,7 @@ export default function Admins() {
     const { data: admins } = await supabase
       .from('students')
       .select('*')
-      .eq('role', 'admin')
+      .eq('role', 'admin')   // ✅ no .single()
 
     const { data: colleges } = await supabase
       .from('colleges')
@@ -67,8 +67,12 @@ export default function Admins() {
           style={styles.input}
         />
 
-        <select onChange={(e) => setCollegeId(e.target.value)} style={styles.input}>
-          <option>Select College</option>
+        <select
+          value={collegeId}
+          onChange={(e) => setCollegeId(e.target.value)}
+          style={styles.input}
+        >
+          <option value="">Select College</option>
           {colleges.map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
@@ -82,18 +86,18 @@ export default function Admins() {
       <table style={styles.table}>
         <thead>
           <tr>
-            <th>Email</th>
-            <th>College</th>
-            <th>Action</th>
+            <th style={styles.th}>Email</th>
+            <th style={styles.th}>College</th>
+            <th style={styles.th}>Action</th>
           </tr>
         </thead>
 
         <tbody>
           {admins.map(a => (
             <tr key={a.id}>
-              <td>{a.email}</td>
-              <td>{getCollegeName(a.college_id)}</td>
-              <td>
+              <td style={styles.td}>{a.email}</td>
+              <td style={styles.td}>{getCollegeName(a.college_id)}</td>
+              <td style={styles.td}>
                 <button onClick={() => deleteAdmin(a.id)} style={styles.deleteBtn}>
                   Delete
                 </button>
@@ -132,7 +136,20 @@ const styles = {
 
   table: {
     width: '100%',
-    borderCollapse: 'collapse'
+    borderCollapse: 'collapse',
+    marginTop: 10
+  },
+
+  th: {
+    border: '1px solid #e5e7eb',
+    padding: '10px',
+    background: '#f9fafb',
+    textAlign: 'left'
+  },
+
+  td: {
+    border: '1px solid #e5e7eb',
+    padding: '10px'
   },
 
   deleteBtn: {
