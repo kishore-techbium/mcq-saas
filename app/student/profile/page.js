@@ -24,59 +24,69 @@ export default function StudentProfile() {
   }, [])
 
   async function init() {
-    setLoading(true)
+  setLoading(true)
 
-    const { data: auth } = await supabase.auth.getUser()
-    if (!auth.user) {
-      window.location.href = '/'
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) {
+    window.location.href = '/'
+    return
+  }
+
+  const userId = auth.user.id
+  const email = auth.user.email
+
+  const { data: user, error } = await supabase
+    .from('students')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('Fetch error:', error)
+    setLoading(false)
+    return
+  }
+
+  // ✅ IF PROFILE EXISTS
+  if (user) {
+
+    // 🔥 AUTO LINK user_id if missing
+    if (!user.user_id) {
+      await supabase
+        .from('students')
+        .update({ user_id: userId })
+        .eq('email', email)
+    }
+
+    // 🔥 REDIRECT IF PROFILE COMPLETE
+    if (user.college_id) {
+      window.location.href = '/select-category'
       return
     }
 
-    const userId = auth.user.id
-    const email = auth.user.email
-
-    const { data: user, error } = await supabase
-      .from('students')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Fetch error:', error)
-      setLoading(false)
-      return
-    }
-
-    // ✅ Ensure profile exists
-    const { data: inserted, error: insertError } = await supabase
-      .from('students')
-      .upsert({
-        id: userId,
-        email,
-        user_id: userId
-      }, { onConflict: 'email' })
-      .select()
-      .single()
-
-    if (insertError) {
-      alert('Failed to create profile')
-      setLoading(false)
-      return
-    }
-
+    // else → load profile form
     setProfile({
-      id: inserted.id,
-      email: inserted.email,
-      first_name: inserted.first_name || '',
-      last_name: inserted.last_name || '',
-      phone: inserted.phone || '',
-      address: inserted.address || ''
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      phone: user.phone || '',
+      address: user.address || ''
     })
 
-    setExamPref(inserted.exam_preference || '')
-
-    setLoading(false)
+    setExamPref(user.exam_preference || '')
   }
+
+  // ✅ IF NO PROFILE → CREATE BASIC ENTRY
+  else {
+    await supabase.from('students').insert({
+      email,
+      user_id: userId
+    })
+  }
+
+  setLoading(false)
+}
 
   async function saveProfile() {
     setSaving(true)
