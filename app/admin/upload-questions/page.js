@@ -7,11 +7,10 @@ import * as XLSX from 'xlsx'
 import { getAdminCollege } from '../../../lib/getAdminCollege'
 
 const REQUIRED_COLUMNS = [
-  'exam_category','subject','chapter','subtopic','question',
+  'exam_category','subject','chapter','subtopic','difficulty','question',
   'option_a','option_b','option_c','option_d','correct_answer'
 ]
 
-// explanation is optional
 const OPTIONAL_COLUMNS = ['explanation']
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
@@ -59,6 +58,7 @@ export default function UploadQuestionsPage() {
       subject:'Physics',
       chapter:'Kinematics',
       subtopic:'Motion in Straight Line',
+      difficulty:'Easy',
       question:'Sample?',
       option_a:'A',
       option_b:'B',
@@ -76,10 +76,15 @@ export default function UploadQuestionsPage() {
     const errs=[]
 
     REQUIRED_COLUMNS.forEach(col=>{
-      if(!row[col] || String(row[col]).trim()===''){
+      if(row[col] === undefined || row[col] === null || String(row[col]).trim()===''){
         errs.push(`Row ${index+2}: Missing ${col}`)
       }
     })
+
+    // Difficulty validation
+    if(row.difficulty && !['Easy','Medium','Hard'].includes(row.difficulty)){
+      errs.push(`Row ${index+2}: Invalid difficulty (use Easy/Medium/Hard)`)
+    }
 
     if(row.correct_answer && !['A','B','C','D'].includes(row.correct_answer)){
       errs.push(`Row ${index+2}: Invalid answer`)
@@ -119,7 +124,7 @@ export default function UploadQuestionsPage() {
         return showToast('Validation failed','error')
       }
 
-      setPreviewRows(rows.slice(0,100)) // limit to 100
+      setPreviewRows(rows.slice(0,100))
       setIsPreview(true)
       setCurrentPage(1)
 
@@ -179,7 +184,6 @@ export default function UploadQuestionsPage() {
           Download Template
         </button>
 
-        {/* Upload Type */}
         <div style={styles.section}>
           <label>
             <input 
@@ -235,7 +239,6 @@ export default function UploadQuestionsPage() {
           </button>
         )}
 
-        {/* PREVIEW */}
         {isPreview && previewRows.length>0 && (
           <div style={styles.previewBox}>
             <h3>Preview ({previewRows.length})</h3>
@@ -260,7 +263,6 @@ export default function UploadQuestionsPage() {
               </tbody>
             </table>
 
-            {/* Pagination */}
             <div style={{marginTop:10}}>
               {Array.from({length: Math.ceil(previewRows.length / ITEMS_PER_PAGE)}).map((_,i)=>(
                 <button
