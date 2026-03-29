@@ -1,5 +1,6 @@
 'use client'
 export const runtime = 'nodejs'
+
 import { supabase } from '../../../../lib/supabase'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -41,13 +42,46 @@ export default function UploadWordPage(){
     setTimeout(()=>setToast(null),3000)
   }
 
+  // 🔥 IMAGE COMPRESSION
+  async function compressImage(buffer) {
+    return new Promise((resolve, reject) => {
+
+      const blob = new Blob([buffer])
+      const img = new Image()
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+
+        const MAX_WIDTH = 600
+        const scale = MAX_WIDTH / img.width
+
+        canvas.width = MAX_WIDTH
+        canvas.height = img.height * scale
+
+        const ctx = canvas.getContext('2d')
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+        canvas.toBlob(
+          (compressedBlob) => {
+            resolve(compressedBlob)
+          },
+          'image/jpeg',
+          0.7
+        )
+      }
+
+      img.onerror = reject
+      img.src = URL.createObjectURL(blob)
+    })
+  }
+
   // 🔥 IMAGE UPLOAD
-  async function uploadImageToSupabase(buffer,index){
+  async function uploadImageToSupabase(file,index){
     const fileName = `question_images/${Date.now()}_${index}.jpg`
 
     const { error } = await supabase.storage
       .from('question-images')
-      .upload(fileName, buffer, {
+      .upload(fileName, file, {
         contentType:'image/jpeg'
       })
 
@@ -71,7 +105,12 @@ export default function UploadWordPage(){
       {
         convertImage: mammoth.images.inline(async (image) => {
           const buffer = await image.read()
-          const url = await uploadImageToSupabase(buffer,imageIndex++)
+
+          // 🔥 COMPRESS HERE
+          const compressed = await compressImage(buffer)
+
+          const url = await uploadImageToSupabase(compressed,imageIndex++)
+
           return { src: url }
         })
       }
@@ -79,10 +118,9 @@ export default function UploadWordPage(){
 
     const html = result.value
 
-    // split questions
     const blocks = html.split(/Question\s+\d+:/i).filter(q=>q.trim())
 
-    return blocks.map((block,index)=>{
+    return blocks.map((block)=>{
 
       const get = (label)=>{
         const regex = new RegExp(`${label}:\\s*([^<]*)`,'i')
