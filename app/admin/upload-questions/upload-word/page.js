@@ -90,8 +90,11 @@ export default function UploadWordPage(){
       }
     )
 
-    const blocks = result.value.split(/Question\s+\d+:/i).filter(x=>x.trim())
+const rawBlocks = result.value.split(/Question\s+\d+:/i)
 
+const blocks = rawBlocks
+  .map(b => b.trim())
+  .filter(b => b && b.includes('Q:') && b.includes('Answer:'))
     return blocks.map(block=>{
       const get = (l)=> clean((block.match(new RegExp(`${l}:\\s*([^<]*)`,'i'))||[])[1])
       const opt = (l)=> clean((block.match(new RegExp(`${l}\\.\\s*([^<]*)`,'i'))||[])[1])
