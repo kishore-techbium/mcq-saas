@@ -7,9 +7,12 @@ import * as XLSX from 'xlsx'
 import { getAdminCollege } from '../../../lib/getAdminCollege'
 
 const REQUIRED_COLUMNS = [
-  'exam_category','subject','chapter','question',
+  'exam_category','subject','chapter','subtopic','question',
   'option_a','option_b','option_c','option_d','correct_answer'
 ]
+
+// explanation is optional
+const OPTIONAL_COLUMNS = ['explanation']
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024
 
@@ -22,6 +25,11 @@ export default function UploadQuestionsPage() {
   const [isPreview, setIsPreview] = useState(false)
   const [selectedExam, setSelectedExam] = useState('')
   const [exams, setExams] = useState([])
+
+  const [uploadType, setUploadType] = useState('excel')
+
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 25
 
   const [errors, setErrors] = useState([])
   const [progress, setProgress] = useState(0)
@@ -47,8 +55,17 @@ export default function UploadQuestionsPage() {
 
   function downloadTemplate() {
     const ws = XLSX.utils.json_to_sheet([{
-      exam_category:'JEE_MAINS',subject:'Physics',chapter:'Kinematics',
-      question:'Sample?',option_a:'A',option_b:'B',option_c:'C',option_d:'D',correct_answer:'A'
+      exam_category:'JEE_MAINS',
+      subject:'Physics',
+      chapter:'Kinematics',
+      subtopic:'Motion in Straight Line',
+      question:'Sample?',
+      option_a:'A',
+      option_b:'B',
+      option_c:'C',
+      option_d:'D',
+      correct_answer:'A',
+      explanation:'Optional explanation here'
     }])
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Template')
@@ -57,18 +74,26 @@ export default function UploadQuestionsPage() {
 
   function validateRow(row,index){
     const errs=[]
+
     REQUIRED_COLUMNS.forEach(col=>{
       if(!row[col] || String(row[col]).trim()===''){
         errs.push(`Row ${index+2}: Missing ${col}`)
       }
     })
+
     if(row.correct_answer && !['A','B','C','D'].includes(row.correct_answer)){
       errs.push(`Row ${index+2}: Invalid answer`)
     }
+
     return errs
   }
 
   async function handlePreview(){
+
+    if(uploadType === 'word'){
+      return showToast('Word upload coming next phase','error')
+    }
+
     if(!file) return showToast('Select file','error')
     if(file.size>MAX_FILE_SIZE) return showToast('File too large','error')
 
@@ -94,8 +119,9 @@ export default function UploadQuestionsPage() {
         return showToast('Validation failed','error')
       }
 
-      setPreviewRows(rows)
+      setPreviewRows(rows.slice(0,100)) // limit to 100
       setIsPreview(true)
+      setCurrentPage(1)
 
     }catch{
       showToast('Invalid file','error')
@@ -140,6 +166,9 @@ export default function UploadQuestionsPage() {
     setUploading(false)
   }
 
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const paginatedRows = previewRows.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+
   return (
     <div style={styles.page}>
       <div style={styles.card}>
@@ -150,17 +179,48 @@ export default function UploadQuestionsPage() {
           Download Template
         </button>
 
+        {/* Upload Type */}
         <div style={styles.section}>
-          <input type="file" onChange={e=>setFile(e.target.files[0])}/>
+          <label>
+            <input 
+              type="radio" 
+              value="excel" 
+              checked={uploadType==='excel'} 
+              onChange={()=>setUploadType('excel')}
+            />
+            Excel Upload
+          </label>
+
+          <label style={{marginLeft:20}}>
+            <input 
+              type="radio" 
+              value="word" 
+              checked={uploadType==='word'} 
+              onChange={()=>setUploadType('word')}
+            />
+            Word Upload
+          </label>
+        </div>
+
+        <div style={styles.section}>
+          <input 
+            type="file" 
+            accept={uploadType==='excel' ? '.xlsx,.xls' : '.docx'}
+            onChange={e=>setFile(e.target.files[0])}
+          />
         </div>
 
         <div style={styles.section}>
           <select onChange={e=>setSelectedExam(e.target.value)}>
-            <option value="">Select Exam</option>
+            <option value="">Select Exam (Optional)</option>
             {exams.map(e=>(
               <option key={e.id} value={e.id}>{e.title}</option>
             ))}
           </select>
+
+          <div style={{fontSize:12,color:'#555',marginTop:5}}>
+            If selected, uploaded questions will be directly mapped to this exam.
+          </div>
         </div>
 
         {!isPreview && (
@@ -175,7 +235,7 @@ export default function UploadQuestionsPage() {
           </button>
         )}
 
-        {/* ✅ PREVIEW TABLE */}
+        {/* PREVIEW */}
         {isPreview && previewRows.length>0 && (
           <div style={styles.previewBox}>
             <h3>Preview ({previewRows.length})</h3>
@@ -186,9 +246,9 @@ export default function UploadQuestionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {previewRows.slice(0,10).map((r,i)=>(
+                {paginatedRows.map((r,i)=>(
                   <tr key={i}>
-                    <td>{i+1}</td>
+                    <td>{startIndex + i + 1}</td>
                     <td>{r.question}</td>
                     <td>{r.option_a}</td>
                     <td>{r.option_b}</td>
@@ -199,6 +259,24 @@ export default function UploadQuestionsPage() {
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination */}
+            <div style={{marginTop:10}}>
+              {Array.from({length: Math.ceil(previewRows.length / ITEMS_PER_PAGE)}).map((_,i)=>(
+                <button
+                  key={i}
+                  onClick={()=>setCurrentPage(i+1)}
+                  style={{
+                    marginRight:5,
+                    background: currentPage===i+1 ? '#2563eb' : '#ddd',
+                    color: currentPage===i+1 ? '#fff' : '#000'
+                  }}
+                >
+                  {i+1}
+                </button>
+              ))}
+            </div>
+
           </div>
         )}
 
