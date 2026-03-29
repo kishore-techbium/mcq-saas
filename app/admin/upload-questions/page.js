@@ -10,9 +10,9 @@ export default function UploadQuestionsPage() {
 
   function handleContinue() {
     if(uploadType === 'excel'){
-      router.push('/admin/upload-excel')
+      router.push('/admin/upload-questions/upload-excel')
     } else {
-      router.push('/admin/upload-word')
+      router.push('/admin/upload-questions/upload-word')
     }
   }
 
