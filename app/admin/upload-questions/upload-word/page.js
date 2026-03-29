@@ -1,5 +1,5 @@
 'use client'
-
+export const runtime = 'nodejs'
 import { supabase } from '../../../../lib/supabase'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -11,7 +11,6 @@ const MAX_FILE_SIZE = 20 * 1024 * 1024
 export default function UploadWordPage(){
 
   const router = useRouter()
-  const runtime = 'nodejs'
   const [file,setFile] = useState(null)
   const [previewRows,setPreviewRows] = useState([])
   const [isPreview,setIsPreview] = useState(false)
