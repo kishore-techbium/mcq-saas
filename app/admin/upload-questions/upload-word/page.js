@@ -12,18 +12,16 @@ const MAX_FILE_SIZE = 20 * 1024 * 1024
 export default function UploadWordPage(){
 
   const router = useRouter()
+
   const [file,setFile] = useState(null)
-  const [previewRows,setPreviewRows] = useState([])
+  const [rows,setRows] = useState([])
+  const [errors,setErrors] = useState({})
   const [isPreview,setIsPreview] = useState(false)
+
   const [selectedExam,setSelectedExam] = useState('')
   const [exams,setExams] = useState([])
 
-  const [currentPage,setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 25
-
-  const [errors,setErrors] = useState([])
   const [uploading,setUploading] = useState(false)
-  const [toast,setToast] = useState(null)
 
   useEffect(()=>{ loadExams() },[])
 
@@ -37,321 +35,208 @@ export default function UploadWordPage(){
     setExams(data || [])
   }
 
-  function showToast(message,type='success'){
-    setToast({message,type})
-    setTimeout(()=>setToast(null),3000)
-  }
+  // 🧠 Clean text
+  const clean = (t)=> t?.replace(/\s+/g,' ').trim()
 
-  // 🔥 IMAGE COMPRESSION
-  async function compressImage(buffer) {
-    return new Promise((resolve, reject) => {
-
+  // 🖼 Compress
+  async function compressImage(buffer){
+    return new Promise((resolve)=>{
       const blob = new Blob([buffer])
       const img = new Image()
 
-      img.onload = () => {
+      img.onload = ()=>{
         const canvas = document.createElement('canvas')
+        const scale = 600 / img.width
 
-        const MAX_WIDTH = 600
-        const scale = MAX_WIDTH / img.width
-
-        canvas.width = MAX_WIDTH
+        canvas.width = 600
         canvas.height = img.height * scale
 
         const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        ctx.drawImage(img,0,0,canvas.width,canvas.height)
 
-        canvas.toBlob(
-          (compressedBlob) => {
-            resolve(compressedBlob)
-          },
-          'image/jpeg',
-          0.7
-        )
+        canvas.toBlob(b=>resolve(b),'image/jpeg',0.7)
       }
 
-      img.onerror = reject
       img.src = URL.createObjectURL(blob)
     })
   }
 
-  // 🔥 IMAGE UPLOAD
-  async function uploadImageToSupabase(file,index){
-    const fileName = `question_images/${Date.now()}_${index}.jpg`
+  async function uploadImage(file,i){
+    const path = `question_images/${Date.now()}_${i}.jpg`
 
-    const { error } = await supabase.storage
-      .from('question-images')
-      .upload(fileName, file, {
-        contentType:'image/jpeg'
-      })
-
-    if(error) throw error
+    await supabase.storage.from('question-images')
+      .upload(path,file,{contentType:'image/jpeg'})
 
     const { data } = supabase.storage
       .from('question-images')
-      .getPublicUrl(fileName)
+      .getPublicUrl(path)
 
     return data.publicUrl
   }
 
-  // 🔥 WORD PARSER
   async function parseWord(file){
-    const arrayBuffer = await file.arrayBuffer()
-
-    let imageIndex = 0
+    const buffer = await file.arrayBuffer()
+    let imgIndex = 0
 
     const result = await mammoth.convertToHtml(
-      { arrayBuffer },
+      { arrayBuffer:buffer },
       {
-        convertImage: mammoth.images.inline(async (image) => {
-          const buffer = await image.read()
-
-          // 🔥 COMPRESS HERE
-          const compressed = await compressImage(buffer)
-
-          const url = await uploadImageToSupabase(compressed,imageIndex++)
-
-          return { src: url }
+        convertImage: mammoth.images.inline(async (img)=>{
+          const raw = await img.read()
+          const compressed = await compressImage(raw)
+          const url = await uploadImage(compressed,imgIndex++)
+          return { src:url }
         })
       }
     )
 
-    const html = result.value
+    const blocks = result.value.split(/Question\s+\d+:/i).filter(x=>x.trim())
 
-    const blocks = html.split(/Question\s+\d+:/i).filter(q=>q.trim())
-
-    return blocks.map((block)=>{
-
-      const get = (label)=>{
-        const regex = new RegExp(`${label}:\\s*([^<]*)`,'i')
-        const match = block.match(regex)
-        return match ? match[1].trim() : ''
-      }
-
-      const getOption = (letter)=>{
-        const regex = new RegExp(`${letter}\\.\\s*([^<]*)`,'i')
-        const match = block.match(regex)
-        return match ? match[1].trim() : ''
-      }
-
-      const imgMatch = block.match(/<img[^>]+src="([^"]+)"/i)
-      const imageUrl = imgMatch ? imgMatch[1] : ''
+    return blocks.map(block=>{
+      const get = (l)=> clean((block.match(new RegExp(`${l}:\\s*([^<]*)`,'i'))||[])[1])
+      const opt = (l)=> clean((block.match(new RegExp(`${l}\\.\\s*([^<]*)`,'i'))||[])[1])
+      const img = (block.match(/<img[^>]+src="([^"]+)"/)||[])[1]
 
       return {
-        exam_category: get('Exam Category'),
-        subject: get('Subject'),
-        chapter: get('Chapter'),
-        subtopic: get('Subtopic'),
-        difficulty: get('Difficulty'),
-        question: get('Q') + (imageUrl ? ` <img src="${imageUrl}" />` : ''),
-        option_a: getOption('A'),
-        option_b: getOption('B'),
-        option_c: getOption('C'),
-        option_d: getOption('D'),
-        correct_answer: get('Answer'),
-        explanation: get('Explanation')
+        exam_category:get('Exam Category'),
+        subject:get('Subject'),
+        chapter:get('Chapter'),
+        subtopic:get('Subtopic'),
+        difficulty:get('Difficulty'),
+        question:get('Q'),
+        image:img || '',
+        option_a:opt('A'),
+        option_b:opt('B'),
+        option_c:opt('C'),
+        option_d:opt('D'),
+        correct_answer:get('Answer'),
+        explanation:get('Explanation')
       }
     })
   }
 
-  function validateRow(row,index){
-    const errs=[]
+  function validate(r){
+    const e=[]
+    if(!r.question) e.push('Question')
+    if(!r.option_a||!r.option_b||!r.option_c||!r.option_d) e.push('Options')
+    if(!['A','B','C','D'].includes(r.correct_answer)) e.push('Answer')
+    if(!['Easy','Medium','Hard'].includes(r.difficulty)) e.push('Difficulty')
+    return e
+  }
 
-    const required = [
-      'exam_category','subject','chapter','subtopic','difficulty',
-      'question','option_a','option_b','option_c','option_d','correct_answer'
-    ]
-
-    required.forEach(col=>{
-      if(row[col]===undefined || row[col]===null || String(row[col]).trim()===''){
-        errs.push(`Row ${index+1}: Missing ${col}`)
-      }
+  function revalidate(updatedRows){
+    let errMap={}
+    updatedRows.forEach((r,i)=>{
+      const e = validate(r)
+      if(e.length) errMap[i]=e
     })
-
-    if(row.difficulty && !['Easy','Medium','Hard'].includes(row.difficulty)){
-      errs.push(`Row ${index+1}: Invalid difficulty`)
-    }
-
-    if(row.correct_answer && !['A','B','C','D'].includes(row.correct_answer)){
-      errs.push(`Row ${index+1}: Invalid answer`)
-    }
-
-    return errs
+    setErrors(errMap)
   }
 
   async function handlePreview(){
+    const parsed = await parseWord(file)
+    setRows(parsed)
+    setIsPreview(true)
+    revalidate(parsed)
+  }
 
-    if(!file) return showToast('Select file','error')
-    if(file.size>MAX_FILE_SIZE) return showToast('File too large','error')
-
-    try{
-      const rows = await parseWord(file)
-
-      if(!rows.length) return showToast('No questions found','error')
-
-      let allErrors=[]
-      rows.forEach((r,i)=>allErrors.push(...validateRow(r,i)))
-
-      if(allErrors.length){
-        setErrors(allErrors)
-        return showToast('Validation failed','error')
-      }
-
-      setPreviewRows(rows.slice(0,100))
-      setIsPreview(true)
-      setCurrentPage(1)
-
-    }catch(e){
-      console.error(e)
-      showToast('Error processing file','error')
-    }
+  function handleChange(i,field,value){
+    const updated = [...rows]
+    updated[i][field]=value
+    setRows(updated)
+    revalidate(updated)
   }
 
   async function handleUpload(){
 
-    if(!previewRows.length) return
+    const validRows = rows.filter((_,i)=>!errors[i])
+    if(!validRows.length) return alert('Fix errors first')
 
     const collegeId = await getAdminCollege()
 
-    setUploading(true)
+    const payload = validRows.map(r=>({...r,college_id:collegeId}))
 
-    try{
+    const { data:inserted } = await supabase
+      .from('question_bank')
+      .insert(payload)
+      .select()
 
-      const payload = previewRows.map(r=>({...r,college_id:collegeId}))
-
-      const { data:inserted,error } = await supabase
-        .from('question_bank')
-        .insert(payload)
-        .select()
-
-      if(error) throw error
-
-      if(selectedExam){
-        await supabase.from('exam_questions').insert(
-          inserted.map(q=>({exam_id:selectedExam,question_id:q.id}))
-        )
-      }
-
-      showToast('Uploaded successfully')
-
-      setTimeout(()=>router.push('/admin'),1000)
-
-    }catch{
-      showToast('Upload failed','error')
+    if(selectedExam){
+      await supabase.from('exam_questions').insert(
+        inserted.map(q=>({exam_id:selectedExam,question_id:q.id}))
+      )
     }
 
-    setUploading(false)
+    alert('Uploaded')
+    router.push('/admin')
   }
 
-  const startIndex = (currentPage-1)*ITEMS_PER_PAGE
-  const paginatedRows = previewRows.slice(startIndex,startIndex+ITEMS_PER_PAGE)
-
   return(
-    <div style={styles.page}>
-      <div style={styles.card}>
+    <div style={{padding:20}}>
 
-        <h1 style={styles.heading}>📄 Upload Questions via Word</h1>
+      <h2>Word Upload (Edit Enabled)</h2>
 
-        <div style={styles.section}>
-          <input type="file" accept=".docx"
-            onChange={e=>setFile(e.target.files[0])}
-          />
-        </div>
+      <input type="file" accept=".docx"
+        onChange={e=>setFile(e.target.files[0])}
+      />
 
-        <div style={styles.section}>
-          <select onChange={e=>setSelectedExam(e.target.value)}>
-            <option value="">Select Exam (Optional)</option>
-            {exams.map(e=>(
-              <option key={e.id} value={e.id}>{e.title}</option>
-            ))}
-          </select>
-        </div>
+      <select onChange={e=>setSelectedExam(e.target.value)}>
+        <option value="">Select Exam (Optional)</option>
+        {exams.map(e=>(
+          <option key={e.id} value={e.id}>{e.title}</option>
+        ))}
+      </select>
 
-        {!isPreview && (
-          <button style={styles.previewBtn} onClick={handlePreview}>
-            Preview
+      {!isPreview && <button onClick={handlePreview}>Preview & Edit</button>}
+
+      {isPreview && (
+        <>
+          <button onClick={handleUpload}>
+            {uploading ? 'Uploading...' : 'Upload'}
           </button>
-        )}
 
-        {isPreview && (
-          <button style={styles.uploadBtn} onClick={handleUpload}>
-            {uploading ? 'Uploading...' : 'Upload Questions'}
-          </button>
-        )}
+          {rows.map((r,i)=>(
+            <div key={i}
+              style={{
+                border:'1px solid #ccc',
+                padding:10,
+                marginTop:10,
+                background: errors[i] ? '#fee2e2':'#ecfdf5'
+              }}
+            >
+              <div>Q{i+1}</div>
 
-        {isPreview && previewRows.length>0 && (
-          <div style={styles.previewBox}>
-            <h3>Preview ({previewRows.length})</h3>
+              <textarea value={r.question}
+                onChange={e=>handleChange(i,'question',e.target.value)}
+              />
 
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th>#</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Ans</th>
-                </tr>
-              </thead>
+              {r.image && <img src={r.image} width="120"/>}
 
-              <tbody>
-                {paginatedRows.map((r,i)=>(
-                  <tr key={i}>
-                    <td>{startIndex+i+1}</td>
-                    <td dangerouslySetInnerHTML={{__html:r.question}} />
-                    <td>{r.option_a}</td>
-                    <td>{r.option_b}</td>
-                    <td>{r.option_c}</td>
-                    <td>{r.option_d}</td>
-                    <td>{r.correct_answer}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div style={{marginTop:10}}>
-              {Array.from({length:Math.ceil(previewRows.length/ITEMS_PER_PAGE)}).map((_,i)=>(
-                <button key={i}
-                  onClick={()=>setCurrentPage(i+1)}
-                  style={{
-                    marginRight:5,
-                    background:currentPage===i+1?'#2563eb':'#ddd',
-                    color:currentPage===i+1?'#fff':'#000'
-                  }}
-                >
-                  {i+1}
-                </button>
+              {['option_a','option_b','option_c','option_d'].map(op=>(
+                <input key={op}
+                  value={r[op]}
+                  onChange={e=>handleChange(i,op,e.target.value)}
+                />
               ))}
+
+              <input value={r.correct_answer}
+                onChange={e=>handleChange(i,'correct_answer',e.target.value)}
+              />
+
+              <input value={r.difficulty}
+                onChange={e=>handleChange(i,'difficulty',e.target.value)}
+              />
+
+              {errors[i] && (
+                <div style={{color:'red'}}>
+                  {errors[i].join(', ')}
+                </div>
+              )}
             </div>
+          ))}
+        </>
+      )}
 
-          </div>
-        )}
-
-        {errors.length>0 && (
-          <div style={styles.errorBox}>
-            {errors.slice(0,5).map((e,i)=><div key={i}>{e}</div>)}
-          </div>
-        )}
-
-        {toast && (
-          <div style={{
-            ...styles.toast,
-            background: toast.type==='error'?'#dc2626':'#16a34a'
-          }}>
-            {toast.message}
-          </div>
-        )}
-
-      </div>
     </div>
   )
-}
-
-const styles={
-  page:{padding:30,display:'flex',justifyContent:'center'},
-  card:{maxWidth:900,width:'100%',background:'#fff',padding:20},
-  heading:{fontSize:22},
-  section:{marginBottom:15},
-  previewBtn:{background:'#2563eb',color:'#fff',padding:10},
-  uploadBtn:{background:'#16a34a',color:'#fff',padding:10},
-  previewBox:{marginTop:20},
-  table:{width:'100%',borderCollapse:'collapse'},
-  errorBox:{background:'#fee2e2',marginTop:10},
-  toast:{position:'fixed',bottom:20,right:20,color:'#fff',padding:10}
 }
