@@ -4,191 +4,264 @@ import { supabase } from '../../../lib/supabase'
 import { useEffect, useState } from 'react'
 
 export default function ReviewQuestionsPage() {
-  const [subjects, setSubjects] = useState([])
-  const [chapters, setChapters] = useState([])
-  const [selectedSubject, setSelectedSubject] = useState('')
-  const [selectedChapter, setSelectedChapter] = useState('')
+
+  const [tree, setTree] = useState({})
+  const [selected, setSelected] = useState({})
   const [questions, setQuestions] = useState([])
   const [selectedQuestions, setSelectedQuestions] = useState([])
-  const [status, setStatus] = useState('')
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(false)
+  const limit = 25
 
-  /* ================= LOAD SUBJECTS ================= */
+  /* ================= LOAD TREE ================= */
 
   useEffect(() => {
-    fetchSubjects()
+    loadTree()
   }, [])
 
-  async function fetchSubjects() {
+  async function loadTree() {
     const { data } = await supabase
       .from('question_bank')
-      .select('subject')
+      .select('exam_category,subject,chapter,subtopic')
 
-    if (!data) return
+    const structure = {}
 
-    const unique = [...new Set(data.map(d => d.subject))]
-    setSubjects(unique)
+    data.forEach(d => {
+      if (!structure[d.exam_category]) structure[d.exam_category] = {}
+      if (!structure[d.exam_category][d.subject]) structure[d.exam_category][d.subject] = {}
+      if (!structure[d.exam_category][d.subject][d.chapter]) structure[d.exam_category][d.subject][d.chapter] = []
+      if (!structure[d.exam_category][d.subject][d.chapter].includes(d.subtopic)) {
+        structure[d.exam_category][d.subject][d.chapter].push(d.subtopic)
+      }
+    })
+
+    setTree(structure)
   }
 
-  /* ================= LOAD CHAPTERS ================= */
+  /* ================= FETCH QUESTIONS ================= */
 
-  async function fetchChapters(subject) {
-    setSelectedSubject(subject)
-    setSelectedChapter('')
-    setQuestions([])
+  async function fetchQuestions(reset = true, filters = selected) {
 
-    const { data } = await supabase
-      .from('question_bank')
-      .select('chapter')
-      .eq('subject', subject)
+    if (reset) {
+      setQuestions([])
+      setPage(1)
+      setHasMore(true)
+    }
 
-    if (!data) return
+    if (!hasMore && !reset) return
 
-    const unique = [...new Set(data.map(d => d.chapter))]
-    setChapters(unique)
-  }
-
-  /* ================= LOAD QUESTIONS ================= */
-
-  async function fetchQuestions(subject, chapter) {
-    setSelectedChapter(chapter)
     setLoading(true)
-    setSelectedQuestions([])
-    setStatus('Loading questions...')
 
-    const { data } = await supabase
+    let query = supabase
       .from('question_bank')
       .select('*')
-      .eq('subject', subject)
-      .eq('chapter', chapter)
+      .range((page - 1) * limit, page * limit - 1)
 
-    setQuestions(data || [])
-    setStatus(`${data?.length || 0} questions loaded`)
+    if (filters.exam_category) query = query.eq('exam_category', filters.exam_category)
+    if (filters.subject) query = query.eq('subject', filters.subject)
+    if (filters.chapter) query = query.eq('chapter', filters.chapter)
+    if (filters.subtopic) query = query.eq('subtopic', filters.subtopic)
+
+    if (search) query = query.ilike('question', `%${search}%`)
+
+    const { data } = await query
+
+    if (data.length < limit) setHasMore(false)
+
+    setQuestions(prev => reset ? data : [...prev, ...data])
+    setPage(prev => prev + 1)
+
     setLoading(false)
   }
 
-  /* ================= SELECT ================= */
+  /* ================= TREE SELECT ================= */
+
+  function selectNode(level, value) {
+
+    const updated = { ...selected, [level]: value }
+
+    if (level === 'exam_category') {
+      delete updated.subject
+      delete updated.chapter
+      delete updated.subtopic
+    }
+
+    if (level === 'subject') {
+      delete updated.chapter
+      delete updated.subtopic
+    }
+
+    if (level === 'chapter') {
+      delete updated.subtopic
+    }
+
+    setSelected(updated)
+    fetchQuestions(true, updated)
+  }
+
+  /* ================= ACTIONS ================= */
 
   function toggleSelect(id) {
     setSelectedQuestions(prev =>
-      prev.includes(id)
-        ? prev.filter(q => q !== id)
-        : [...prev, id]
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     )
   }
 
   function selectAll() {
-    const allIds = questions.map(q => q.id)
-    setSelectedQuestions(allIds)
+    setSelectedQuestions(questions.map(q => q.id))
   }
 
   function clearSelection() {
     setSelectedQuestions([])
   }
 
-  /* ================= DELETE ================= */
-
   async function deleteSelected() {
-    if (selectedQuestions.length === 0) {
-      setStatus('No questions selected')
-      return
-    }
-
-    const confirmDelete = confirm(
-      `Delete ${selectedQuestions.length} selected questions?`
-    )
-    if (!confirmDelete) return
-
-    setStatus('Deleting selected questions...')
-
     await supabase
       .from('question_bank')
       .delete()
       .in('id', selectedQuestions)
 
-    setStatus(`Deleted ${selectedQuestions.length} questions`)
+    fetchQuestions(true)
     setSelectedQuestions([])
-    fetchQuestions(selectedSubject, selectedChapter)
+  }
+
+  async function toggleActive(status) {
+    await supabase
+      .from('question_bank')
+      .update({ is_active: status })
+      .in('id', selectedQuestions)
+
+    fetchQuestions(true)
+    setSelectedQuestions([])
+  }
+
+  /* ================= ANALYTICS ================= */
+
+  const analytics = {
+    total: questions.length,
+    active: questions.filter(q => q.is_active).length,
+    inactive: questions.filter(q => !q.is_active).length
   }
 
   /* ================= UI ================= */
 
   return (
     <div style={styles.page}>
-      <h1>🗂 Review Question Bank</h1>
 
-      <div style={styles.filterBox}>
-        <select
-          value={selectedSubject}
-          onChange={e => fetchChapters(e.target.value)}
-        >
-          <option value="">Select Subject</option>
-          {subjects.map(s => (
-            <option key={s} value={s}>{s}</option>
+      <h1 style={styles.title}>📚 Question Bank Manager</h1>
+
+      <div style={styles.container}>
+
+        {/* LEFT TREE */}
+        <div style={styles.sidebar}>
+
+          {Object.keys(tree).map(exam => (
+            <div key={exam}>
+              <div style={styles.node} onClick={() => selectNode('exam_category', exam)}>
+                {exam}
+              </div>
+
+              {selected.exam_category === exam &&
+                Object.keys(tree[exam]).map(subject => (
+                  <div key={subject} style={styles.child}>
+                    <div style={styles.node} onClick={() => selectNode('subject', subject)}>
+                      {subject}
+                    </div>
+
+                    {selected.subject === subject &&
+                      Object.keys(tree[exam][subject]).map(ch => (
+                        <div key={ch} style={styles.child}>
+                          <div style={styles.node} onClick={() => selectNode('chapter', ch)}>
+                            {ch}
+                          </div>
+
+                          {selected.chapter === ch &&
+                            tree[exam][subject][ch].map(st => (
+                              <div key={st} style={styles.child2}
+                                onClick={() => selectNode('subtopic', st)}>
+                                {st}
+                              </div>
+                            ))}
+                        </div>
+                      ))}
+                  </div>
+                ))}
+            </div>
           ))}
-        </select>
 
-        <select
-          value={selectedChapter}
-          onChange={e => fetchQuestions(selectedSubject, e.target.value)}
-          disabled={!selectedSubject}
-        >
-          <option value="">Select Chapter</option>
-          {chapters.map(c => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-      </div>
+        </div>
 
-      {loading && <p>Loading...</p>}
+        {/* RIGHT CONTENT */}
+        <div style={styles.content}>
 
-      {questions.length > 0 && (
-        <>
+          {/* SEARCH */}
+          <input
+            placeholder="🔍 Search questions..."
+            value={search}
+            onChange={e => {
+              setSearch(e.target.value)
+              fetchQuestions(true)
+            }}
+            style={styles.search}
+          />
+
+          {/* ANALYTICS */}
+          <div style={styles.analytics}>
+            <span>Total: {analytics.total}</span>
+            <span>Active: {analytics.active}</span>
+            <span>Inactive: {analytics.inactive}</span>
+          </div>
+
+          {/* ACTIONS */}
           <div style={styles.actions}>
             <button onClick={selectAll}>Select All</button>
             <button onClick={clearSelection}>Clear</button>
-            <button style={styles.deleteBtn} onClick={deleteSelected}>
-              Delete Selected
-            </button>
+            <button onClick={() => toggleActive(true)}>Activate</button>
+            <button onClick={() => toggleActive(false)}>Deactivate</button>
+            <button style={styles.deleteBtn} onClick={deleteSelected}>Delete</button>
           </div>
 
-          <div style={styles.tableWrapper}>
-  <table style={styles.table}>
-    <thead>
-      <tr>
-        <th style={styles.thSelect}>Select</th>
-        <th style={styles.thQuestion}>Question</th>
-        <th style={styles.thAnswer}>Correct Answer</th>
-      </tr>
-    </thead>
+          {/* QUESTIONS */}
+          {questions.map(q => (
+            <div key={q.id} style={styles.card}>
 
-    <tbody>
-      {questions.map(q => (
-        <tr key={q.id} style={styles.row}>
-          <td style={styles.tdCenter}>
-            <input
-              type="checkbox"
-              checked={selectedQuestions.includes(q.id)}
-              onChange={() => toggleSelect(q.id)}
-            />
-          </td>
+              <input
+                type="checkbox"
+                checked={selectedQuestions.includes(q.id)}
+                onChange={() => toggleSelect(q.id)}
+              />
 
-          <td style={styles.tdQuestion}>
-            {q.question}
-          </td>
+              {/* IMAGE + TEXT */}
+              <div dangerouslySetInnerHTML={{ __html: q.question }} />
 
-          <td style={styles.tdCenter}>
-            {q.correct_answer}
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
-        </>
-      )}
+              <div style={styles.options}>
+                <div>A: {q.option_a}</div>
+                <div>B: {q.option_b}</div>
+                <div>C: {q.option_c}</div>
+                <div>D: {q.option_d}</div>
+              </div>
 
-      {status && <p style={styles.status}>{status}</p>}
+              <div><b>Answer:</b> {q.correct_answer}</div>
+
+              {!q.is_active && <div style={styles.inactive}>Inactive</div>}
+
+            </div>
+          ))}
+
+          {/* LOAD MORE */}
+          {hasMore && !loading && (
+            <button onClick={() => fetchQuestions(false)} style={styles.loadMore}>
+              Load More
+            </button>
+          )}
+
+          {loading && <p>Loading...</p>}
+
+        </div>
+
+      </div>
     </div>
   )
 }
@@ -196,17 +269,64 @@ export default function ReviewQuestionsPage() {
 /* ================= STYLES ================= */
 
 const styles = {
+
   page: {
-    padding: 40,
-    fontFamily: 'system-ui',
-    minHeight: '100vh',
-    background: '#f8fafc'
+    padding: 30,
+    fontFamily: 'Inter, sans-serif',
+    background: '#f1f5f9'
   },
 
-  filterBox: {
-    display: 'flex',
-    gap: 15,
+  title: {
     marginBottom: 20
+  },
+
+  container: {
+    display: 'flex',
+    gap: 20
+  },
+
+  sidebar: {
+    width: 260,
+    background: '#fff',
+    padding: 15,
+    borderRadius: 12,
+    height: '80vh',
+    overflowY: 'auto'
+  },
+
+  node: {
+    padding: 6,
+    cursor: 'pointer',
+    fontWeight: 500
+  },
+
+  child: {
+    marginLeft: 10
+  },
+
+  child2: {
+    marginLeft: 20,
+    fontSize: 13,
+    cursor: 'pointer'
+  },
+
+  content: {
+    flex: 1
+  },
+
+  search: {
+    width: '100%',
+    padding: 10,
+    borderRadius: 8,
+    border: '1px solid #ccc',
+    marginBottom: 10
+  },
+
+  analytics: {
+    display: 'flex',
+    gap: 20,
+    marginBottom: 10,
+    fontWeight: 500
   },
 
   actions: {
@@ -222,58 +342,27 @@ const styles = {
     padding: '6px 12px',
     borderRadius: 6
   },
-tableWrapper: {
-  marginTop: 15,
-  overflowX: 'auto',
-  background: '#ffffff',
-  borderRadius: 12,
-  boxShadow: '0 6px 16px rgba(0,0,0,0.05)'
-},
 
-table: {
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontSize: 14
-},
+  card: {
+    background: '#fff',
+    padding: 15,
+    marginBottom: 10,
+    borderRadius: 12,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+  },
 
-thSelect: {
-  width: 90,
-  padding: 12,
-  textAlign: 'center',
-  borderBottom: '2px solid #e5e7eb',
-  background: '#f9fafb'
-},
+  options: {
+    marginTop: 8,
+    marginBottom: 8
+  },
 
-thQuestion: {
-  padding: 12,
-  textAlign: 'left',
-  borderBottom: '2px solid #e5e7eb',
-  background: '#f9fafb'
-},
+  inactive: {
+    color: 'red',
+    fontWeight: 'bold'
+  },
 
-thAnswer: {
-  width: 150,
-  padding: 12,
-  textAlign: 'center',
-  borderBottom: '2px solid #e5e7eb',
-  background: '#f9fafb'
-},
-
-row: {
-  borderBottom: '1px solid #f1f5f9'
-},
-
-tdCenter: {
-  textAlign: 'center',
-  padding: 10
-},
-
-tdQuestion: {
-  padding: 10,
-  lineHeight: 1.5
-},
-  status: {
-    marginTop: 20,
-    fontWeight: 600
+  loadMore: {
+    padding: 10,
+    marginTop: 10
   }
 }
