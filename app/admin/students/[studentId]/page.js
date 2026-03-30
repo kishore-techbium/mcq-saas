@@ -277,6 +277,23 @@ const weakestSubtopic =
       {s.name} ({s.accuracy.toFixed(1)}%)
     </div>
   ))}
+  {/* 🔥 RECOMMENDATION */}
+<div style={{ marginTop: 10 }}>
+  <strong>🎯 Recommendation:</strong>{' '}
+  {weakestSubtopic
+    ? `Focus on ${weakestSubtopic.name} (${weakestSubtopic.accuracy.toFixed(1)}%)`
+    : '-'}
+</div>
+
+{/* 🔥 INSIGHT */}
+<div>
+  <strong>📊 Insight:</strong>{' '}
+  {trend.includes('Improving')
+    ? 'Student is improving overall.'
+    : trend.includes('Declining')
+    ? 'Performance is declining. Needs attention.'
+    : 'Performance is stable.'}
+</div>
 </div>
 
 <div style={{ marginTop: 10 }}>
