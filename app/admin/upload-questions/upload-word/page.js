@@ -67,11 +67,11 @@ export default function UploadWordPage(){
 
     const result = await mammoth.convertToHtml({ arrayBuffer:buffer })
 
-    const rawBlocks = result.value.split(/Question\s+\d+:/i)
+const rawBlocks = result.value.split(/Question\s+\d+:/i)
 
-    const blocks = rawBlocks
-      .map(b => b.trim())
-      .filter(b => b && b.includes('Q:') && b.includes('Answer:'))
+const blocks = rawBlocks
+  .map(b => b.replace(/<[^>]+>/g, '').trim()) // remove HTML tags
+  .filter(b => b.length > 50) // keep only meaningful blocks
 
     setProgress(80)
 
