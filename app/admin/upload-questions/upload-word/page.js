@@ -22,6 +22,9 @@ export default function UploadWordPage(){
   const [uploading,setUploading] = useState(false)
   const [progress,setProgress] = useState(0)
   const [status,setStatus] = useState('')
+  const [isCompleted,setIsCompleted] = useState(false)
+  const [isCancelled,setIsCancelled] = useState(false)
+
   const [stats,setStats] = useState(null)
 
   useEffect(()=>{ loadExams() },[])
@@ -38,61 +41,31 @@ export default function UploadWordPage(){
 
   const clean = (t)=> t?.replace(/\s+/g,' ').trim()
 
-  async function compressImage(buffer){
-    return new Promise((resolve)=>{
-      const blob = new Blob([buffer])
-      const img = new Image()
-
-      img.onload = ()=>{
-        const canvas = document.createElement('canvas')
-        const scale = 600 / img.width
-
-        canvas.width = 600
-        canvas.height = img.height * scale
-
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img,0,0,canvas.width,canvas.height)
-
-        canvas.toBlob(b=>resolve(b),'image/jpeg',0.7)
-      }
-
-      img.src = URL.createObjectURL(blob)
+  function groupStats(data, key){
+    const map = {}
+    data.forEach(r=>{
+      const val = r[key] || 'Unknown'
+      map[val] = (map[val] || 0) + 1
     })
+    return map
   }
 
-  async function uploadImage(file,i){
-    const path = `question_images/${Date.now()}_${i}.jpg`
-
-    await supabase.storage.from('question-images')
-      .upload(path,file,{contentType:'image/jpeg'})
-
-    const { data } = supabase.storage
-      .from('question-images')
-      .getPublicUrl(path)
-
-    return data.publicUrl
+  function buildStats(data){
+    return {
+      subject: groupStats(data,'subject'),
+      chapter: groupStats(data,'chapter'),
+      subtopic: groupStats(data,'subtopic'),
+      exam_category: groupStats(data,'exam_category')
+    }
   }
 
   async function parseWord(file){
-    setStatus('Processing Word file...')
-    setProgress(10)
+    setStatus('Processing file...')
+    setProgress(20)
 
     const buffer = await file.arrayBuffer()
-    let imgIndex = 0
 
-    const result = await mammoth.convertToHtml(
-      { arrayBuffer:buffer },
-      {
-        convertImage: mammoth.images.inline(async (img)=>{
-          const raw = await img.read()
-          const compressed = await compressImage(raw)
-          const url = await uploadImage(compressed,imgIndex++)
-          return { src:url }
-        })
-      }
-    )
-
-    setProgress(50)
+    const result = await mammoth.convertToHtml({ arrayBuffer:buffer })
 
     const rawBlocks = result.value.split(/Question\s+\d+:/i)
 
@@ -105,7 +78,6 @@ export default function UploadWordPage(){
     return blocks.map(block=>{
       const get = (l)=> clean((block.match(new RegExp(`${l}:\\s*([^<]*)`,'i'))||[])[1])
       const opt = (l)=> clean((block.match(new RegExp(`${l}\\.\\s*([^<]*)`,'i'))||[])[1])
-      const img = (block.match(/<img[^>]+src="([^"]+)"/)||[])[1]
 
       return {
         exam_category:get('Exam Category'),
@@ -114,7 +86,6 @@ export default function UploadWordPage(){
         subtopic:get('Subtopic'),
         difficulty:get('Difficulty'),
         question:get('Q'),
-        image:img || '',
         option_a:opt('A'),
         option_b:opt('B'),
         option_c:opt('C'),
@@ -128,96 +99,83 @@ export default function UploadWordPage(){
   function validate(r){
     const e=[]
     if(!r.question) e.push('Question')
-    if(!r.option_a||!r.option_b||!r.option_c||!r.option_d) e.push('Options')
     if(!['A','B','C','D'].includes(r.correct_answer)) e.push('Answer')
-    if(!['Easy','Medium','Hard'].includes(r.difficulty)) e.push('Difficulty')
     return e
   }
 
-  function revalidate(updatedRows){
-    let errMap={}
-    updatedRows.forEach((r,i)=>{
+  function revalidate(data){
+    let err={}
+    data.forEach((r,i)=>{
       const e = validate(r)
-      if(e.length) errMap[i]=e
+      if(e.length) err[i]=e
     })
-    setErrors(errMap)
+    setErrors(err)
   }
 
   async function handlePreview(){
-    if(!file) return alert('Select file')
-
+    setIsCompleted(false)
+    setStatus('Parsing...')
     const parsed = await parseWord(file)
-
-    setStatus('Validating questions...')
-    setProgress(90)
-
     setRows(parsed)
     setIsPreview(true)
     revalidate(parsed)
-
     setProgress(100)
-    setStatus('Preview ready')
+    setStatus('Preview Ready')
   }
 
   async function handleUpload(){
 
-    const validRows = rows.filter((_,i)=>!errors[i])
-    const errorCount = rows.length - validRows.length
-
-    if(!validRows.length) return alert('Fix errors first')
-
     setUploading(true)
-    setStatus('Uploading questions...')
+    setIsCompleted(false)
+    setIsCancelled(false)
+    setStatus('Uploading...')
     setProgress(0)
 
+    const validRows = rows.filter((_,i)=>!errors[i])
     const collegeId = await getAdminCollege()
 
-    const payload = validRows.map(r=>({...r,college_id:collegeId}))
+    let uploaded = []
 
-    const { data:inserted } = await supabase
-      .from('question_bank')
-      .insert(payload)
-      .select()
+    for(let i=0;i<validRows.length;i++){
 
-    setProgress(80)
+      if(isCancelled){
+        setStatus('Upload Cancelled')
+        setUploading(false)
+        return
+      }
 
-    if(selectedExam){
-      await supabase.from('exam_questions').insert(
-        inserted.map(q=>({exam_id:selectedExam,question_id:q.id}))
-      )
+      const r = validRows[i]
+
+      const { data } = await supabase
+        .from('question_bank')
+        .insert([{...r,college_id:collegeId}])
+        .select()
+
+      uploaded.push(data[0])
+
+      setProgress(Math.round(((i+1)/validRows.length)*100))
     }
 
-    setProgress(100)
-    setStatus('Upload completed')
-
-    setStats({
-      total: rows.length,
-      valid: validRows.length,
-      errors: errorCount,
-      uploaded: inserted.length
-    })
-
     setUploading(false)
+    setIsCompleted(true)
+    setStatus('Upload Completed')
+
+    setStats(buildStats(uploaded))
   }
 
-  function handleChange(i,field,value){
-    const updated = [...rows]
-    updated[i][field]=value
-    setRows(updated)
-    revalidate(updated)
+  function cancelUpload(){
+    setIsCancelled(true)
   }
 
   return(
     <div style={{padding:20}}>
 
-      <h2>Word Upload (Edit Enabled)</h2>
+      <h2>Word Upload</h2>
 
-      <input type="file" accept=".docx"
-        onChange={e=>setFile(e.target.files[0])}
-      />
+      <input type="file" onChange={e=>setFile(e.target.files[0])}/>
 
       <select onChange={e=>setSelectedExam(e.target.value)}>
-        <option value="">Select Exam (Optional)</option>
+        <option>Select Exam</option>
         {exams.map(e=>(
           <option key={e.id} value={e.id}>{e.title}</option>
         ))}
@@ -229,12 +187,12 @@ export default function UploadWordPage(){
             width:`${progress}%`,
             background:'#2563eb',
             height:10
-          }} />
+          }}/>
         </div>
         <div>{status}</div>
       </div>
 
-      {!isPreview && <button onClick={handlePreview}>Preview & Edit</button>}
+      {!isPreview && <button onClick={handlePreview}>Preview</button>}
 
       {isPreview && (
         <>
@@ -242,55 +200,29 @@ export default function UploadWordPage(){
             {uploading ? 'Uploading...' : 'Upload'}
           </button>
 
-          {stats && (
-            <div style={{marginTop:15,background:'#ecfdf5',padding:10}}>
-              <b>Upload Summary</b><br/>
-              Total: {stats.total}<br/>
-              Valid: {stats.valid}<br/>
-              Errors Skipped: {stats.errors}<br/>
-              Uploaded: {stats.uploaded}
-            </div>
+          {uploading && (
+            <button onClick={cancelUpload} style={{marginLeft:10,background:'red',color:'#fff'}}>
+              Cancel
+            </button>
           )}
 
-          {rows.map((r,i)=>(
-            <div key={i}
-              style={{
-                border:'1px solid #ccc',
-                padding:10,
-                marginTop:10,
-                background: errors[i] ? '#fee2e2':'#ecfdf5'
-              }}
-            >
-              <div>Q{i+1}</div>
+          {isCompleted && stats && (
+            <div style={{marginTop:20,background:'#ecfdf5',padding:15}}>
+              <h3>Upload Statistics</h3>
 
-              <textarea value={r.question}
-                onChange={e=>handleChange(i,'question',e.target.value)}
-              />
+              <b>By Subject:</b>
+              <pre>{JSON.stringify(stats.subject,null,2)}</pre>
 
-              {r.image && <img src={r.image} width="120"/>}
+              <b>By Chapter:</b>
+              <pre>{JSON.stringify(stats.chapter,null,2)}</pre>
 
-              {['option_a','option_b','option_c','option_d'].map(op=>(
-                <input key={op}
-                  value={r[op]}
-                  onChange={e=>handleChange(i,op,e.target.value)}
-                />
-              ))}
+              <b>By Subtopic:</b>
+              <pre>{JSON.stringify(stats.subtopic,null,2)}</pre>
 
-              <input value={r.correct_answer}
-                onChange={e=>handleChange(i,'correct_answer',e.target.value)}
-              />
-
-              <input value={r.difficulty}
-                onChange={e=>handleChange(i,'difficulty',e.target.value)}
-              />
-
-              {errors[i] && (
-                <div style={{color:'red'}}>
-                  {errors[i].join(', ')}
-                </div>
-              )}
+              <b>By Exam Category:</b>
+              <pre>{JSON.stringify(stats.exam_category,null,2)}</pre>
             </div>
-          ))}
+          )}
         </>
       )}
 
