@@ -507,6 +507,11 @@ if (currentQ) {
 
 
   const q = questions[currentIndex]
+useEffect(() => {
+  if (questions.length > 0) {
+    markVisited(currentIndex)
+  }
+}, [currentIndex, questions.length])
 
   return (
     <div style={styles.page}>
@@ -581,7 +586,7 @@ if (currentQ) {
 
     <div style={styles.statusItem}>
       <span style={{ ...styles.statusBox, background: '#dc2626' }} />
-      Not Answered ({visited.size - Object.keys(answers).length})
+      Not Answered ({questions.filter((q, i) => visited.has(i) && !answers[q.id]).length})
     </div>
 
     <div style={styles.statusItem}>
