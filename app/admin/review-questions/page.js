@@ -14,6 +14,7 @@ export default function ReviewQuestionsPage() {
   useEffect(() => {
     loadTree()
     loadAnalytics()
+    fetchQuestions({})
   }, [])
 
   /* ================= TREE ================= */
@@ -25,7 +26,7 @@ export default function ReviewQuestionsPage() {
 
     const structure = {}
 
-    data.forEach(d => {
+    ;(data || []).forEach(d => {
       if (!structure[d.exam_category]) structure[d.exam_category] = {}
       if (!structure[d.exam_category][d.subject]) structure[d.exam_category][d.subject] = {}
       if (!structure[d.exam_category][d.subject][d.chapter]) {
@@ -63,16 +64,14 @@ export default function ReviewQuestionsPage() {
     setQuestions(data || [])
   }
 
-  /* ================= FIXED SELECTION ================= */
+  /* ================= SELECTION ================= */
 
   function handleSelect(level, value) {
 
     let newSelection = {}
 
     if (level === 'exam_category') {
-      newSelection = {
-        exam_category: value
-      }
+      newSelection = { exam_category: value }
     }
 
     if (level === 'subject') {
@@ -99,7 +98,6 @@ export default function ReviewQuestionsPage() {
       }
     }
 
-    // 🔥 IMPORTANT: force clean object (no leftovers)
     setSelected(newSelection)
     fetchQuestions(newSelection)
   }
@@ -130,7 +128,7 @@ export default function ReviewQuestionsPage() {
 
     const { data } = await query
 
-    setSelectedQuestions(data.map(d => d.id))
+    setSelectedQuestions((data || []).map(d => d.id))
   }
 
   function clearSelection() {
@@ -191,12 +189,12 @@ export default function ReviewQuestionsPage() {
   async function loadAnalytics() {
 
     const { data } = await supabase
-      .from('exam_sessions')
+      .from('exam_answers')
       .select('question_id,is_correct')
 
     const map = {}
 
-    data.forEach(d => {
+    ;(data || []).forEach(d => {
       if (!map[d.question_id]) map[d.question_id] = { wrong: 0, total: 0 }
 
       map[d.question_id].total++
@@ -217,31 +215,43 @@ export default function ReviewQuestionsPage() {
         {Object.keys(tree).map(exam => (
           <div key={exam}>
 
-            <div style={styles.node}
-              onClick={() => handleSelect('exam_category', exam)}>
+            <div
+              style={selected.exam_category === exam ? styles.activeNode : styles.node}
+              onClick={() => handleSelect('exam_category', exam)}
+            >
               📘 {exam}
             </div>
 
             {Object.keys(tree[exam]).map(sub => (
               <div key={sub} style={styles.child}>
 
-                <div style={styles.node}
-                  onClick={() => handleSelect('subject', sub)}>
+                <div
+                  style={selected.subject === sub ? styles.activeNode : styles.node}
+                  onClick={() => handleSelect('subject', sub)}
+                >
                   📗 {sub}
                 </div>
 
                 {Object.keys(tree[exam][sub]).map(ch => (
                   <div key={ch} style={styles.child}>
 
-                    <div style={styles.node}
-                      onClick={() => handleSelect('chapter', ch)}>
+                    <div
+                      style={selected.chapter === ch ? styles.activeNode : styles.node}
+                      onClick={() => handleSelect('chapter', ch)}
+                    >
                       📂 {ch}
                     </div>
 
                     {Object.keys(tree[exam][sub][ch]).map(st => (
-                      <div key={st}
-                        style={styles.child2}
-                        onClick={() => handleSelect('subtopic', st)}>
+                      <div
+                        key={st}
+                        style={
+                          selected.subtopic === st
+                            ? { ...styles.child2, background: '#2563eb', borderRadius: 6 }
+                            : styles.child2
+                        }
+                        onClick={() => handleSelect('subtopic', st)}
+                      >
                         📄 {st} ({tree[exam][sub][ch][st]})
                       </div>
                     ))}
@@ -281,10 +291,10 @@ export default function ReviewQuestionsPage() {
 
             <div dangerouslySetInnerHTML={{ __html: q.question }} />
 
-            <div>A: {q.option_a}</div>
-            <div>B: {q.option_b}</div>
-            <div>C: {q.option_c}</div>
-            <div>D: {q.option_d}</div>
+            <div>A: <span dangerouslySetInnerHTML={{ __html: q.option_a }} /></div>
+            <div>B: <span dangerouslySetInnerHTML={{ __html: q.option_b }} /></div>
+            <div>C: <span dangerouslySetInnerHTML={{ __html: q.option_c }} /></div>
+            <div>D: <span dangerouslySetInnerHTML={{ __html: q.option_d }} /></div>
 
             <div><b>Answer:</b> {q.correct_answer}</div>
 
@@ -333,6 +343,12 @@ const styles = {
   node: {
     padding: 6,
     cursor: 'pointer'
+  },
+  activeNode: {
+    padding: 6,
+    cursor: 'pointer',
+    background: '#2563eb',
+    borderRadius: 6
   },
   child: {
     marginLeft: 12
