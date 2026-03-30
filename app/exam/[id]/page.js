@@ -389,7 +389,7 @@ if (currentQ) {
       score += exam.correct_marks || 4
       correct++
     } else {
-      score -= exam.negative_marks || 1
+      score -= Math.abs(exam.negative_marks || 1)
       wrong++
     }
 
