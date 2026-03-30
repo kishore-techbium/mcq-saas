@@ -65,8 +65,7 @@ async function fetchQuestions(filters) {
 
 
   /* ================= SELECTION ================= */
-
- function handleSelect(level, value) {
+function handleSelect(level, value, context = {}) {
 
   let newSelection = {}
 
@@ -78,28 +77,24 @@ async function fetchQuestions(filters) {
 
   if (level === 'subject') {
     newSelection = {
-      exam_category: selected.exam_category,
+      exam_category: context.exam,
       subject: value
     }
   }
 
   if (level === 'chapter') {
-    if (!selected.subject) return // 🚨 STOP wrong selection
-
     newSelection = {
-      exam_category: selected.exam_category,
-      subject: selected.subject,
+      exam_category: context.exam,
+      subject: context.subject,
       chapter: value
     }
   }
 
   if (level === 'subtopic') {
-    if (!selected.subject || !selected.chapter) return // 🚨 STOP
-
     newSelection = {
-      exam_category: selected.exam_category,
-      subject: selected.subject,
-      chapter: selected.chapter,
+      exam_category: context.exam,
+      subject: context.subject,
+      chapter: context.chapter,
       subtopic: value
     }
   }
@@ -107,6 +102,7 @@ async function fetchQuestions(filters) {
   setSelected(newSelection)
   fetchQuestions(newSelection)
 }
+
   /* ================= SELECT ================= */
 
   function toggleSelect(id) {
@@ -232,7 +228,7 @@ async function fetchQuestions(filters) {
 
                 <div
                   style={selected.subject === sub ? styles.activeNode : styles.node}
-                  onClick={() => handleSelect('subject', sub)}
+                  onClick={() => handleSelect('subject', sub, { exam })}
                 >
                   📗 {sub}
                 </div>
@@ -242,7 +238,7 @@ async function fetchQuestions(filters) {
 
                     <div
                       style={selected.chapter === ch ? styles.activeNode : styles.node}
-                      onClick={() => handleSelect('chapter', ch)}
+                      onClick={() => handleSelect('chapter', ch, { exam, subject: sub })}
                     >
                       📂 {ch}
                     </div>
@@ -255,7 +251,13 @@ async function fetchQuestions(filters) {
                             ? { ...styles.child2, background: '#2563eb', borderRadius: 6 }
                             : styles.child2
                         }
-                        onClick={() => handleSelect('subtopic', st)}
+                        onClick={() =>
+  handleSelect('subtopic', st, {
+    exam,
+    subject: sub,
+    chapter: ch
+  })
+}
                       >
                         📄 {st} ({tree[exam][sub][ch][st]})
                       </div>
