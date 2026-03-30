@@ -163,9 +163,10 @@ export default function ExamReview() {
         return (
           <div key={q.id} style={styles.card}>
 
-            <p style={{ fontWeight: 600 }}>
-              Q{index + 1}. {q.question}
-            </p>
+           <div style={{ fontWeight: 600 }}>
+  Q{index + 1}.
+  <div dangerouslySetInnerHTML={{ __html: q.question }} />
+</div>
 
             {['A','B','C','D'].map(opt => {
 
@@ -195,7 +196,10 @@ export default function ExamReview() {
                     color
                   }}
                 >
-                  {opt}. {text}
+                  {opt}. 
+<span
+  dangerouslySetInnerHTML={{ __html: text }}
+/>
                 </div>
               )
 
@@ -205,7 +209,9 @@ export default function ExamReview() {
             {q.explanation && (
               <div style={styles.explanationBox}>
                 <b>Explanation:</b>
-                <p>{q.explanation}</p>
+                <div
+  dangerouslySetInnerHTML={{ __html: q.explanation }}
+/>
               </div>
             )}
 
