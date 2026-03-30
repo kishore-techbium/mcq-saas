@@ -215,12 +215,12 @@ const { data: exams } = await (await fromWithCollege('exams'))
         </div>
 
         <div style={styles.headerActions}>
-          <button
+        /*  <button
             onClick={() => window.location.href = '/student/profile'}
             style={styles.profileBtn}
           >
             My Profile
-          </button>
+          </button> */
           <button onClick={logout} style={styles.logoutBtn}>
             Logout
           </button>
