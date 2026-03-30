@@ -41,31 +41,12 @@ export default function UploadWordPage(){
 
   const clean = (t)=> t?.replace(/\s+/g,' ').trim()
 
-  function groupStats(data, key){
-    const map = {}
-    data.forEach(r=>{
-      const val = r[key] || 'Unknown'
-      map[val] = (map[val] || 0) + 1
-    })
-    return map
-  }
-
-  function buildStats(data){
-    return {
-      subject: groupStats(data,'subject'),
-      chapter: groupStats(data,'chapter'),
-      subtopic: groupStats(data,'subtopic'),
-      exam_category: groupStats(data,'exam_category')
-    }
-  }
-
   async function parseWord(file){
 
-    setStatus('Processing Word...')
+    setStatus('Processing...')
     setProgress(20)
 
     const buffer = await file.arrayBuffer()
-
     let imageIndex = 0
 
     const result = await mammoth.convertToHtml(
@@ -93,9 +74,11 @@ export default function UploadWordPage(){
 
     const html = result.value
 
-    const blocks = html
-      .split(/Question\s+\d+:/i)
-      .filter(q => q.trim())
+    const rawBlocks = html.split(/Question\s+\d+:/i)
+
+    const blocks = rawBlocks
+      .map(b => b.trim())
+      .filter(b => b && b.includes('Q:')) // removes empty first block
 
     setProgress(80)
 
@@ -113,19 +96,23 @@ export default function UploadWordPage(){
         return match ? clean(match[1]) : ''
       }
 
+      const imgMatch = block.match(/<img[^>]+src="([^"]+)"/i)
+      const imageUrl = imgMatch ? imgMatch[1] : ''
+
       return {
-        exam_category: get('Exam Category'),
-        subject: get('Subject'),
-        chapter: get('Chapter'),
-        subtopic: get('Subtopic'),
-        difficulty: get('Difficulty'),
-        question: get('Q'),
-        option_a: getOption('A'),
-        option_b: getOption('B'),
-        option_c: getOption('C'),
-        option_d: getOption('D'),
-        correct_answer: get('Answer'),
-        explanation: get('Explanation')
+        exam_category:get('Exam Category'),
+        subject:get('Subject'),
+        chapter:get('Chapter'),
+        subtopic:get('Subtopic'),
+        difficulty:get('Difficulty'),
+        question:get('Q'),
+        image:imageUrl,
+        option_a:getOption('A'),
+        option_b:getOption('B'),
+        option_c:getOption('C'),
+        option_d:getOption('D'),
+        correct_answer:get('Answer'),
+        explanation:get('Explanation')
       }
     })
   }
@@ -162,13 +149,16 @@ export default function UploadWordPage(){
     setStatus(`Preview Ready (${parsed.length} questions)`)
   }
 
+  function handleChange(i,field,value){
+    const updated = [...rows]
+    updated[i][field] = value
+    setRows(updated)
+  }
+
   async function handleUpload(){
 
     setUploading(true)
-    setIsCompleted(false)
     setIsCancelled(false)
-    setStatus('Uploading...')
-    setProgress(0)
 
     const validRows = rows.filter((_,i)=>!errors[i])
     const collegeId = await getAdminCollege()
@@ -178,7 +168,6 @@ export default function UploadWordPage(){
     for(let i=0;i<validRows.length;i++){
 
       if(isCancelled){
-        setStatus('Upload Cancelled')
         setUploading(false)
         return
       }
@@ -197,11 +186,10 @@ export default function UploadWordPage(){
     setIsCompleted(true)
     setStatus('Upload Completed')
 
-    setStats(buildStats(uploaded))
-  }
-
-  function cancelUpload(){
-    setIsCancelled(true)
+    setStats({
+      total: rows.length,
+      uploaded: uploaded.length
+    })
   }
 
   return(
@@ -220,11 +208,7 @@ export default function UploadWordPage(){
 
       <div style={{marginTop:10}}>
         <div style={{width:'100%',background:'#ddd',height:10}}>
-          <div style={{
-            width:`${progress}%`,
-            background:'#2563eb',
-            height:10
-          }}/>
+          <div style={{width:`${progress}%`,background:'#2563eb',height:10}}/>
         </div>
         <div>{status}</div>
       </div>
@@ -237,23 +221,46 @@ export default function UploadWordPage(){
             {uploading ? 'Uploading...' : 'Upload'}
           </button>
 
-          {uploading && (
-            <button onClick={cancelUpload} style={{marginLeft:10,background:'red',color:'#fff'}}>
-              Cancel
-            </button>
-          )}
-
-          {isCompleted && stats && (
-            <div style={{marginTop:20,background:'#ecfdf5',padding:15}}>
-              <h3>Upload Statistics</h3>
-
-              <pre>{JSON.stringify(stats,null,2)}</pre>
-            </div>
-          )}
-
           {rows.map((r,i)=>(
-            <div key={i} style={{marginTop:10}}>
-              <b>Q{i+1}:</b> {r.question}
+            <div key={i} style={{
+              border:'1px solid #ccc',
+              padding:10,
+              marginTop:10
+            }}>
+
+              <b>Q{i+1}</b>
+
+              <textarea
+                value={r.question}
+                onChange={e=>handleChange(i,'question',e.target.value)}
+              />
+
+              {r.image && <img src={r.image} width="120" />}
+
+              {['option_a','option_b','option_c','option_d'].map(op=>(
+                <input
+                  key={op}
+                  value={r[op]}
+                  onChange={e=>handleChange(i,op,e.target.value)}
+                />
+              ))}
+
+              <input
+                value={r.correct_answer}
+                onChange={e=>handleChange(i,'correct_answer',e.target.value)}
+              />
+
+              <input
+                value={r.difficulty}
+                onChange={e=>handleChange(i,'difficulty',e.target.value)}
+              />
+
+              {errors[i] && (
+                <div style={{color:'red'}}>
+                  {errors[i].join(', ')}
+                </div>
+              )}
+
             </div>
           ))}
         </>
