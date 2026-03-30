@@ -9,16 +9,14 @@ export default function ReviewQuestionsPage() {
   const [selected, setSelected] = useState({})
   const [questions, setQuestions] = useState([])
   const [selectedQuestions, setSelectedQuestions] = useState([])
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
-
-  const limit = 25
-
-  /* ================= TREE ================= */
+  const [analytics, setAnalytics] = useState({})
 
   useEffect(() => {
     loadTree()
+    loadAnalytics()
   }, [])
+
+  /* ================= TREE ================= */
 
   async function loadTree() {
     const { data } = await supabase
@@ -44,21 +42,14 @@ export default function ReviewQuestionsPage() {
 
   /* ================= FETCH ================= */
 
-  async function fetchQuestions(reset = true, filters = selected) {
+  async function fetchQuestions(filters) {
 
-    if (reset) {
-      setQuestions([])
-      setPage(1)
-      setHasMore(true)
-    }
+    setQuestions([])
 
-    let query = supabase
-      .from('question_bank')
-      .select('*')
-      .range((page - 1) * limit, page * limit - 1)
+    let query = supabase.from('question_bank').select('*')
 
     if (filters.exam_category)
-      query = query.ilike('exam_category', filters.exam_category)
+      query = query.eq('exam_category', filters.exam_category)
 
     if (filters.subject)
       query = query.eq('subject', filters.subject)
@@ -71,13 +62,10 @@ export default function ReviewQuestionsPage() {
 
     const { data } = await query
 
-    if (!data || data.length < limit) setHasMore(false)
-
-    setQuestions(prev => reset ? data : [...prev, ...data])
-    setPage(prev => prev + 1)
+    setQuestions(data || [])
   }
 
-  /* ================= SELECT NODE ================= */
+  /* ================= SELECT TREE ================= */
 
   function handleSelect(level, value) {
 
@@ -88,22 +76,31 @@ export default function ReviewQuestionsPage() {
     }
 
     if (level === 'subject') {
-      newSelection = { ...selected, subject: value }
-      delete newSelection.chapter
-      delete newSelection.subtopic
+      newSelection = {
+        exam_category: selected.exam_category,
+        subject: value
+      }
     }
 
     if (level === 'chapter') {
-      newSelection = { ...selected, chapter: value }
-      delete newSelection.subtopic
+      newSelection = {
+        exam_category: selected.exam_category,
+        subject: selected.subject,
+        chapter: value
+      }
     }
 
     if (level === 'subtopic') {
-      newSelection = { ...selected, subtopic: value }
+      newSelection = {
+        exam_category: selected.exam_category,
+        subject: selected.subject,
+        chapter: selected.chapter,
+        subtopic: value
+      }
     }
 
     setSelected(newSelection)
-    fetchQuestions(true, newSelection)
+    fetchQuestions(newSelection)
   }
 
   /* ================= SELECT ================= */
@@ -115,14 +112,23 @@ export default function ReviewQuestionsPage() {
   }
 
   async function selectAll() {
+
     let query = supabase.from('question_bank').select('id')
 
-    if (selected.exam_category) query = query.ilike('exam_category', selected.exam_category)
-    if (selected.subject) query = query.eq('subject', selected.subject)
-    if (selected.chapter) query = query.eq('chapter', selected.chapter)
-    if (selected.subtopic) query = query.eq('subtopic', selected.subtopic)
+    if (selected.exam_category)
+      query = query.eq('exam_category', selected.exam_category)
+
+    if (selected.subject)
+      query = query.eq('subject', selected.subject)
+
+    if (selected.chapter)
+      query = query.eq('chapter', selected.chapter)
+
+    if (selected.subtopic)
+      query = query.eq('subtopic', selected.subtopic)
 
     const { data } = await query
+
     setSelectedQuestions(data.map(d => d.id))
   }
 
@@ -133,15 +139,77 @@ export default function ReviewQuestionsPage() {
   /* ================= DELETE ================= */
 
   async function deleteSelected() {
-    if (!confirm('Delete selected questions?')) return
 
-    await supabase
+    if (!confirm('Are you sure to delete?')) return
+
+    const { error } = await supabase
       .from('question_bank')
       .delete()
       .in('id', selectedQuestions)
 
-    fetchQuestions(true)
+    if (error) {
+      alert('Delete failed')
+      console.error(error)
+      return
+    }
+
+    alert('Deleted successfully')
+    fetchQuestions(selected)
     clearSelection()
+  }
+
+  /* ================= ACTIVATE ================= */
+
+  async function toggleActiveBulk(status) {
+
+    await supabase
+      .from('question_bank')
+      .update({ is_active: status })
+      .in('id', selectedQuestions)
+
+    fetchQuestions(selected)
+  }
+
+  async function toggleSingle(q) {
+
+    await supabase
+      .from('question_bank')
+      .update({ is_active: !q.is_active })
+      .eq('id', q.id)
+
+    fetchQuestions(selected)
+  }
+
+  /* ================= DIFFICULTY ================= */
+
+  async function updateDifficulty(id, value) {
+
+    await supabase
+      .from('question_bank')
+      .update({ difficulty: value })
+      .eq('id', id)
+
+    fetchQuestions(selected)
+  }
+
+  /* ================= ANALYTICS ================= */
+
+  async function loadAnalytics() {
+
+    const { data } = await supabase
+      .from('exam_sessions')
+      .select('question_id,is_correct')
+
+    const map = {}
+
+    data.forEach(d => {
+      if (!map[d.question_id]) map[d.question_id] = { wrong: 0, total: 0 }
+
+      map[d.question_id].total++
+      if (!d.is_correct) map[d.question_id].wrong++
+    })
+
+    setAnalytics(map)
   }
 
   /* ================= UI ================= */
@@ -154,6 +222,7 @@ export default function ReviewQuestionsPage() {
 
         {Object.keys(tree).map(exam => (
           <div key={exam}>
+
             <div style={styles.node}
               onClick={() => handleSelect('exam_category', exam)}>
               📘 {exam}
@@ -161,6 +230,7 @@ export default function ReviewQuestionsPage() {
 
             {Object.keys(tree[exam]).map(sub => (
               <div key={sub} style={styles.child}>
+
                 <div style={styles.node}
                   onClick={() => handleSelect('subject', sub)}>
                   📗 {sub}
@@ -168,6 +238,7 @@ export default function ReviewQuestionsPage() {
 
                 {Object.keys(tree[exam][sub]).map(ch => (
                   <div key={ch} style={styles.child}>
+
                     <div style={styles.node}
                       onClick={() => handleSelect('chapter', ch)}>
                       📂 {ch}
@@ -180,21 +251,26 @@ export default function ReviewQuestionsPage() {
                         📄 {st} ({tree[exam][sub][ch][st]})
                       </div>
                     ))}
+
                   </div>
                 ))}
+
               </div>
             ))}
+
           </div>
         ))}
 
       </div>
 
-      {/* CONTENT */}
+      {/* QUESTIONS */}
       <div style={{ flex: 1, marginLeft: 20 }}>
 
         <div style={{ marginBottom: 10 }}>
           <button onClick={selectAll}>Select All</button>
           <button onClick={clearSelection}>Clear</button>
+          <button onClick={() => toggleActiveBulk(true)}>Activate</button>
+          <button onClick={() => toggleActiveBulk(false)}>Deactivate</button>
           <button onClick={deleteSelected} style={{ background: 'red', color: '#fff' }}>
             Delete
           </button>
@@ -202,6 +278,7 @@ export default function ReviewQuestionsPage() {
 
         {questions.map(q => (
           <div key={q.id} style={styles.card}>
+
             <input
               type="checkbox"
               checked={selectedQuestions.includes(q.id)}
@@ -215,12 +292,33 @@ export default function ReviewQuestionsPage() {
             <div>C: {q.option_c}</div>
             <div>D: {q.option_d}</div>
 
+            <div><b>Answer:</b> {q.correct_answer}</div>
+
+            <div>
+              Difficulty:
+              <select
+                value={q.difficulty}
+                onChange={(e) => updateDifficulty(q.id, e.target.value)}
+              >
+                <option>Easy</option>
+                <option>Medium</option>
+                <option>Hard</option>
+              </select>
+            </div>
+
+            <div>
+              Wrong Rate:
+              {analytics[q.id]
+                ? Math.round((analytics[q.id].wrong / analytics[q.id].total) * 100) + '%'
+                : 'No Data'}
+            </div>
+
+            <button onClick={() => toggleSingle(q)}>
+              {q.is_active ? 'Deactivate' : 'Activate'}
+            </button>
+
           </div>
         ))}
-
-        {hasMore && (
-          <button onClick={() => fetchQuestions(false)}>Load More</button>
-        )}
 
       </div>
 
@@ -231,7 +329,6 @@ export default function ReviewQuestionsPage() {
 /* ================= STYLES ================= */
 
 const styles = {
-
   sidebar: {
     width: 260,
     background: '#1e293b',
@@ -241,23 +338,18 @@ const styles = {
     height: '80vh',
     overflowY: 'auto'
   },
-
   node: {
     padding: 6,
-    cursor: 'pointer',   // ✅ FIX
-    marginBottom: 4
+    cursor: 'pointer'
   },
-
   child: {
     marginLeft: 12
   },
-
   child2: {
     marginLeft: 20,
     fontSize: 13,
-    cursor: 'pointer'   // ✅ FIX
+    cursor: 'pointer'
   },
-
   card: {
     background: '#fff',
     padding: 15,
