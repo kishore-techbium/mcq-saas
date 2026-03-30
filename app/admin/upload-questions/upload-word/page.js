@@ -60,42 +60,72 @@ export default function UploadWordPage(){
   }
 
   async function parseWord(file){
-    setStatus('Processing file...')
+
+    setStatus('Processing Word...')
     setProgress(20)
 
     const buffer = await file.arrayBuffer()
 
-    const result = await mammoth.convertToHtml({ arrayBuffer:buffer })
+    let imageIndex = 0
 
-const rawBlocks = result.value.split(/Question\s+\d+:/i)
+    const result = await mammoth.convertToHtml(
+      { arrayBuffer:buffer },
+      {
+        convertImage: mammoth.images.inline(async (image)=>{
+          const buffer = await image.read()
 
-const blocks = rawBlocks
-  .map(b => b.replace(/<[^>]+>/g, '').trim()) // remove HTML tags
-  .filter(b => b.length > 50) // keep only meaningful blocks
+          const fileName = `question_images/${Date.now()}_${imageIndex++}.jpg`
+
+          await supabase.storage
+            .from('question-images')
+            .upload(fileName, buffer, { contentType:'image/jpeg' })
+
+          const { data } = supabase.storage
+            .from('question-images')
+            .getPublicUrl(fileName)
+
+          return { src: data.publicUrl }
+        })
+      }
+    )
+
+    setProgress(60)
+
+    const html = result.value
+
+    const blocks = html
+      .split(/Question\s+\d+:/i)
+      .filter(q => q.trim())
 
     setProgress(80)
 
-    return blocks.map(block=>{
-      const get = (label) => {
-  const regex = new RegExp(`${label}\\s*:?\\s*(.*)`, 'i')
-  const match = block.match(regex)
-  return clean(match ? match[1] : '')
-}
-      const opt = (l)=> clean((block.match(new RegExp(`${l}\\.\\s*([^<]*)`,'i'))||[])[1])
+    return blocks.map((block)=>{
+
+      const get = (label)=>{
+        const regex = new RegExp(`${label}:\\s*([^<]*)`,'i')
+        const match = block.match(regex)
+        return match ? clean(match[1]) : ''
+      }
+
+      const getOption = (letter)=>{
+        const regex = new RegExp(`${letter}\\.\\s*([^<]*)`,'i')
+        const match = block.match(regex)
+        return match ? clean(match[1]) : ''
+      }
 
       return {
-        exam_category:get('Exam Category'),
-        subject:get('Subject'),
-        chapter:get('Chapter'),
-        subtopic:get('Subtopic'),
-        difficulty:get('Difficulty'),
-        question:get('Q'),
-        option_a:opt('A'),
-        option_b:opt('B'),
-        option_c:opt('C'),
-        option_d:opt('D'),
-        correct_answer:get('Answer'),
-        explanation:get('Explanation')
+        exam_category: get('Exam Category'),
+        subject: get('Subject'),
+        chapter: get('Chapter'),
+        subtopic: get('Subtopic'),
+        difficulty: get('Difficulty'),
+        question: get('Q'),
+        option_a: getOption('A'),
+        option_b: getOption('B'),
+        option_c: getOption('C'),
+        option_d: getOption('D'),
+        correct_answer: get('Answer'),
+        explanation: get('Explanation')
       }
     })
   }
@@ -117,14 +147,19 @@ const blocks = rawBlocks
   }
 
   async function handlePreview(){
+
+    if(!file) return alert('Select file')
+
     setIsCompleted(false)
-    setStatus('Parsing...')
+
     const parsed = await parseWord(file)
+
     setRows(parsed)
     setIsPreview(true)
     revalidate(parsed)
+
     setProgress(100)
-    setStatus('Preview Ready')
+    setStatus(`Preview Ready (${parsed.length} questions)`)
   }
 
   async function handleUpload(){
@@ -148,11 +183,9 @@ const blocks = rawBlocks
         return
       }
 
-      const r = validRows[i]
-
       const { data } = await supabase
         .from('question_bank')
-        .insert([{...r,college_id:collegeId}])
+        .insert([{...validRows[i], college_id:collegeId}])
         .select()
 
       uploaded.push(data[0])
@@ -214,19 +247,15 @@ const blocks = rawBlocks
             <div style={{marginTop:20,background:'#ecfdf5',padding:15}}>
               <h3>Upload Statistics</h3>
 
-              <b>By Subject:</b>
-              <pre>{JSON.stringify(stats.subject,null,2)}</pre>
-
-              <b>By Chapter:</b>
-              <pre>{JSON.stringify(stats.chapter,null,2)}</pre>
-
-              <b>By Subtopic:</b>
-              <pre>{JSON.stringify(stats.subtopic,null,2)}</pre>
-
-              <b>By Exam Category:</b>
-              <pre>{JSON.stringify(stats.exam_category,null,2)}</pre>
+              <pre>{JSON.stringify(stats,null,2)}</pre>
             </div>
           )}
+
+          {rows.map((r,i)=>(
+            <div key={i} style={{marginTop:10}}>
+              <b>Q{i+1}:</b> {r.question}
+            </div>
+          ))}
         </>
       )}
 
