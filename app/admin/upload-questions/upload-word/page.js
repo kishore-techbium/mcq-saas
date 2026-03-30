@@ -78,7 +78,7 @@ export default function UploadWordPage(){
 
     const blocks = rawBlocks
       .map(b => b.trim())
-      .filter(b => b && b.includes('Q:')) // removes empty first block
+      .filter(b => b && b.includes('Q:'))
 
     setProgress(80)
 
@@ -119,8 +119,11 @@ export default function UploadWordPage(){
 
   function validate(r){
     const e=[]
+    const answer = r.correct_answer?.trim().toUpperCase()
+
     if(!r.question) e.push('Question')
-    if(!['A','B','C','D'].includes(r.correct_answer)) e.push('Answer')
+    if(!['A','B','C','D'].includes(answer)) e.push('Answer')
+
     return e
   }
 
@@ -156,68 +159,70 @@ export default function UploadWordPage(){
   }
 
   const delay = (ms) => new Promise(res => setTimeout(res, ms))
- async function handleUpload(){
 
-  setUploading(true)
-  setIsCancelled(false)
-  setIsCompleted(false)
-  setStatus('Uploading started...')
-  setProgress(0)
+  async function handleUpload(){
 
-  const validRows = rows.filter((_,i)=>!errors[i])
-  const collegeId = await getAdminCollege()
+    setUploading(true)
+    setIsCancelled(false)
+    setIsCompleted(false)
+    setStatus('Uploading started...')
+    setProgress(0)
 
-  let uploaded = []
+    const validRows = rows.filter((_,i)=>!errors[i])
+    const collegeId = await getAdminCollege()
 
-  for(let i=0;i<validRows.length;i++){
+    let uploaded = []
 
-    if(isCancelled){
-      setStatus('Upload Cancelled')
-      setUploading(false)
-      return
+    for(let i=0;i<validRows.length;i++){
+
+      if(isCancelled){
+        setStatus('Upload Cancelled')
+        setUploading(false)
+        return
+      }
+
+      const cleanedRow = {
+        ...validRows[i],
+        correct_answer: validRows[i].correct_answer?.trim().toUpperCase(),
+        difficulty: validRows[i].difficulty?.trim(),
+        college_id: collegeId
+      }
+
+      const { data, error } = await supabase
+        .from('question_bank')
+        .insert([cleanedRow])
+        .select()
+
+      if(error){
+        console.error(error)
+        continue
+      }
+
+      uploaded.push(data[0])
+
+      const percent = Math.round(((i+1)/validRows.length)*100)
+
+      setProgress(percent)
+      setStatus(`Uploading ${i+1} / ${validRows.length}`)
+
+      await delay(10)
     }
 
-    const { data, error } = await supabase
-      .from('question_bank')
-      .insert([{...validRows[i], college_id:collegeId}])
-      .select()
+    setUploading(false)
+    setIsCompleted(true)
+    setStatus(`Upload Completed (${uploaded.length} questions)`)
 
-    if(error){
-      console.error(error)
-      continue
-    }
-
-    uploaded.push(data[0])
-
-    // ✅ UPDATE UI PROPERLY
-    const percent = Math.round(((i+1)/validRows.length)*100)
-
-    setProgress(percent)
-    setStatus(`Uploading ${i+1} / ${validRows.length}`)
-
-    // 🔥 THIS LINE IS CRITICAL
-    await delay(10)
+    setStats({
+      total: rows.length,
+      uploaded: uploaded.length,
+      skipped: rows.length - uploaded.length
+    })
   }
 
-  // ✅ FINAL STATE
-  setUploading(false)
-  setIsCompleted(true)
-  setStatus(`Upload Completed (${uploaded.length} questions)`)
+  function cancelUpload(){
+    setIsCancelled(true)
+  }
 
-{isCompleted && stats && (
-  <div style={{
-    marginTop:15,
-    background:'#ecfdf5',
-    padding:10,
-    border:'1px solid #16a34a'
-  }}>
-    <b>Upload Summary</b><br/>
-    Total: {stats.total}<br/>
-    Uploaded: {stats.uploaded}<br/>
-    Skipped: {stats.skipped}
-  </div>
-)}
-}
   return(
     <div style={{padding:20}}>
 
@@ -246,6 +251,26 @@ export default function UploadWordPage(){
           <button onClick={handleUpload}>
             {uploading ? 'Uploading...' : 'Upload'}
           </button>
+
+          {uploading && (
+            <button onClick={cancelUpload} style={{marginLeft:10,background:'red',color:'#fff'}}>
+              Cancel
+            </button>
+          )}
+
+          {isCompleted && stats && (
+            <div style={{
+              marginTop:15,
+              background:'#ecfdf5',
+              padding:10,
+              border:'1px solid #16a34a'
+            }}>
+              <b>Upload Summary</b><br/>
+              Total: {stats.total}<br/>
+              Uploaded: {stats.uploaded}<br/>
+              Skipped: {stats.skipped}
+            </div>
+          )}
 
           {rows.map((r,i)=>(
             <div key={i} style={{
