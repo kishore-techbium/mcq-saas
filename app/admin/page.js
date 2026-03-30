@@ -129,9 +129,9 @@ async function regenerateCode() {
     setStatus('Scanning for duplicate questions...')
 
     const { data: questions } = await supabase
-      .from('question_bank')
-      .select('*')
-
+.from('question_bank')
+.select('*')
+.eq('college_id', collegeId)
     if (!questions || questions.length === 0) {
       setStatus('No questions found')
       setCleaning(false)
@@ -143,16 +143,18 @@ async function regenerateCode() {
 
     for (const q of questions) {
       const key = [
-        q.exam_category,
-        q.subject,
-        q.chapter,
-        q.question,
-        q.option_a,
-        q.option_b,
-        q.option_c,
-        q.option_d,
-        q.correct_answer
-      ].join('|')
+  q.college_id,
+  q.exam_category,
+  q.subject,
+  q.chapter,
+  q.subtopic,
+  (q.question || '').trim(),
+  (q.option_a || '').trim(),
+  (q.option_b || '').trim(),
+  (q.option_c || '').trim(),
+  (q.option_d || '').trim(),
+  q.correct_answer
+].join('|')
 
       if (seen[key]) {
         duplicates.push(q.id)
