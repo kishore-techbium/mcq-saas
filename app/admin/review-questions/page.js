@@ -43,65 +43,80 @@ export default function ReviewQuestionsPage() {
 
   /* ================= FETCH ================= */
 
-  async function fetchQuestions(filters) {
+ async function fetchQuestions(filters) {
 
-    let query = supabase.from('question_bank').select('*')
+  let query = supabase.from('question_bank').select('*')
 
-    if (filters.exam_category)
-      query = query.eq('exam_category', filters.exam_category)
-
-    if (filters.subject)
-      query = query.eq('subject', filters.subject)
-
-    if (filters.chapter)
-      query = query.eq('chapter', filters.chapter)
-
-    if (filters.subtopic)
-      query = query.eq('subtopic', filters.subtopic)
-
-    const { data } = await query
-
-    setQuestions(data || [])
+  // ✅ STRICT FILTER (no leakage)
+  if (filters.exam_category) {
+    query = query.eq('exam_category', filters.exam_category)
   }
+
+  if (filters.subject) {
+    query = query.eq('subject', filters.subject)
+  }
+
+  if (filters.chapter) {
+    query = query.eq('chapter', filters.chapter)
+  }
+
+  if (filters.subtopic) {
+    query = query.eq('subtopic', filters.subtopic)
+  }
+
+  // ❗ IMPORTANT: if subject not selected, don't allow deeper filtering
+  if (!filters.subject) {
+    query = query.limit(0)
+  }
+
+  const { data } = await query
+
+  setQuestions(data || [])
+}
 
   /* ================= SELECTION ================= */
 
-  function handleSelect(level, value) {
+ function handleSelect(level, value) {
 
-    let newSelection = {}
+  let newSelection = {}
 
-    if (level === 'exam_category') {
-      newSelection = { exam_category: value }
+  if (level === 'exam_category') {
+    newSelection = {
+      exam_category: value
     }
-
-    if (level === 'subject') {
-      newSelection = {
-        exam_category: selected.exam_category,
-        subject: value
-      }
-    }
-
-    if (level === 'chapter') {
-      newSelection = {
-        exam_category: selected.exam_category,
-        subject: selected.subject,
-        chapter: value
-      }
-    }
-
-    if (level === 'subtopic') {
-      newSelection = {
-        exam_category: selected.exam_category,
-        subject: selected.subject,
-        chapter: selected.chapter,
-        subtopic: value
-      }
-    }
-
-    setSelected(newSelection)
-    fetchQuestions(newSelection)
   }
 
+  if (level === 'subject') {
+    newSelection = {
+      exam_category: selected.exam_category,
+      subject: value
+    }
+  }
+
+  if (level === 'chapter') {
+    if (!selected.subject) return // 🚨 STOP wrong selection
+
+    newSelection = {
+      exam_category: selected.exam_category,
+      subject: selected.subject,
+      chapter: value
+    }
+  }
+
+  if (level === 'subtopic') {
+    if (!selected.subject || !selected.chapter) return // 🚨 STOP
+
+    newSelection = {
+      exam_category: selected.exam_category,
+      subject: selected.subject,
+      chapter: selected.chapter,
+      subtopic: value
+    }
+  }
+
+  setSelected(newSelection)
+  fetchQuestions(newSelection)
+}
   /* ================= SELECT ================= */
 
   function toggleSelect(id) {
