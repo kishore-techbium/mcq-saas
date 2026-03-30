@@ -126,6 +126,7 @@ const { data: qs } = await supabase
   .from('question_bank')
   .select('*')
   .eq('college_id', collegeId)
+  .eq('is_active', true)
 
     setQuestions(qs || [])
     setSubjects([...new Set((qs || []).map(q => q.subject))])
