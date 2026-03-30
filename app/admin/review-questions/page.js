@@ -10,15 +10,18 @@ export default function ReviewQuestionsPage() {
   const [questions, setQuestions] = useState([])
   const [selectedQuestions, setSelectedQuestions] = useState([])
   const [search, setSearch] = useState('')
+  const [difficulty, setDifficulty] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [analytics, setAnalytics] = useState({})
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
-  const [loading, setLoading] = useState(false)
   const limit = 25
 
-  /* ================= LOAD TREE ================= */
+  /* ================= TREE ================= */
 
   useEffect(() => {
     loadTree()
+    loadAnalytics()
   }, [])
 
   async function loadTree() {
@@ -31,16 +34,19 @@ export default function ReviewQuestionsPage() {
     data.forEach(d => {
       if (!structure[d.exam_category]) structure[d.exam_category] = {}
       if (!structure[d.exam_category][d.subject]) structure[d.exam_category][d.subject] = {}
-      if (!structure[d.exam_category][d.subject][d.chapter]) structure[d.exam_category][d.subject][d.chapter] = []
-      if (!structure[d.exam_category][d.subject][d.chapter].includes(d.subtopic)) {
-        structure[d.exam_category][d.subject][d.chapter].push(d.subtopic)
+      if (!structure[d.exam_category][d.subject][d.chapter]) {
+        structure[d.exam_category][d.subject][d.chapter] = {}
       }
+      if (!structure[d.exam_category][d.subject][d.chapter][d.subtopic]) {
+        structure[d.exam_category][d.subject][d.chapter][d.subtopic] = 0
+      }
+      structure[d.exam_category][d.subject][d.chapter][d.subtopic]++
     })
 
     setTree(structure)
   }
 
-  /* ================= FETCH QUESTIONS ================= */
+  /* ================= QUESTIONS ================= */
 
   async function fetchQuestions(reset = true, filters = selected) {
 
@@ -50,21 +56,20 @@ export default function ReviewQuestionsPage() {
       setHasMore(true)
     }
 
-    if (!hasMore && !reset) return
-
-    setLoading(true)
-
     let query = supabase
       .from('question_bank')
       .select('*')
       .range((page - 1) * limit, page * limit - 1)
 
-    if (filters.exam_category) query = query.eq('exam_category', filters.exam_category)
+    if (filters.exam_category) query = query.ilike('exam_category', filters.exam_category)
     if (filters.subject) query = query.eq('subject', filters.subject)
     if (filters.chapter) query = query.eq('chapter', filters.chapter)
     if (filters.subtopic) query = query.eq('subtopic', filters.subtopic)
 
     if (search) query = query.ilike('question', `%${search}%`)
+    if (difficulty) query = query.eq('difficulty', difficulty)
+    if (statusFilter === 'active') query = query.eq('is_active', true)
+    if (statusFilter === 'inactive') query = query.eq('is_active', false)
 
     const { data } = await query
 
@@ -72,36 +77,9 @@ export default function ReviewQuestionsPage() {
 
     setQuestions(prev => reset ? data : [...prev, ...data])
     setPage(prev => prev + 1)
-
-    setLoading(false)
   }
 
-  /* ================= TREE SELECT ================= */
-
-  function selectNode(level, value) {
-
-    const updated = { ...selected, [level]: value }
-
-    if (level === 'exam_category') {
-      delete updated.subject
-      delete updated.chapter
-      delete updated.subtopic
-    }
-
-    if (level === 'subject') {
-      delete updated.chapter
-      delete updated.subtopic
-    }
-
-    if (level === 'chapter') {
-      delete updated.subtopic
-    }
-
-    setSelected(updated)
-    fetchQuestions(true, updated)
-  }
-
-  /* ================= ACTIONS ================= */
+  /* ================= SELECT ================= */
 
   function toggleSelect(id) {
     setSelectedQuestions(prev =>
@@ -109,260 +87,225 @@ export default function ReviewQuestionsPage() {
     )
   }
 
-  function selectAll() {
-    setSelectedQuestions(questions.map(q => q.id))
+  async function selectAll() {
+    let query = supabase.from('question_bank').select('id')
+
+    if (selected.exam_category) query = query.ilike('exam_category', selected.exam_category)
+    if (selected.subject) query = query.eq('subject', selected.subject)
+    if (selected.chapter) query = query.eq('chapter', selected.chapter)
+    if (selected.subtopic) query = query.eq('subtopic', selected.subtopic)
+
+    const { data } = await query
+    setSelectedQuestions(data.map(d => d.id))
   }
 
   function clearSelection() {
     setSelectedQuestions([])
   }
 
+  /* ================= ACTIONS ================= */
+
   async function deleteSelected() {
+    if (!confirm('Are you sure you want to delete selected questions?')) return
+
     await supabase
       .from('question_bank')
       .delete()
       .in('id', selectedQuestions)
 
     fetchQuestions(true)
-    setSelectedQuestions([])
+    clearSelection()
   }
 
-  async function toggleActive(status) {
+  async function toggleActiveBulk(status) {
     await supabase
       .from('question_bank')
       .update({ is_active: status })
       .in('id', selectedQuestions)
 
     fetchQuestions(true)
-    setSelectedQuestions([])
+  }
+
+  async function toggleSingle(q) {
+    await supabase
+      .from('question_bank')
+      .update({ is_active: !q.is_active })
+      .eq('id', q.id)
+
+    fetchQuestions(true)
+  }
+
+  async function updateDifficulty(id, value) {
+    await supabase
+      .from('question_bank')
+      .update({ difficulty: value })
+      .eq('id', id)
+
+    fetchQuestions(true)
   }
 
   /* ================= ANALYTICS ================= */
 
-  const analytics = {
-    total: questions.length,
-    active: questions.filter(q => q.is_active).length,
-    inactive: questions.filter(q => !q.is_active).length
+  async function loadAnalytics() {
+
+    const { data } = await supabase
+      .from('exam_sessions')
+      .select('question_id,is_correct')
+
+    const map = {}
+
+    data.forEach(d => {
+      if (!map[d.question_id]) map[d.question_id] = { wrong: 0, total: 0 }
+      map[d.question_id].total++
+      if (!d.is_correct) map[d.question_id].wrong++
+    })
+
+    setAnalytics(map)
   }
 
   /* ================= UI ================= */
 
   return (
-    <div style={styles.page}>
+    <div style={{ display: 'flex', padding: 20, fontFamily: 'Inter' }}>
 
-      <h1 style={styles.title}>📚 Question Bank Manager</h1>
+      {/* TREE */}
+      <div style={{
+        width: 280,
+        background: 'linear-gradient(#1e293b,#0f172a)',
+        color: '#fff',
+        padding: 15,
+        borderRadius: 12
+      }}>
 
-      <div style={styles.container}>
+        {Object.keys(tree).map(exam => (
+          <div key={exam}>
+            <div style={{ fontWeight: 'bold', marginTop: 10 }}
+              onClick={() => {
+                setSelected({ exam_category: exam })
+                fetchQuestions(true, { exam_category: exam })
+              }}>
+              📘 {exam}
+            </div>
 
-        {/* LEFT TREE */}
-        <div style={styles.sidebar}>
+            {Object.keys(tree[exam]).map(sub => (
+              <div key={sub} style={{ marginLeft: 10 }}>
+                <div onClick={() => {
+                  setSelected({ exam_category: exam, subject: sub })
+                  fetchQuestions(true, { exam_category: exam, subject: sub })
+                }}>
+                  📗 {sub}
+                </div>
 
-          {Object.keys(tree).map(exam => (
-            <div key={exam}>
-              <div style={styles.node} onClick={() => selectNode('exam_category', exam)}>
-                {exam}
-              </div>
-
-              {selected.exam_category === exam &&
-                Object.keys(tree[exam]).map(subject => (
-                  <div key={subject} style={styles.child}>
-                    <div style={styles.node} onClick={() => selectNode('subject', subject)}>
-                      {subject}
+                {Object.keys(tree[exam][sub]).map(ch => (
+                  <div key={ch} style={{ marginLeft: 10 }}>
+                    <div onClick={() => {
+                      setSelected({ exam_category: exam, subject: sub, chapter: ch })
+                      fetchQuestions(true, { exam_category: exam, subject: sub, chapter: ch })
+                    }}>
+                      📂 {ch}
                     </div>
 
-                    {selected.subject === subject &&
-                      Object.keys(tree[exam][subject]).map(ch => (
-                        <div key={ch} style={styles.child}>
-                          <div style={styles.node} onClick={() => selectNode('chapter', ch)}>
-                            {ch}
-                          </div>
-
-                          {selected.chapter === ch &&
-                            tree[exam][subject][ch].map(st => (
-                              <div key={st} style={styles.child2}
-                                onClick={() => selectNode('subtopic', st)}>
-                                {st}
-                              </div>
-                            ))}
-                        </div>
-                      ))}
+                    {Object.keys(tree[exam][sub][ch]).map(st => (
+                      <div key={st} style={{ marginLeft: 10, fontSize: 12 }}
+                        onClick={() => {
+                          setSelected({ exam_category: exam, subject: sub, chapter: ch, subtopic: st })
+                          fetchQuestions(true, { exam_category: exam, subject: sub, chapter: ch, subtopic: st })
+                        }}>
+                        📄 {st} ({tree[exam][sub][ch][st]})
+                      </div>
+                    ))}
                   </div>
                 ))}
-            </div>
-          ))}
-
-        </div>
-
-        {/* RIGHT CONTENT */}
-        <div style={styles.content}>
-
-          {/* SEARCH */}
-          <input
-            placeholder="🔍 Search questions..."
-            value={search}
-            onChange={e => {
-              setSearch(e.target.value)
-              fetchQuestions(true)
-            }}
-            style={styles.search}
-          />
-
-          {/* ANALYTICS */}
-          <div style={styles.analytics}>
-            <span>Total: {analytics.total}</span>
-            <span>Active: {analytics.active}</span>
-            <span>Inactive: {analytics.inactive}</span>
-          </div>
-
-          {/* ACTIONS */}
-          <div style={styles.actions}>
-            <button onClick={selectAll}>Select All</button>
-            <button onClick={clearSelection}>Clear</button>
-            <button onClick={() => toggleActive(true)}>Activate</button>
-            <button onClick={() => toggleActive(false)}>Deactivate</button>
-            <button style={styles.deleteBtn} onClick={deleteSelected}>Delete</button>
-          </div>
-
-          {/* QUESTIONS */}
-          {questions.map(q => (
-            <div key={q.id} style={styles.card}>
-
-              <input
-                type="checkbox"
-                checked={selectedQuestions.includes(q.id)}
-                onChange={() => toggleSelect(q.id)}
-              />
-
-              {/* IMAGE + TEXT */}
-              <div dangerouslySetInnerHTML={{ __html: q.question }} />
-
-              <div style={styles.options}>
-                <div>A: {q.option_a}</div>
-                <div>B: {q.option_b}</div>
-                <div>C: {q.option_c}</div>
-                <div>D: {q.option_d}</div>
               </div>
+            ))}
+          </div>
+        ))}
+      </div>
 
-              <div><b>Answer:</b> {q.correct_answer}</div>
+      {/* CONTENT */}
+      <div style={{ flex: 1, marginLeft: 20 }}>
 
-              {!q.is_active && <div style={styles.inactive}>Inactive</div>}
-
-            </div>
-          ))}
-
-          {/* LOAD MORE */}
-          {hasMore && !loading && (
-            <button onClick={() => fetchQuestions(false)} style={styles.loadMore}>
-              Load More
-            </button>
-          )}
-
-          {loading && <p>Loading...</p>}
-
+        {/* FILTERS */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+          <input placeholder="Search..." onChange={e => setSearch(e.target.value)} />
+          <select onChange={e => setDifficulty(e.target.value)}>
+            <option value="">All</option>
+            <option>Easy</option>
+            <option>Medium</option>
+            <option>Hard</option>
+          </select>
+          <select onChange={e => setStatusFilter(e.target.value)}>
+            <option value="">All</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <button onClick={() => fetchQuestions(true)}>Apply</button>
         </div>
+
+        {/* ACTIONS */}
+        <div style={{ marginBottom: 10 }}>
+          <button onClick={selectAll}>Select All</button>
+          <button onClick={clearSelection}>Clear</button>
+          <button onClick={() => toggleActiveBulk(true)}>Activate</button>
+          <button onClick={() => toggleActiveBulk(false)}>Deactivate</button>
+          <button style={{ background: 'red', color: '#fff' }} onClick={deleteSelected}>Delete</button>
+        </div>
+
+        {/* QUESTIONS */}
+        {questions.map(q => (
+          <div key={q.id} style={{
+            background: '#fff',
+            padding: 15,
+            marginBottom: 10,
+            borderRadius: 12
+          }}>
+
+            <input type="checkbox"
+              checked={selectedQuestions.includes(q.id)}
+              onChange={() => toggleSelect(q.id)}
+            />
+
+            <div dangerouslySetInnerHTML={{ __html: q.question }} />
+
+            <div>A: {q.option_a}</div>
+            <div>B: {q.option_b}</div>
+            <div>C: {q.option_c}</div>
+            <div>D: {q.option_d}</div>
+
+            <div>
+              <b>Answer:</b> {q.correct_answer}
+            </div>
+
+            <div>
+              Difficulty:
+              <select value={q.difficulty}
+                onChange={(e) => updateDifficulty(q.id, e.target.value)}>
+                <option>Easy</option>
+                <option>Medium</option>
+                <option>Hard</option>
+              </select>
+            </div>
+
+            <div>
+              Wrong Rate:
+              {analytics[q.id]
+                ? Math.round((analytics[q.id].wrong / analytics[q.id].total) * 100) + '%'
+                : 'No Data'}
+            </div>
+
+            <button onClick={() => toggleSingle(q)}>
+              {q.is_active ? 'Deactivate' : 'Activate'}
+            </button>
+
+          </div>
+        ))}
+
+        {hasMore && (
+          <button onClick={() => fetchQuestions(false)}>Load More</button>
+        )}
 
       </div>
+
     </div>
   )
-}
-
-/* ================= STYLES ================= */
-
-const styles = {
-
-  page: {
-    padding: 30,
-    fontFamily: 'Inter, sans-serif',
-    background: '#f1f5f9'
-  },
-
-  title: {
-    marginBottom: 20
-  },
-
-  container: {
-    display: 'flex',
-    gap: 20
-  },
-
-  sidebar: {
-    width: 260,
-    background: '#fff',
-    padding: 15,
-    borderRadius: 12,
-    height: '80vh',
-    overflowY: 'auto'
-  },
-
-  node: {
-    padding: 6,
-    cursor: 'pointer',
-    fontWeight: 500
-  },
-
-  child: {
-    marginLeft: 10
-  },
-
-  child2: {
-    marginLeft: 20,
-    fontSize: 13,
-    cursor: 'pointer'
-  },
-
-  content: {
-    flex: 1
-  },
-
-  search: {
-    width: '100%',
-    padding: 10,
-    borderRadius: 8,
-    border: '1px solid #ccc',
-    marginBottom: 10
-  },
-
-  analytics: {
-    display: 'flex',
-    gap: 20,
-    marginBottom: 10,
-    fontWeight: 500
-  },
-
-  actions: {
-    display: 'flex',
-    gap: 10,
-    marginBottom: 15
-  },
-
-  deleteBtn: {
-    background: '#dc2626',
-    color: '#fff',
-    border: 'none',
-    padding: '6px 12px',
-    borderRadius: 6
-  },
-
-  card: {
-    background: '#fff',
-    padding: 15,
-    marginBottom: 10,
-    borderRadius: 12,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-  },
-
-  options: {
-    marginTop: 8,
-    marginBottom: 8
-  },
-
-  inactive: {
-    color: 'red',
-    fontWeight: 'bold'
-  },
-
-  loadMore: {
-    padding: 10,
-    marginTop: 10
-  }
 }
