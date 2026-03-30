@@ -129,11 +129,26 @@ export default function UploadWordPage(){
 
       const r = rows[i]
 
-      const payload = {
-        ...r,
-        correct_answer:r.correct_answer?.trim().toUpperCase(),
-        college_id:collegeId
-      }
+const payload = {
+  exam_category: r.exam_category,
+  subject: r.subject,
+  chapter: r.chapter,
+  subtopic: r.subtopic,
+  difficulty: r.difficulty,
+
+  // ✅ IMPORTANT FIX
+  question: r.question_html,  
+
+  option_a: r.option_a,
+  option_b: r.option_b,
+  option_c: r.option_c,
+  option_d: r.option_d,
+
+  correct_answer: r.correct_answer?.trim().toUpperCase(),
+  explanation: r.explanation,
+
+  college_id: collegeId
+}
 
       const { data, error } = await supabase
         .from('question_bank')
