@@ -2,7 +2,9 @@
 
 import { supabase } from '../../../lib/supabase'
 import { useEffect, useRef, useState } from 'react'
-
+function shuffleArray(arr) {
+  return [...arr].sort(() => Math.random() - 0.5)
+}
 export default function ExamPage({ params }) {
   const examId = params.id
   const sessionId =
@@ -80,7 +82,29 @@ if (error) {
   return
 }
 
-setQuestions(qs || [])
+let finalQuestions = qs || []
+
+// check if session already has order
+const savedSession = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
+
+if (savedSession?.questionOrder) {
+  // reorder using saved order
+  finalQuestions.sort(
+    (a, b) =>
+      savedSession.questionOrder.indexOf(a.id) -
+      savedSession.questionOrder.indexOf(b.id)
+  )
+} else {
+  // first time → shuffle
+  finalQuestions = shuffleArray(finalQuestions)
+
+  // store order in localStorage
+  persist({
+    questionOrder: finalQuestions.map(q => q.id)
+  })
+}
+
+setQuestions(finalQuestions)
     setLoading(false)
 
     /* 🎥 START PROCTORING IF REQUIRED */
@@ -128,18 +152,21 @@ useEffect(() => {
   /* ================= LOCAL STORAGE (UNCHANGED) ================= */
 
   function persist(extra = {}) {
-    localStorage.setItem(
-      LS_KEY,
-      JSON.stringify({
-        answers,
-        currentIndex,
-        timeLeft,
-        submitted,
-        visited: Array.from(visited),
-        ...extra
-      })
-    )
-  }
+  const existing = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
+
+  localStorage.setItem(
+    LS_KEY,
+    JSON.stringify({
+      ...existing,
+      answers,
+      currentIndex,
+      timeLeft,
+      submitted,
+      visited: Array.from(visited),
+      ...extra
+    })
+  )
+}
 
   function markVisited(index) {
     setVisited(prev => {
@@ -358,8 +385,11 @@ async function submitExam() {
 
   await supabase
     .from('exam_sessions')
-    .update({
-      answers,
+.update({
+  answers: {
+    ...answers,
+    questionOrder: JSON.parse(localStorage.getItem(LS_KEY) || '{}')?.questionOrder
+  },
       score,
       submitted: true,
       time_left: 0
