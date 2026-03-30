@@ -155,43 +155,69 @@ export default function UploadWordPage(){
     setRows(updated)
   }
 
-  async function handleUpload(){
+  const delay = (ms) => new Promise(res => setTimeout(res, ms))
+ async function handleUpload(){
 
-    setUploading(true)
-    setIsCancelled(false)
+  setUploading(true)
+  setIsCancelled(false)
+  setIsCompleted(false)
+  setStatus('Uploading started...')
+  setProgress(0)
 
-    const validRows = rows.filter((_,i)=>!errors[i])
-    const collegeId = await getAdminCollege()
+  const validRows = rows.filter((_,i)=>!errors[i])
+  const collegeId = await getAdminCollege()
 
-    let uploaded = []
+  let uploaded = []
 
-    for(let i=0;i<validRows.length;i++){
+  for(let i=0;i<validRows.length;i++){
 
-      if(isCancelled){
-        setUploading(false)
-        return
-      }
-
-      const { data } = await supabase
-        .from('question_bank')
-        .insert([{...validRows[i], college_id:collegeId}])
-        .select()
-
-      uploaded.push(data[0])
-
-      setProgress(Math.round(((i+1)/validRows.length)*100))
+    if(isCancelled){
+      setStatus('Upload Cancelled')
+      setUploading(false)
+      return
     }
 
-    setUploading(false)
-    setIsCompleted(true)
-    setStatus('Upload Completed')
+    const { data, error } = await supabase
+      .from('question_bank')
+      .insert([{...validRows[i], college_id:collegeId}])
+      .select()
 
-    setStats({
-      total: rows.length,
-      uploaded: uploaded.length
-    })
+    if(error){
+      console.error(error)
+      continue
+    }
+
+    uploaded.push(data[0])
+
+    // ✅ UPDATE UI PROPERLY
+    const percent = Math.round(((i+1)/validRows.length)*100)
+
+    setProgress(percent)
+    setStatus(`Uploading ${i+1} / ${validRows.length}`)
+
+    // 🔥 THIS LINE IS CRITICAL
+    await delay(10)
   }
 
+  // ✅ FINAL STATE
+  setUploading(false)
+  setIsCompleted(true)
+  setStatus(`Upload Completed (${uploaded.length} questions)`)
+
+{isCompleted && stats && (
+  <div style={{
+    marginTop:15,
+    background:'#ecfdf5',
+    padding:10,
+    border:'1px solid #16a34a'
+  }}>
+    <b>Upload Summary</b><br/>
+    Total: {stats.total}<br/>
+    Uploaded: {stats.uploaded}<br/>
+    Skipped: {stats.skipped}
+  </div>
+)}
+}
   return(
     <div style={{padding:20}}>
 
