@@ -23,6 +23,8 @@ export default function ExamPage({ params }) {
   const [questions, setQuestions] = useState([])
   const [answers, setAnswers] = useState({})
   const [currentIndex, setCurrentIndex] = useState(0)
+  const [timeSpent, setTimeSpent] = useState({})
+  const questionStartTimeRef = useRef(Date.now())
   const [visited, setVisited] = useState(new Set())
   const [timeLeft, setTimeLeft] = useState(0)
   const [submitted, setSubmitted] = useState(false)
@@ -69,6 +71,7 @@ if (examData.camera_required && isMobile) {
     setVisited(new Set(saved.visited || []))
     setTimeLeft(saved.timeLeft ?? examData.duration_minutes * 60)
     setSubmitted(saved.submitted || false)
+    setTimeSpent(saved.timeSpent || {})
 
     const { data: qs, error } = await supabase.rpc(
   'get_exam_questions',
@@ -105,6 +108,7 @@ if (savedSession?.questionOrder) {
 }
 
 setQuestions(finalQuestions)
+questionStartTimeRef.current = Date.now()    
     setLoading(false)
 
     /* 🎥 START PROCTORING IF REQUIRED */
@@ -151,7 +155,7 @@ useEffect(() => {
 
   /* ================= LOCAL STORAGE (UNCHANGED) ================= */
 
-  function persist(extra = {}) {
+ function persist(extra = {}) {
   const existing = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
 
   localStorage.setItem(
@@ -163,6 +167,7 @@ useEffect(() => {
       timeLeft,
       submitted,
       visited: Array.from(visited),
+      timeSpent,
       ...extra
     })
   )
@@ -184,11 +189,27 @@ useEffect(() => {
     persist({ answers: updated })
   }
 
-  function goToQuestion(i) {
-    setCurrentIndex(i)
-    markVisited(i)
-    persist({ currentIndex: i })
+function goToQuestion(i) {
+  const currentQ = questions[currentIndex]
+
+  if (currentQ) {
+    const timeTaken = Math.floor((Date.now() - questionStartTimeRef.current) / 1000)
+
+    const updatedTime = {
+      ...timeSpent,
+      [currentQ.id]: (timeSpent[currentQ.id] || 0) + timeTaken
+    }
+
+    setTimeSpent(updatedTime)
+    persist({ timeSpent: updatedTime })
   }
+
+  setCurrentIndex(i)
+  questionStartTimeRef.current = Date.now()
+
+  markVisited(i)
+  persist({ currentIndex: i })
+}
 
   /* ================= 🎥 PROCTORING LOGIC ================= */
 
@@ -331,6 +352,20 @@ function stopProctoring() {
 
   /* ================= SUBMIT (MINIMAL ADD) ================= */
 async function submitExam() {
+const currentQ = questions[currentIndex]
+
+if (currentQ) {
+  const timeTaken = Math.floor((Date.now() - questionStartTimeRef.current) / 1000)
+
+  const updatedTime = {
+    ...timeSpent,
+    [currentQ.id]: (timeSpent[currentQ.id] || 0) + timeTaken
+  }
+
+  setTimeSpent(updatedTime)
+  persist({ timeSpent: updatedTime })
+}
+  
   if (submitted) return
 
   setSubmitted(true)
@@ -388,6 +423,7 @@ async function submitExam() {
 .update({
   answers: {
     ...answers,
+    timeSpent,
     questionOrder: JSON.parse(localStorage.getItem(LS_KEY) || '{}')?.questionOrder
   },
       score,
