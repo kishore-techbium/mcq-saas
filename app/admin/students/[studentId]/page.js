@@ -11,6 +11,7 @@ export default function StudentDetailsPage() {
   const [student, setStudent] = useState(null)
   const [sessions, setSessions] = useState([])
   const [grouped, setGrouped] = useState({})
+  const [subtopicData, setSubtopicData] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -94,6 +95,41 @@ export default function StudentDetailsPage() {
     setStudent(studentData)
     setSessions(enriched)
     setGrouped(groupedData)
+    // ===== FETCH SUBTOPIC LEVEL DATA =====
+
+if (sessionData?.length > 0) {
+
+  const sessionIds = sessionData.map(s => s.id)
+
+  const { data: answerData } = await supabase
+    .from('exam_answers')
+    .select('question_id, is_correct, exam_session_id')
+    .in('exam_session_id', sessionIds)
+
+  if (answerData && answerData.length > 0) {
+
+    const questionIds = [
+      ...new Set(answerData.map(a => a.question_id))
+    ]
+
+    const { data: questionData } = await supabase
+      .from('question_bank')
+      .select('id, subject, chapter, subtopic')
+      .in('id', questionIds)
+
+    const questionMap = {}
+    questionData?.forEach(q => {
+      questionMap[q.id] = q
+    })
+
+    const merged = answerData.map(a => ({
+      ...a,
+      ...(questionMap[a.question_id] || {})
+    }))
+
+    setSubtopicData(merged)
+  }
+}
     setLoading(false)
   }
 
@@ -148,47 +184,61 @@ export default function StudentDetailsPage() {
 
   // ===== SUBJECT ANALYSIS =====
 
-  let subjectStats = {}
+// ===== SUBTOPIC ANALYSIS =====
 
-  sessions.forEach((session) => {
-    const sectionScores = session.answers?.__meta?.section_scores
-    if (sectionScores) {
-      Object.entries(sectionScores).forEach(
-        ([subject, values]) => {
-          if (!subjectStats[subject]) {
-            subjectStats[subject] = { total: 0, correct: 0 }
-          }
-          subjectStats[subject].total += values.total
-          subjectStats[subject].correct += values.correct
-        }
-      )
-    }
+let subtopicStats = {}
+
+subtopicData.forEach((row) => {
+  const key = `${row.subject} → ${row.chapter} → ${row.subtopic}`
+
+  if (!subtopicStats[key]) {
+    subtopicStats[key] = { total: 0, correct: 0 }
+  }
+
+  subtopicStats[key].total += 1
+  if (row.is_correct) subtopicStats[key].correct += 1
+})
+
+const subtopicPerformance = Object.entries(subtopicStats).map(
+  ([key, values]) => ({
+    name: key,
+    accuracy:
+      values.total > 0
+        ? (values.correct / values.total) * 100
+        : 0,
+    attempts: values.total
   })
+)
 
-  const subjectPerformance = Object.entries(subjectStats).map(
-    ([subject, values]) => ({
-      subject,
-      accuracy:
-        values.total > 0
-          ? ((values.correct / values.total) * 100).toFixed(1)
-          : 0
-    })
-  )
+// ❗ Ignore low data (<5 attempts)
+const filteredSubtopics = subtopicPerformance.filter(
+  (s) => s.attempts >= 5
+)
+// ===== TOP INSIGHTS =====
 
-  const strongestSubject =
-    subjectPerformance.length > 0
-      ? subjectPerformance.reduce((a, b) =>
-          a.accuracy > b.accuracy ? a : b
-        ).subject
-      : '-'
+// weakest → ascending accuracy
+const topWeak = [...filteredSubtopics]
+  .sort((a, b) => a.accuracy - b.accuracy)
+  .slice(0, 5)
 
-  const weakestSubject =
-    subjectPerformance.length > 0
-      ? subjectPerformance.reduce((a, b) =>
-          a.accuracy < b.accuracy ? a : b
-        ).subject
-      : '-'
+// strongest → descending accuracy
+const topStrong = [...filteredSubtopics]
+  .sort((a, b) => b.accuracy - a.accuracy)
+  .slice(0, 5)
 
+const strongestSubtopic =
+  filteredSubtopics.length > 0
+    ? filteredSubtopics.reduce((a, b) =>
+        a.accuracy > b.accuracy ? a : b
+      )
+    : null
+
+const weakestSubtopic =
+  filteredSubtopics.length > 0
+    ? filteredSubtopics.reduce((a, b) =>
+        a.accuracy < b.accuracy ? a : b
+      )
+    : null
   // ===== RETAKE INTELLIGENCE =====
 
   let mostRetakenExam = '-'
@@ -217,12 +267,41 @@ export default function StudentDetailsPage() {
           <strong> Avg:</strong> {averageScore} |
           <strong> Best:</strong> {bestScore} |
           <strong> Latest:</strong> {latestScore}
+    {/* 🔥 TOP INSIGHTS */}
+
+<div style={{ marginTop: 10 }}>
+  <strong>Top Weak Areas:</strong>
+  {topWeak.length === 0 && <div>-</div>}
+  {topWeak.map((s, i) => (
+    <div key={i} style={{ color: '#dc2626', fontSize: 13 }}>
+      {s.name} ({s.accuracy.toFixed(1)}%)
+    </div>
+  ))}
+</div>
+
+<div style={{ marginTop: 10 }}>
+  <strong>Top Strong Areas:</strong>
+  {topStrong.length === 0 && <div>-</div>}
+  {topStrong.map((s, i) => (
+    <div key={i} style={{ color: '#16a34a', fontSize: 13 }}>
+      {s.name} ({s.accuracy.toFixed(1)}%)
+    </div>
+  ))}
+</div>
         </div>
 
         <div>
           <strong>Trend:</strong> {trend} |
-          <strong> Strongest:</strong> {strongestSubject} |
-          <strong> Weakest:</strong> {weakestSubject}
+    <strong> Strongest:</strong>{' '}
+  {strongestSubtopic
+  ? `${strongestSubtopic.name} (${strongestSubtopic.accuracy.toFixed(1)}%)`
+  : '-'}{' '}
+|
+
+<strong> Weakest:</strong>{' '}
+{weakestSubtopic
+  ? `${weakestSubtopic.name} (${weakestSubtopic.accuracy.toFixed(1)}%)`
+  : '-'}
         </div>
 
         <div>
