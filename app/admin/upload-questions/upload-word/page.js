@@ -76,7 +76,11 @@ const blocks = rawBlocks
     setProgress(80)
 
     return blocks.map(block=>{
-      const get = (l)=> clean((block.match(new RegExp(`${l}:\\s*([^<]*)`,'i'))||[])[1])
+      const get = (label) => {
+  const regex = new RegExp(`${label}\\s*:?\\s*(.*)`, 'i')
+  const match = block.match(regex)
+  return clean(match ? match[1] : '')
+}
       const opt = (l)=> clean((block.match(new RegExp(`${l}\\.\\s*([^<]*)`,'i'))||[])[1])
 
       return {
