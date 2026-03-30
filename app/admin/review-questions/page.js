@@ -258,20 +258,24 @@ export default function ReviewQuestionsPage() {
                     </div>
 
                     {Object.keys(tree[exam][sub][ch]).map(st => (
-                      <div
-                        key={st}
-                        style={styles.child2}
-                        onClick={() =>
-                          handleSelect('subtopic', st, {
-                            exam,
-                            subject: sub,
-                            chapter: ch
-                          })
-                        }
-                      >
-                        {st}
-                      </div>
-                    ))}
+  <div
+    key={st}
+    style={
+      selected.subtopic === st
+        ? { ...styles.child2, background: '#2563eb', borderRadius: 6 }
+        : styles.child2
+    }
+    onClick={() =>
+      handleSelect('subtopic', st, {
+        exam,
+        subject: sub,
+        chapter: ch
+      })
+    }
+  >
+    📄 {st} ({tree[exam][sub][ch][st]})
+  </div>
+))}
                   </div>
                 ))}
               </div>
