@@ -44,8 +44,6 @@ export default function ReviewQuestionsPage() {
 
   async function fetchQuestions(filters) {
 
-    setQuestions([])
-
     let query = supabase.from('question_bank').select('*')
 
     if (filters.exam_category)
@@ -65,14 +63,16 @@ export default function ReviewQuestionsPage() {
     setQuestions(data || [])
   }
 
-  /* ================= SELECT TREE ================= */
+  /* ================= FIXED SELECTION ================= */
 
   function handleSelect(level, value) {
 
     let newSelection = {}
 
     if (level === 'exam_category') {
-      newSelection = { exam_category: value }
+      newSelection = {
+        exam_category: value
+      }
     }
 
     if (level === 'subject') {
@@ -99,6 +99,7 @@ export default function ReviewQuestionsPage() {
       }
     }
 
+    // 🔥 IMPORTANT: force clean object (no leftovers)
     setSelected(newSelection)
     fetchQuestions(newSelection)
   }
@@ -142,18 +143,11 @@ export default function ReviewQuestionsPage() {
 
     if (!confirm('Are you sure to delete?')) return
 
-    const { error } = await supabase
+    await supabase
       .from('question_bank')
       .delete()
       .in('id', selectedQuestions)
 
-    if (error) {
-      alert('Delete failed')
-      console.error(error)
-      return
-    }
-
-    alert('Deleted successfully')
     fetchQuestions(selected)
     clearSelection()
   }
@@ -325,8 +319,6 @@ export default function ReviewQuestionsPage() {
     </div>
   )
 }
-
-/* ================= STYLES ================= */
 
 const styles = {
   sidebar: {
