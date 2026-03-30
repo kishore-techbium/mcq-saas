@@ -7,8 +7,6 @@ import { useRouter } from 'next/navigation'
 import mammoth from 'mammoth'
 import { getAdminCollege } from '../../../../lib/getAdminCollege'
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024
-
 export default function UploadWordPage(){
 
   const router = useRouter()
@@ -22,6 +20,9 @@ export default function UploadWordPage(){
   const [exams,setExams] = useState([])
 
   const [uploading,setUploading] = useState(false)
+  const [progress,setProgress] = useState(0)
+  const [status,setStatus] = useState('')
+  const [stats,setStats] = useState(null)
 
   useEffect(()=>{ loadExams() },[])
 
@@ -35,10 +36,8 @@ export default function UploadWordPage(){
     setExams(data || [])
   }
 
-  // 🧠 Clean text
   const clean = (t)=> t?.replace(/\s+/g,' ').trim()
 
-  // 🖼 Compress
   async function compressImage(buffer){
     return new Promise((resolve)=>{
       const blob = new Blob([buffer])
@@ -75,6 +74,9 @@ export default function UploadWordPage(){
   }
 
   async function parseWord(file){
+    setStatus('Processing Word file...')
+    setProgress(10)
+
     const buffer = await file.arrayBuffer()
     let imgIndex = 0
 
@@ -90,11 +92,16 @@ export default function UploadWordPage(){
       }
     )
 
-const rawBlocks = result.value.split(/Question\s+\d+:/i)
+    setProgress(50)
 
-const blocks = rawBlocks
-  .map(b => b.trim())
-  .filter(b => b && b.includes('Q:') && b.includes('Answer:'))
+    const rawBlocks = result.value.split(/Question\s+\d+:/i)
+
+    const blocks = rawBlocks
+      .map(b => b.trim())
+      .filter(b => b && b.includes('Q:') && b.includes('Answer:'))
+
+    setProgress(80)
+
     return blocks.map(block=>{
       const get = (l)=> clean((block.match(new RegExp(`${l}:\\s*([^<]*)`,'i'))||[])[1])
       const opt = (l)=> clean((block.match(new RegExp(`${l}\\.\\s*([^<]*)`,'i'))||[])[1])
@@ -137,23 +144,31 @@ const blocks = rawBlocks
   }
 
   async function handlePreview(){
+    if(!file) return alert('Select file')
+
     const parsed = await parseWord(file)
+
+    setStatus('Validating questions...')
+    setProgress(90)
+
     setRows(parsed)
     setIsPreview(true)
     revalidate(parsed)
-  }
 
-  function handleChange(i,field,value){
-    const updated = [...rows]
-    updated[i][field]=value
-    setRows(updated)
-    revalidate(updated)
+    setProgress(100)
+    setStatus('Preview ready')
   }
 
   async function handleUpload(){
 
     const validRows = rows.filter((_,i)=>!errors[i])
+    const errorCount = rows.length - validRows.length
+
     if(!validRows.length) return alert('Fix errors first')
+
+    setUploading(true)
+    setStatus('Uploading questions...')
+    setProgress(0)
 
     const collegeId = await getAdminCollege()
 
@@ -164,14 +179,32 @@ const blocks = rawBlocks
       .insert(payload)
       .select()
 
+    setProgress(80)
+
     if(selectedExam){
       await supabase.from('exam_questions').insert(
         inserted.map(q=>({exam_id:selectedExam,question_id:q.id}))
       )
     }
 
-    alert('Uploaded')
-    router.push('/admin')
+    setProgress(100)
+    setStatus('Upload completed')
+
+    setStats({
+      total: rows.length,
+      valid: validRows.length,
+      errors: errorCount,
+      uploaded: inserted.length
+    })
+
+    setUploading(false)
+  }
+
+  function handleChange(i,field,value){
+    const updated = [...rows]
+    updated[i][field]=value
+    setRows(updated)
+    revalidate(updated)
   }
 
   return(
@@ -190,6 +223,17 @@ const blocks = rawBlocks
         ))}
       </select>
 
+      <div style={{marginTop:10}}>
+        <div style={{width:'100%',background:'#ddd',height:10}}>
+          <div style={{
+            width:`${progress}%`,
+            background:'#2563eb',
+            height:10
+          }} />
+        </div>
+        <div>{status}</div>
+      </div>
+
       {!isPreview && <button onClick={handlePreview}>Preview & Edit</button>}
 
       {isPreview && (
@@ -197,6 +241,16 @@ const blocks = rawBlocks
           <button onClick={handleUpload}>
             {uploading ? 'Uploading...' : 'Upload'}
           </button>
+
+          {stats && (
+            <div style={{marginTop:15,background:'#ecfdf5',padding:10}}>
+              <b>Upload Summary</b><br/>
+              Total: {stats.total}<br/>
+              Valid: {stats.valid}<br/>
+              Errors Skipped: {stats.errors}<br/>
+              Uploaded: {stats.uploaded}
+            </div>
+          )}
 
           {rows.map((r,i)=>(
             <div key={i}
