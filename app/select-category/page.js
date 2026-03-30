@@ -7,6 +7,7 @@ export default function SelectCategory() {
 
   const [examPref, setExamPref] = useState('')
   const [studentName, setStudentName] = useState('') // ✅ NEW
+  const [analytics, setAnalytics] = useState(null)
 
   useEffect(() => {
     checkUser()
@@ -34,6 +35,9 @@ export default function SelectCategory() {
     }
 
     setStudentName(student?.first_name || 'Student') // ✅ NEW
+    if (student?.id) {
+  loadAnalytics(student.id)
+}
   }
 
   function go(cat) {
@@ -44,7 +48,90 @@ export default function SelectCategory() {
     await supabase.auth.signOut()
     window.location.href = '/'
   }
+async function loadAnalytics(studentId) {
 
+  // 1. get sessions
+  const { data: sessions } = await supabase
+    .from('exam_sessions')
+    .select('id, score, created_at')
+    .eq('student_id', studentId)
+    .eq('submitted', true)
+    .order('created_at', { ascending: true })
+
+  if (!sessions || sessions.length === 0) return
+
+  const sessionIds = sessions.map(s => s.id)
+
+  // 2. get answers
+  const { data: answers } = await supabase
+    .from('exam_answers')
+    .select('question_id, is_correct, exam_session_id')
+    .in('exam_session_id', sessionIds)
+
+  if (!answers || answers.length === 0) return
+
+  const questionIds = [...new Set(answers.map(a => a.question_id))]
+
+  // 3. get question meta
+  const { data: questions } = await supabase
+    .from('question_bank')
+    .select('id, subject, chapter, subtopic')
+    .in('id', questionIds)
+
+  const qMap = {}
+  questions?.forEach(q => {
+    qMap[q.id] = q
+  })
+
+  // 4. merge
+  const merged = answers.map(a => ({
+    ...a,
+    ...(qMap[a.question_id] || {})
+  }))
+
+  // 5. subtopic stats
+  let stats = {}
+
+  merged.forEach(row => {
+    const key = `${row.subject} → ${row.chapter} → ${row.subtopic}`
+
+    if (!stats[key]) stats[key] = { total: 0, correct: 0 }
+
+    stats[key].total++
+    if (row.is_correct) stats[key].correct++
+  })
+
+  const list = Object.entries(stats).map(([k, v]) => ({
+    name: k,
+    accuracy: (v.correct / v.total) * 100,
+    attempts: v.total
+  })).filter(s => s.attempts >= 5)
+
+  if (list.length === 0) return
+
+  const strongest = list.reduce((a, b) =>
+    a.accuracy > b.accuracy ? a : b
+  )
+
+  const weakest = list.reduce((a, b) =>
+    a.accuracy < b.accuracy ? a : b
+  )
+
+  // trend
+  const first = sessions[0]?.score || 0
+  const last = sessions[sessions.length - 1]?.score || 0
+
+  const trend =
+    last > first ? 'Improving 📈'
+    : last < first ? 'Declining 📉'
+    : 'Stable ➖'
+
+  setAnalytics({
+    strongest,
+    weakest,
+    trend
+  })
+}
   return (
     <div style={styles.page}>
       <div style={styles.card}>
@@ -63,7 +150,25 @@ export default function SelectCategory() {
         </div>
 
         <h1>Welcome to MCQ Platform 🚀</h1>
+{analytics && (
+  <div style={styles.analyticsCard}>
+    <div style={{ fontWeight: 600, marginBottom: 6 }}>
+      📊 Your Performance
+    </div>
 
+    <div>📈 {analytics.trend}</div>
+
+    <div>
+      🎯 Weak:{' '}
+      {analytics.weakest.name} ({analytics.weakest.accuracy.toFixed(1)}%)
+    </div>
+
+    <div>
+      💪 Strong:{' '}
+      {analytics.strongest.name} ({analytics.strongest.accuracy.toFixed(1)}%)
+    </div>
+  </div>
+)}
         <p style={{ color: '#555', marginBottom: 20 }}>
           Practice high-quality MCQs, track your performance, and improve your rank with real exam-level questions.
         </p>
@@ -150,6 +255,15 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer'
   },
+  analyticsCard: {
+  marginTop: 15,
+  marginBottom: 20,
+  padding: 12,
+  background: '#f1f5f9',
+  borderRadius: 10,
+  textAlign: 'left',
+  fontSize: 14
+},
 
   btn: {
     width: '100%',
