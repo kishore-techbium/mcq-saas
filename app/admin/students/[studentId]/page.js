@@ -212,7 +212,7 @@ const subtopicPerformance = Object.entries(subtopicStats).map(
 
 // ❗ Ignore low data (<5 attempts)
 const filteredSubtopics = subtopicPerformance.filter(
-  (s) => s.attempts >= 5
+  (s) => s.attempts >= 2
 )
 // ===== TOP INSIGHTS =====
 
