@@ -152,6 +152,11 @@ useEffect(() => {
 }, [exam, submitted])
 
 
+useEffect(() => {
+  if (questions.length > 0) {
+    markVisited(currentIndex)
+  }
+}, [currentIndex, questions.length])
 
   /* ================= LOCAL STORAGE (UNCHANGED) ================= */
 
@@ -507,11 +512,6 @@ if (currentQ) {
 
 
   const q = questions[currentIndex]
-useEffect(() => {
-  if (questions.length > 0) {
-    markVisited(currentIndex)
-  }
-}, [currentIndex, questions.length])
 
   return (
     <div style={styles.page}>
