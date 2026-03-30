@@ -184,8 +184,10 @@ setQuestions(qs || [])
             Question {currentIndex + 1} of {questions.length}
           </h3>
 
-          <p style={{ marginTop: 12 }}>{q.question}</p>
-
+<div
+  style={{ marginTop: 12 }}
+  dangerouslySetInnerHTML={{ __html: q.question }}
+/>
           {['A', 'B', 'C', 'D'].map(opt => (
             <label
               key={opt}
@@ -200,7 +202,12 @@ setQuestions(qs || [])
                 checked={answers[q.id] === opt}
                 onChange={() => selectAnswer(opt)}
               />
-              {opt}. {q[`option_${opt.toLowerCase()}`]}
+              {opt}. 
+<span
+  dangerouslySetInnerHTML={{
+    __html: q[`option_${opt.toLowerCase()}`]
+  }}
+/>
             </label>
           ))}
 
