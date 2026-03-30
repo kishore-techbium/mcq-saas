@@ -19,10 +19,9 @@ export default function UploadWordPage(){
 
   const clean = (t)=> t?.replace(/\s+/g,' ').trim()
 
-  // ✅ IMAGE + TEXT PARSER (FINAL)
   async function parseWord(file){
 
-    setStatus('Processing file...')
+    setStatus('Processing...')
     setProgress(20)
 
     const buffer = await file.arrayBuffer()
@@ -77,14 +76,22 @@ export default function UploadWordPage(){
       const imgMatch = block.match(/<img[^>]+src="([^"]+)"/i)
 
       return {
+        exam_category:get('Exam Category') || 'JEE_MAINS',
+        subject:get('Subject') || 'General',
+        chapter:get('Chapter') || 'General',
+        subtopic:get('Subtopic') || 'General',
+        difficulty:get('Difficulty') || 'Medium',
+
         question:get('Q'),
         image: imgMatch ? imgMatch[1] : '',
+
         option_a:getOption('A'),
         option_b:getOption('B'),
         option_c:getOption('C'),
         option_d:getOption('D'),
+
         correct_answer:get('Answer')?.trim().toUpperCase() || 'A',
-        difficulty:get('Difficulty') || 'Medium'
+        explanation:get('Explanation') || ''
       }
     })
   }
@@ -118,16 +125,26 @@ export default function UploadWordPage(){
 
       const r = rows[i]
 
-      const { data } = await supabase
+      const payload = {
+        ...r,
+        correct_answer: r.correct_answer?.trim().toUpperCase(),
+        college_id: collegeId
+      }
+
+      const { data, error } = await supabase
         .from('question_bank')
-        .insert([{
-          ...r,
-          correct_answer:r.correct_answer?.trim().toUpperCase(),
-          college_id:collegeId
-        }])
+        .insert([payload])
         .select()
 
-      if(data) uploaded.push(data[0])
+      // 🔥 VERY IMPORTANT
+      if(error){
+        console.error('INSERT ERROR:', error)
+        continue
+      }
+
+      if(data){
+        uploaded.push(data[0])
+      }
 
       setProgress(Math.round(((i+1)/rows.length)*100))
       setStatus(`Uploading ${i+1}/${rows.length}`)
@@ -140,14 +157,9 @@ export default function UploadWordPage(){
 
     setStats({
       total: rows.length,
-      uploaded: uploaded.length
+      uploaded: uploaded.length,
+      skipped: rows.length - uploaded.length
     })
-  }
-
-  function handleChange(i,field,value){
-    const updated = [...rows]
-    updated[i][field] = value
-    setRows(updated)
   }
 
   return(
@@ -174,37 +186,16 @@ export default function UploadWordPage(){
 
           {stats && (
             <div style={{marginTop:10,background:'#ecfdf5',padding:10}}>
-              Uploaded: {stats.uploaded} / {stats.total}
+              Total: {stats.total}<br/>
+              Uploaded: {stats.uploaded}<br/>
+              Skipped: {stats.skipped}
             </div>
           )}
 
           {rows.map((r,i)=>(
             <div key={i} style={{border:'1px solid #ccc',marginTop:10,padding:10}}>
-
               <b>Q{i+1}</b>
-
-              <textarea
-                value={r.question}
-                onChange={e=>handleChange(i,'question',e.target.value)}
-              />
-
-              {r.image && (
-                <img src={r.image} width="150" style={{marginTop:10}}/>
-              )}
-
-              {['option_a','option_b','option_c','option_d'].map(op=>(
-                <input
-                  key={op}
-                  value={r[op]}
-                  onChange={e=>handleChange(i,op,e.target.value)}
-                />
-              ))}
-
-              <input
-                value={r.correct_answer}
-                onChange={e=>handleChange(i,'correct_answer',e.target.value)}
-              />
-
+              <div>{r.question}</div>
             </div>
           ))}
         </>
