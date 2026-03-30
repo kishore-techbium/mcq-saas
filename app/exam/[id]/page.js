@@ -140,7 +140,7 @@ export default function ExamPage({ params }) {
     }
   }
 
-  /* ================= SUBMIT (WITH ANALYTICS) ================= */
+  /* ================= UPDATED SUBMIT ================= */
 
   async function submitExam() {
     if (submitted) return
@@ -212,22 +212,6 @@ export default function ExamPage({ params }) {
 
   if (loading) return <p style={{ padding: 40 }}>Loading exam…</p>
 
-  if (submitted) {
-    return (
-      <div style={styles.page}>
-        <h1>✅ Exam Submitted</h1>
-
-        {finalScore && (
-          <>
-            <p>Score: {finalScore.score}</p>
-            <p>Correct: {finalScore.correct}</p>
-            <p>Wrong: {finalScore.wrong}</p>
-          </>
-        )}
-      </div>
-    )
-  }
-
   const q = questions[currentIndex]
 
   return (
@@ -237,33 +221,41 @@ export default function ExamPage({ params }) {
         <div style={styles.timer}>⏱ {formatTime(timeLeft)}</div>
       </div>
 
-      <div style={styles.card}>
-        <h3>Question {currentIndex + 1}</h3>
+      <div style={styles.main}>
+        <div style={styles.card}>
+          <h3>Question {currentIndex + 1}</h3>
 
-        {/* ✅ HTML render (images supported) */}
-        <div
-          dangerouslySetInnerHTML={{ __html: q.question }}
-        />
+          {/* ✅ IMAGE FIX */}
+          <div dangerouslySetInnerHTML={{ __html: q.question }} />
 
-        {['A','B','C','D'].map(opt => (
-          <label key={opt} style={styles.option}>
-            <input
-              type="radio"
-              checked={answers[q.id] === opt}
-              onChange={() => selectAnswer(opt)}
-            />
-            <span
-              dangerouslySetInnerHTML={{
+          {['A','B','C','D'].map(opt => (
+            <label key={opt} style={styles.option}>
+              <input
+                type="radio"
+                checked={answers[q.id] === opt}
+                onChange={() => selectAnswer(opt)}
+              />
+              <span dangerouslySetInnerHTML={{
                 __html:
                   q.options
                     ? q.options[opt.charCodeAt(0) - 65]
                     : q[`option_${opt.toLowerCase()}`]
-              }}
-            />
-          </label>
-        ))}
+              }} />
+            </label>
+          ))}
 
-        <button onClick={submitExam}>Submit</button>
+          <button onClick={submitExam}>Submit</button>
+        </div>
+
+        {/* ✅ PALETTE RESTORED */}
+        <div style={styles.palette}>
+          {questions.map((_, i) => (
+            <button key={i} onClick={() => goToQuestion(i)}>
+              {i + 1}
+            </button>
+          ))}
+        </div>
+
       </div>
     </div>
   )
@@ -277,6 +269,8 @@ function formatTime(sec) {
 
 const styles = {
   page: { padding: 30 },
-  card: { background: '#fff', padding: 20 },
-  option: { display: 'block', marginTop: 10 }
+  main: { display: 'flex', gap: 20 },
+  card: { flex: 1, background: '#fff', padding: 20 },
+  option: { display: 'block', marginTop: 10 },
+  palette: { width: 200 }
 }
