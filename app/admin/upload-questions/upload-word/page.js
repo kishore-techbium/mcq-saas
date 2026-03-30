@@ -19,6 +19,7 @@ export default function UploadWordPage(){
 
   const clean = (t)=> t?.replace(/\s+/g,' ').trim()
 
+  // ✅ PARSE WORD (TEXT + IMAGE)
   async function parseWord(file){
 
     setStatus('Processing...')
@@ -73,7 +74,11 @@ export default function UploadWordPage(){
         return match ? clean(match[1]) : ''
       }
 
-      const imgMatch = block.match(/<img[^>]+src="([^"]+)"/i)
+      // ✅ EXTRACT QUESTION HTML (WITH IMAGE)
+      const getQuestionHTML = ()=>{
+        const match = block.match(/Q:\s*([\s\S]*?)A\./i)
+        return match ? match[1].trim() : ''
+      }
 
       return {
         exam_category:get('Exam Category') || 'JEE_MAINS',
@@ -82,8 +87,7 @@ export default function UploadWordPage(){
         subtopic:get('Subtopic') || 'General',
         difficulty:get('Difficulty') || 'Medium',
 
-        question:get('Q'),
-        image: imgMatch ? imgMatch[1] : '',
+        question_html:getQuestionHTML(),
 
         option_a:getOption('A'),
         option_b:getOption('B'),
@@ -127,8 +131,8 @@ export default function UploadWordPage(){
 
       const payload = {
         ...r,
-        correct_answer: r.correct_answer?.trim().toUpperCase(),
-        college_id: collegeId
+        correct_answer:r.correct_answer?.trim().toUpperCase(),
+        college_id:collegeId
       }
 
       const { data, error } = await supabase
@@ -136,7 +140,6 @@ export default function UploadWordPage(){
         .insert([payload])
         .select()
 
-      // 🔥 VERY IMPORTANT
       if(error){
         console.error('INSERT ERROR:', error)
         continue
@@ -160,6 +163,12 @@ export default function UploadWordPage(){
       uploaded: uploaded.length,
       skipped: rows.length - uploaded.length
     })
+  }
+
+  function handleChange(i,field,value){
+    const updated = [...rows]
+    updated[i][field] = value
+    setRows(updated)
   }
 
   return(
@@ -194,8 +203,30 @@ export default function UploadWordPage(){
 
           {rows.map((r,i)=>(
             <div key={i} style={{border:'1px solid #ccc',marginTop:10,padding:10}}>
+
               <b>Q{i+1}</b>
-              <div>{r.question}</div>
+
+              {/* ✅ SHOW IMAGE + TEXT */}
+              <div
+                dangerouslySetInnerHTML={{ __html: r.question_html }}
+                style={{ marginBottom: 10 }}
+              />
+
+              {/* ✅ EDIT OPTIONS */}
+              {['option_a','option_b','option_c','option_d'].map(op=>(
+                <input
+                  key={op}
+                  value={r[op]}
+                  onChange={e=>handleChange(i,op,e.target.value)}
+                />
+              ))}
+
+              {/* ✅ EDIT ANSWER */}
+              <input
+                value={r.correct_answer}
+                onChange={e=>handleChange(i,'correct_answer',e.target.value)}
+              />
+
             </div>
           ))}
         </>
