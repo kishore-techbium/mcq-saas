@@ -193,7 +193,16 @@ export default function ReviewQuestionsPage() {
     alert(`Difficulty updated to ${value}`)
     fetchQuestions(selected)
   }
+async function applySuggestion(q, suggested) {
+  await supabase
+    .from('question_bank')
+    .update({ difficulty: suggested })
+    .eq('id', q.id)
 
+  alert(`Updated to ${suggested} (AI suggestion)`)
+
+  fetchQuestions(selected)
+}
   /* ================= ANALYTICS ================= */
 
   async function loadAnalytics() {
@@ -225,6 +234,16 @@ export default function ReviewQuestionsPage() {
     if (rate <= 80) return '#f97316'
     return '#dc2626'
   }
+  function getSuggestedDifficulty(qid) {
+  const data = analytics[qid]
+  if (!data || data.total < 5) return null
+
+  const rate = Math.round((data.wrong / data.total) * 100)
+
+  if (rate <= 20) return 'Easy'
+  if (rate <= 50) return 'Medium'
+  return 'Hard'
+}
 
   /* ================= UI ================= */
 
@@ -288,15 +307,36 @@ export default function ReviewQuestionsPage() {
       <div style={{ flex: 1, marginLeft: 20 }}>
 
         {/* 🔥 STATS */}
-        <div style={styles.stats}>
-          <div>Total: {stats.total}</div>
-          <div onClick={() => { setStatusFilter(true); fetchQuestions(selected) }}>
-            Active: {stats.active}
-          </div>
-          <div onClick={() => { setStatusFilter(false); fetchQuestions(selected) }}>
-            Inactive: {stats.inactive}
-          </div>
-        </div>
+        <div style={styles.statsRow}>
+
+  <div style={styles.statBox}>
+    <div>Total</div>
+    <b>{stats.total}</b>
+  </div>
+
+  <div
+    style={{ ...styles.statBox, background: '#16a34a', color: '#fff' }}
+    onClick={() => {
+      setStatusFilter(true)
+      fetchQuestions(selected)
+    }}
+  >
+    <div>Active</div>
+    <b>{stats.active}</b>
+  </div>
+
+  <div
+    style={{ ...styles.statBox, background: '#dc2626', color: '#fff' }}
+    onClick={() => {
+      setStatusFilter(false)
+      fetchQuestions(selected)
+    }}
+  >
+    <div>Inactive</div>
+    <b>{stats.inactive}</b>
+  </div>
+
+</div>
 
         {/* 🔍 SEARCH */}
         <input
@@ -310,13 +350,25 @@ export default function ReviewQuestionsPage() {
         />
 
         {/* BULK ACTIONS */}
-        <div style={{ marginBottom: 10 }}>
-          <button onClick={selectAll}>Select All</button>
-          <button onClick={clearSelection}>Clear</button>
-          <button onClick={() => toggleActiveBulk(true)}>Activate</button>
-          <button onClick={() => toggleActiveBulk(false)}>Deactivate</button>
-          <button onClick={deleteSelected}>Delete</button>
-        </div>
+        <div style={styles.actionBar}>
+  <button style={styles.btn} onClick={selectAll}>Select All</button>
+  <button style={styles.btn} onClick={clearSelection}>Clear</button>
+
+  <button style={{ ...styles.btn, background: '#16a34a', color: '#fff' }}
+    onClick={() => toggleActiveBulk(true)}>
+    Activate
+  </button>
+
+  <button style={{ ...styles.btn, background: '#f97316', color: '#fff' }}
+    onClick={() => toggleActiveBulk(false)}>
+    Deactivate
+  </button>
+
+  <button style={{ ...styles.btn, background: '#dc2626', color: '#fff' }}
+    onClick={deleteSelected}>
+    Delete
+  </button>
+</div>
 
         {/* QUESTIONS */}
         {questions.map(q => {
@@ -350,7 +402,37 @@ export default function ReviewQuestionsPage() {
                 }}>
                   {rate !== null ? `${rate}%` : 'No Data'}
                 </div>
+{/* 🔥 AI SUGGESTION */}
+{(() => {
+  const suggested = getSuggestedDifficulty(q.id)
 
+  if (!suggested || suggested === q.difficulty) return null
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 5,
+      background: '#fef9c3',
+      padding: '2px 6px',
+      borderRadius: 6
+    }}>
+      💡 {suggested}
+      <button
+        style={{
+          border: 'none',
+          background: '#eab308',
+          cursor: 'pointer',
+          borderRadius: 4,
+          padding: '2px 6px'
+        }}
+        onClick={() => applySuggestion(q, suggested)}
+      >
+        Apply
+      </button>
+    </div>
+  )
+})()}
                 <button onClick={() => toggleSingle(q)}>
                   {q.is_active ? 'Deactivate' : 'Activate'}
                 </button>
@@ -406,5 +488,33 @@ const styles = {
     gap: 10,
     alignItems: 'center',
     marginBottom: 10
-  }
+  },
+  statsRow: {
+  display: 'flex',
+  gap: 15,
+  marginBottom: 15
+},
+
+statBox: {
+  flex: 1,
+  padding: 10,
+  background: '#e2e8f0',
+  borderRadius: 8,
+  textAlign: 'center',
+  cursor: 'pointer'
+},
+
+actionBar: {
+  display: 'flex',
+  gap: 10,
+  marginBottom: 15
+},
+
+btn: {
+  padding: '6px 12px',
+  border: 'none',
+  borderRadius: 6,
+  cursor: 'pointer',
+  background: '#e5e7eb'
+}
 }
