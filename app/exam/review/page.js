@@ -157,8 +157,37 @@ export default function ExamReview() {
 
       {questions.map((q, index) => {
 
-        const your = session.answers[q.id]
+        const answersObj =
+  typeof session.answers === 'string'
+    ? JSON.parse(session.answers)
+    : session.answers || {}
+
+const your = answersObj[q.id]
+const timeSpent = answersObj.timeSpent || {}
+const time = timeSpent[q.id] || 0
+        
         const correct = q.correct_answer
+let timeLabel = ''
+let insight = ''
+let timeColor = '#333'
+
+if (time > 30 && your !== correct) {
+  insight = '❌ Weak concept'
+  timeColor = '#dc2626'
+} else if (time > 30 && your === correct) {
+  insight = '⚠ Took long'
+  timeColor = '#f97316'
+} else if (time < 10 && your === correct) {
+  insight = '💪 Strong'
+  timeColor = '#16a34a'
+} else if (time < 10 && your !== correct) {
+  insight = '🎯 Guess'
+  timeColor = '#9333ea'
+} else {
+  insight = '👍 Normal'
+  timeColor = '#ca8a04'
+}
+        
 
         return (
           <div key={q.id} style={styles.card}>
@@ -166,6 +195,17 @@ export default function ExamReview() {
            <div style={{ fontWeight: 600 }}>
   Q{index + 1}.
   <div dangerouslySetInnerHTML={{ __html: q.question }} />
+    {/* ⏱ TIME INFO */}
+{time > 0 && (
+  <div style={{
+    marginTop: 6,
+    fontSize: 13,
+    color: timeColor,
+    fontWeight: 500
+  }}>
+    ⏱ {time} sec {insight}
+  </div>
+)}
 </div>
 
             {['A','B','C','D'].map(opt => {
