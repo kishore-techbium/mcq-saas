@@ -73,6 +73,7 @@ export default function ExamPage({ params }) {
     )
 
     if (error) {
+      console.error('Error loading exam questions:', error)
       alert('Unable to load exam.')
       window.location.href = '/dashboard'
       return
@@ -96,6 +97,22 @@ export default function ExamPage({ params }) {
 
     return () => clearInterval(t)
   }, [timeLeft, submitted, loading])
+
+  const proctorStartedRef = useRef(false)
+
+  useEffect(() => {
+    if (!exam) return
+    if (!exam.camera_required) return
+    if (!sessionId) return
+    if (submitted) return
+
+    if (proctorStartedRef.current) return
+
+    proctorStartedRef.current = true
+    startProctoring()
+
+    return () => stopProctoring()
+  }, [exam, submitted])
 
   function persist(extra = {}) {
     localStorage.setItem(
@@ -131,6 +148,61 @@ export default function ExamPage({ params }) {
     setCurrentIndex(i)
     markVisited(i)
     persist({ currentIndex: i })
+  }
+
+  async function startProctoring() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+      streamRef.current = stream
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream
+        videoRef.current.play().catch(() => {})
+      }
+
+      scheduleSnapshot()
+    } catch (err) {
+      alert("Camera initialization failed.")
+      window.location.href = '/dashboard'
+    }
+  }
+
+  function scheduleSnapshot() {
+    const delay = Math.floor(Math.random() * 60000) + 20000
+
+    snapshotTimerRef.current = setTimeout(async () => {
+      await captureSnapshot()
+      scheduleSnapshot()
+    }, delay)
+  }
+
+  async function captureSnapshot() {
+    if (!videoRef.current) return
+
+    const canvas = document.createElement('canvas')
+    canvas.width = videoRef.current.videoWidth
+    canvas.height = videoRef.current.videoHeight
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(videoRef.current, 0, 0)
+
+    const blob = await new Promise(res =>
+      canvas.toBlob(res, 'image/jpeg', 0.8)
+    )
+
+    captureIndexRef.current += 1
+    const path = `${sessionId}/${captureIndexRef.current}.jpg`
+
+    const { error } = await supabase.storage
+      .from('exam-proctoring')
+      .upload(path, blob, { upsert: true })
+
+    if (!error) {
+      await supabase.from('proctoring_images').insert({
+        exam_session_id: sessionId,
+        image_url: path,
+        capture_index: captureIndexRef.current
+      })
+    }
   }
 
   function stopProctoring() {
@@ -212,10 +284,45 @@ export default function ExamPage({ params }) {
 
   if (loading) return <p style={{ padding: 40 }}>Loading exam…</p>
 
+  if (submitted && review) {
+    return (
+      <div style={styles.page}>
+        <h1>📘 Exam Review</h1>
+        <button onClick={() => window.location.href = '/dashboard'}>
+          Back to Dashboard
+        </button>
+      </div>
+    )
+  }
+
+  if (submitted) {
+    return (
+      <div style={styles.page}>
+        <h1>✅ Exam Submitted</h1>
+
+        <div style={{ marginTop: 20, display: 'flex', gap: 12 }}>
+          <button
+            onClick={() =>
+              window.location.href = `/exam/review?sessionId=${sessionId}`
+            }
+          >
+            Review Exam
+          </button>
+
+          <button onClick={() => window.location.href = '/dashboard'}>
+            Dashboard
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const q = questions[currentIndex]
 
   return (
     <div style={styles.page}>
+      <video ref={videoRef} autoPlay muted playsInline style={{ display: 'none' }} />
+
       <div style={styles.header}>
         <h2>{exam.title}</h2>
         <div style={styles.timer}>⏱ {formatTime(timeLeft)}</div>
@@ -225,7 +332,7 @@ export default function ExamPage({ params }) {
         <div style={styles.card}>
           <h3>Question {currentIndex + 1}</h3>
 
-          {/* ✅ IMAGE FIX */}
+          {/* ✅ IMAGE SUPPORT */}
           <div dangerouslySetInnerHTML={{ __html: q.question }} />
 
           {['A','B','C','D'].map(opt => (
@@ -244,16 +351,25 @@ export default function ExamPage({ params }) {
             </label>
           ))}
 
-          <button onClick={submitExam}>Submit</button>
+          <div style={styles.nav}>
+            <button onClick={() => goToQuestion(currentIndex - 1)}>Prev</button>
+            <button onClick={() => goToQuestion(currentIndex + 1)}>Next</button>
+            <button style={styles.submitBtn} onClick={submitExam}>
+              Submit
+            </button>
+          </div>
         </div>
 
-        {/* ✅ PALETTE RESTORED */}
-        <div style={styles.palette}>
-          {questions.map((_, i) => (
-            <button key={i} onClick={() => goToQuestion(i)}>
-              {i + 1}
-            </button>
-          ))}
+        {/* PALETTE untouched */}
+        <div style={styles.paletteWrapper}>
+          <div style={styles.paletteTitle}>Question Palette</div>
+          <div style={styles.palette}>
+            {questions.map((q, i) => (
+              <button key={i} onClick={() => goToQuestion(i)}>
+                {i + 1}
+              </button>
+            ))}
+          </div>
         </div>
 
       </div>
@@ -269,8 +385,13 @@ function formatTime(sec) {
 
 const styles = {
   page: { padding: 30 },
+  header: { display: 'flex', justifyContent: 'space-between' },
+  timer: { fontWeight: 700 },
   main: { display: 'flex', gap: 20 },
   card: { flex: 1, background: '#fff', padding: 20 },
-  option: { display: 'block', marginTop: 10 },
-  palette: { width: 200 }
+  option: { display: 'block', marginTop: 8 },
+  nav: { marginTop: 20, display: 'flex', gap: 10 },
+  submitBtn: { marginLeft: 'auto', background: 'red', color: '#fff' },
+  paletteWrapper: { width: 200 },
+  palette: { display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 5 }
 }
