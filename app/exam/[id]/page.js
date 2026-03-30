@@ -27,13 +27,10 @@ export default function ExamPage({ params }) {
   const [review, setReview] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  /* 🎥 PROCTORING REFS */
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const snapshotTimerRef = useRef(null)
   const captureIndexRef = useRef(0)
-
-  /* ================= INIT (UNCHANGED) ================= */
 
   useEffect(() => {
     init()
@@ -54,13 +51,15 @@ export default function ExamPage({ params }) {
       .maybeSingle()
 
     setExam(examData)
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
 
-if (examData.camera_required && isMobile) {
-  alert('Proctored exams must be taken on a desktop or laptop.')
-  window.location.href = '/dashboard'
-  return
-}
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+
+    if (examData.camera_required && isMobile) {
+      alert('Proctored exams must be taken on a desktop or laptop.')
+      window.location.href = '/dashboard'
+      return
+    }
+
     const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
     setAnswers(saved.answers || {})
     setCurrentIndex(saved.currentIndex || 0)
@@ -69,27 +68,19 @@ if (examData.camera_required && isMobile) {
     setSubmitted(saved.submitted || false)
 
     const { data: qs, error } = await supabase.rpc(
-  'get_exam_questions',
-  { p_exam_id: examId }
-)
+      'get_exam_questions',
+      { p_exam_id: examId }
+    )
 
-if (error) {
-  console.error('Error loading exam questions:', error)
-  alert('Unable to load exam.')
-  window.location.href = '/dashboard'
-  return
-}
+    if (error) {
+      alert('Unable to load exam.')
+      window.location.href = '/dashboard'
+      return
+    }
 
-setQuestions(qs || [])
+    setQuestions(qs || [])
     setLoading(false)
-
-    /* 🎥 START PROCTORING IF REQUIRED */
-   // if (examData.camera_required && !saved.submitted) {
-   //   startProctoring()
-   // }
   }
-
-  /* ================= TIMER (UNCHANGED) ================= */
 
   useEffect(() => {
     if (loading || submitted || timeLeft <= 0) return
@@ -105,27 +96,6 @@ setQuestions(qs || [])
 
     return () => clearInterval(t)
   }, [timeLeft, submitted, loading])
-
-
- const proctorStartedRef = useRef(false)
-
-useEffect(() => {
-  if (!exam) return
-  if (!exam.camera_required) return
-  if (!sessionId) return
-  if (submitted) return
-  
-  if (proctorStartedRef.current) return
-
-  proctorStartedRef.current = true
-  startProctoring()
-
-  return () => stopProctoring()
-}, [exam, submitted])
-
-
-
-  /* ================= LOCAL STORAGE (UNCHANGED) ================= */
 
   function persist(extra = {}) {
     localStorage.setItem(
@@ -163,395 +133,141 @@ useEffect(() => {
     persist({ currentIndex: i })
   }
 
-  /* ================= 🎥 PROCTORING LOGIC ================= */
-
- async function startProctoring() {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-
-    streamRef.current = stream
-
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream
-
-      videoRef.current.play().catch(err => {
-        console.warn("Play interrupted:", err)
-      })
+  function stopProctoring() {
+    clearTimeout(snapshotTimerRef.current)
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop())
     }
-
-    scheduleSnapshot()
-
-  } catch (err) {
-    console.error("Camera error:", err)
-    alert("Camera initialization failed.")
-    window.location.href = '/dashboard'
-  }
-}
-  function scheduleSnapshot() {
-     //const delay = 5000 // 5 seconds for testing
-    const delay = Math.floor(Math.random() * 60000) + 20000 // 30–90 sec
-
-    snapshotTimerRef.current = setTimeout(async () => {
-      await captureSnapshot()
-      scheduleSnapshot()
-    }, delay)
-  }
-  /*
-async function captureSnapshot() {
-  console.log("📸 Attempting snapshot...")
-
-  if (!videoRef.current) {
-    console.log("❌ videoRef missing")
-    return
   }
 
-  console.log("Video dimensions:",
-    videoRef.current.videoWidth,
-    videoRef.current.videoHeight
-  )
+  /* ================= SUBMIT (WITH ANALYTICS) ================= */
 
-  if (videoRef.current.videoWidth === 0) {
-    console.log("❌ Video not ready yet")
-    return
-  }
+  async function submitExam() {
+    if (submitted) return
 
-  const canvas = document.createElement('canvas')
-  canvas.width = videoRef.current.videoWidth
-  canvas.height = videoRef.current.videoHeight
+    setSubmitted(true)
+    persist({ submitted: true })
+    stopProctoring()
 
-  const ctx = canvas.getContext('2d')
-  ctx.drawImage(videoRef.current, 0, 0)
+    let score = 0
+    let correct = 0
+    let wrong = 0
 
-  const blob = await new Promise(res =>
-    canvas.toBlob(res, 'image/jpeg', 0.8)
-  )
+    const answerRows = []
 
-  console.log("Blob created:", blob)
+    questions.forEach(q => {
+      const studentAnswer = answers[q.id]
+      if (!studentAnswer) return
 
-  if (!blob) {
-    console.log("❌ Blob creation failed")
-    return
-  }
+      const isCorrect = studentAnswer === q.correct_answer
 
-  captureIndexRef.current += 1
-  const path = `${sessionId}/${captureIndexRef.current}.jpg`
+      if (isCorrect) {
+        score += exam.correct_marks || 4
+        correct++
+      } else {
+        score -= exam.negative_marks || 1
+        wrong++
+      }
 
-  console.log("Uploading to:", path)
-
-  const { error } = await supabase.storage
-    .from('exam-proctoring')
-    .upload(path, blob, { upsert: true })
-
-  if (error) {
-    console.error("❌ Upload failed:", error)
-  } else {
-    console.log("✅ Upload success:", path)
-  }
-}*/
-  
-  async function captureSnapshot() {
-  console.log("📸 Capturing snapshot...")
-
-  if (!videoRef.current) {
-    console.log("❌ videoRef missing")
-    return
-  }
-    if (!videoRef.current) return
-
-    const canvas = document.createElement('canvas')
-    canvas.width = videoRef.current.videoWidth
-    canvas.height = videoRef.current.videoHeight
-    const ctx = canvas.getContext('2d')
-    ctx.drawImage(videoRef.current, 0, 0)
-
-    const blob = await new Promise(res =>
-      canvas.toBlob(res, 'image/jpeg', 0.8)
-    )
-
-    captureIndexRef.current += 1
-    const path = `${sessionId}/${captureIndexRef.current}.jpg`
-
-    const { error } = await supabase.storage
-      .from('exam-proctoring')
-      .upload(path, blob, { upsert: true })
-
-    if (!error) {
-    /*  const { data } = supabase.storage
-        .from('exam-proctoring')
-        .getPublicUrl(path)
-
-      await supabase.from('proctoring_images').insert({
+      answerRows.push({
         exam_session_id: sessionId,
-        image_url: data.publicUrl,
-        capture_index: captureIndexRef.current
-      })*/
-      await supabase.from('proctoring_images').insert({
-  exam_session_id: sessionId,
-  image_url: path,   // store path only (NOT public URL)
-  capture_index: captureIndexRef.current
-})
-    }
-  }
-
-function stopProctoring() {
-  clearTimeout(snapshotTimerRef.current)
-
-  if (streamRef.current) {
-    streamRef.current.getTracks().forEach(t => t.stop())
-  }
-}
-
-
-  /* ================= SUBMIT (MINIMAL ADD) ================= */
-async function submitExam() {
-  if (submitted) return
-
-  setSubmitted(true)
-  persist({ submitted: true })
-  stopProctoring()
-
-  let score = 0
-  let correct = 0
-  let wrong = 0
-
-  questions.forEach(q => {
-
-    const studentAnswer = answers[q.id]
-
-    if (!studentAnswer) return
-
-    if (studentAnswer === q.correct_answer) {
-      score += exam.correct_marks || 4
-      correct++
-    } else {
-      score -= exam.negative_marks || 1
-      wrong++
-    }
-
-  })
-
-  const unattempted = questions.length - correct - wrong
-
-  const accuracy =
-    correct + wrong === 0
-      ? 0
-      : ((correct / (correct + wrong)) * 100).toFixed(2)
-
-  setFinalScore({
-    score,
-    correct,
-    wrong,
-    unattempted,
-    accuracy
-  })
-
-  await supabase
-    .from('exam_sessions')
-    .update({
-      answers,
-      score,
-      submitted: true,
-      time_left: 0
+        question_id: q.id,
+        selected_answer: studentAnswer,
+        correct_answer: q.correct_answer,
+        is_correct: isCorrect
+      })
     })
-    .eq('id', sessionId)
-}
 
-  /* ================= UI (UNCHANGED) ================= */
+    const unattempted = questions.length - correct - wrong
+
+    const accuracy =
+      correct + wrong === 0
+        ? 0
+        : ((correct / (correct + wrong)) * 100).toFixed(2)
+
+    setFinalScore({
+      score,
+      correct,
+      wrong,
+      unattempted,
+      accuracy
+    })
+
+    await supabase
+      .from('exam_sessions')
+      .update({
+        answers,
+        score,
+        submitted: true,
+        time_left: 0
+      })
+      .eq('id', sessionId)
+
+    if (answerRows.length > 0) {
+      await supabase.from('exam_answers').insert(answerRows)
+    }
+  }
+
+  /* ================= UI ================= */
 
   if (loading) return <p style={{ padding: 40 }}>Loading exam…</p>
 
-  if (submitted && review) {
+  if (submitted) {
     return (
       <div style={styles.page}>
-        <h1>📘 Exam Review</h1>
-        <button onClick={() => window.location.href = '/dashboard'}>
-          Back to Dashboard
-        </button>
+        <h1>✅ Exam Submitted</h1>
+
+        {finalScore && (
+          <>
+            <p>Score: {finalScore.score}</p>
+            <p>Correct: {finalScore.correct}</p>
+            <p>Wrong: {finalScore.wrong}</p>
+          </>
+        )}
       </div>
     )
   }
-
-  if (submitted) {
-  return (
-    <div style={styles.page}>
-      <h1>✅ Exam Submitted</h1>
-
-      <div style={{
-        background: '#fff',
-        padding: 20,
-        borderRadius: 12,
-        marginTop: 20,
-        boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
-        maxWidth: 400
-      }}>
-<h3 style={{ marginBottom: 10 }}>📊 Your Result</h3>
-
-{finalScore && (
-<>
-<p>
-<strong>Score:</strong> {finalScore.score} / {questions.length * (exam?.correct_marks || 4)}
-</p>
-
-<p>
-<strong>Percentage:</strong> {((finalScore.score / (questions.length * (exam?.correct_marks || 4))) * 100).toFixed(2)}%
-</p>
-
-<hr style={{ margin: '10px 0' }} />
-
-<p>✅ Correct: {finalScore.correct}</p>
-<p>❌ Wrong: {finalScore.wrong}</p>
-<p>⏭ Unattempted: {finalScore.unattempted}</p>
-<p>🎯 Accuracy: {finalScore.accuracy}%</p>
-</>
-)}
-      </div>
-
-      <div style={{ marginTop: 20, display: 'flex', gap: 12 }}>
-        <button
-          onClick={() =>
-            window.location.href = `/exam/review?sessionId=${sessionId}`
-          }
-        >
-          Review Exam
-        </button>
-
-        <button onClick={() => window.location.href = '/dashboard'}>
-          Dashboard
-        </button>
-      </div>
-    </div>
-  )
-}
-
 
   const q = questions[currentIndex]
 
   return (
     <div style={styles.page}>
-      {/* 🎥 Hidden video */}
-      <video
-  ref={videoRef}
-  autoPlay
-  muted
-  playsInline
-  style={{ display: 'none' }}
-/>
-
-
       <div style={styles.header}>
         <h2>{exam.title}</h2>
         <div style={styles.timer}>⏱ {formatTime(timeLeft)}</div>
       </div>
 
-      <div style={styles.main}>
-        <div style={styles.card}>
-          <h3>
-            Question {currentIndex + 1} of {questions.length}
-          </h3>
+      <div style={styles.card}>
+        <h3>Question {currentIndex + 1}</h3>
 
-          <p>{q.question}</p>
+        {/* ✅ HTML render (images supported) */}
+        <div
+          dangerouslySetInnerHTML={{ __html: q.question }}
+        />
 
-          {['A','B','C','D'].map(opt => (
-            <label key={opt} style={styles.option}>
-              <input
-                type="radio"
-                checked={answers[q.id] === opt}
-                onChange={() => selectAnswer(opt)}
-              />
-              {opt}. {
-  q.options
-    ? q.options[opt.charCodeAt(0) - 65]
-    : q[`option_${opt.toLowerCase()}`]
-}
-            </label>
-          ))}
+        {['A','B','C','D'].map(opt => (
+          <label key={opt} style={styles.option}>
+            <input
+              type="radio"
+              checked={answers[q.id] === opt}
+              onChange={() => selectAnswer(opt)}
+            />
+            <span
+              dangerouslySetInnerHTML={{
+                __html:
+                  q.options
+                    ? q.options[opt.charCodeAt(0) - 65]
+                    : q[`option_${opt.toLowerCase()}`]
+              }}
+            />
+          </label>
+        ))}
 
-          <div style={styles.nav}>
-            <button
-              disabled={currentIndex === 0}
-              onClick={() => goToQuestion(currentIndex - 1)}
-            >
-              Prev
-            </button>
-            <button
-              disabled={currentIndex === questions.length - 1}
-              onClick={() => goToQuestion(currentIndex + 1)}
-            >
-              Next
-            </button>
-            <button style={styles.submitBtn} onClick={submitExam}>
-              Submit
-            </button>
-          </div>
-        </div>
-
-   <div style={styles.paletteWrapper}>
-  <div style={styles.paletteTitle}>Question Palette</div>
-
-  {/* STATUS COUNTERS */}
-  <div style={styles.statusGrid}>
-    <div style={styles.statusItem}>
-      <span style={{ ...styles.statusBox, background: '#16a34a' }} />
-      Answered ({Object.keys(answers).length})
-    </div>
-
-    <div style={styles.statusItem}>
-      <span style={{ ...styles.statusBox, background: '#dc2626' }} />
-      Not Answered ({visited.size - Object.keys(answers).length})
-    </div>
-
-    <div style={styles.statusItem}>
-      <span style={{ ...styles.statusBox, background: '#e5e7eb' }} />
-      Not Visited ({questions.length - visited.size})
-    </div>
-
-    <div style={styles.statusItem}>
-      <span style={{ ...styles.statusBox, background: '#2563eb' }} />
-      Current
-    </div>
-  </div>
-
-  {/* QUESTION GRID */}
-  <div style={styles.palette}>
-    {questions.map((q, i) => {
-
-      let bg = '#e5e7eb' // Not Visited
-
-      if (visited.has(i) && !answers[q.id]) {
-        bg = '#dc2626' // Not Answered
-      }
-
-      if (answers[q.id]) {
-        bg = '#16a34a' // Answered
-      }
-
-      if (i === currentIndex) {
-        bg = '#2563eb' // Current
-      }
-
-      return (
-        <button
-          key={i}
-          style={{
-            ...styles.palBtn,
-            backgroundColor: bg
-          }}
-          onClick={() => goToQuestion(i)}
-        >
-          {i + 1}
-        </button>
-      )
-    })}
-  </div>
-</div>
-
-        </div>
+        <button onClick={submitExam}>Submit</button>
       </div>
-   
+    </div>
   )
 }
-
-/* ================= HELPERS ================= */
 
 function formatTime(sec) {
   const m = Math.floor(sec / 60)
@@ -559,123 +275,8 @@ function formatTime(sec) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-/* styles unchanged */
-
-
-
 const styles = {
-  page: {
-    padding: 30,
-    minHeight: '100vh',
-    background: '#f8fafc',
-    fontFamily: 'system-ui, sans-serif'
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: 20
-  },
-  timer: {
-    background: '#111827',
-    color: '#fff',
-    padding: '8px 14px',
-    borderRadius: 8,
-    fontWeight: 700
-  },
-main: {
-  display: 'flex',
-  gap: 20,
-  flexWrap: 'wrap'
-},
-  card: {
-    flex: 1,
-    background: '#fff',
-    padding: 24,
-    borderRadius: 14,
-    boxShadow: '0 10px 25px rgba(0,0,0,0.08)'
-  },
-  option: {
-    display: 'block',
-    marginTop: 8
-  },
-  nav: {
-    marginTop: 20,
-    display: 'flex',
-    gap: 10
-  },
-  submitBtn: {
-    marginLeft: 'auto',
-    background: '#dc2626',
-    color: '#fff',
-    border: 'none',
-    padding: '8px 14px',
-    borderRadius: 6
-  },
-  paletteWrapper: {
-  width: '100%',
-  maxWidth: 280,
-  background: '#ffffff',
-  padding: 18,
-  borderRadius: 18,
-  boxShadow: '0 12px 30px rgba(0,0,0,0.08)',
-  alignSelf: 'flex-start'
-},
-
-paletteTitle: {
-  marginBottom: 16,
-  fontSize: 16,
-  fontWeight: 700,
-  textAlign: 'center',
-  color: '#111827'
-},
-
-statusGrid: {
-  display: 'grid',
-  gridTemplateColumns: '1fr 1fr',
-  gap: 8,
-  marginBottom: 16,
-  fontSize: 13,
-  fontWeight: 500
-},
-
-statusItem: {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 6
-},
-
-statusBox: {
-  width: 14,
-  height: 14,
-  borderRadius: 4
-},
-
-palette: {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(5, 1fr)',
-  gap: 10
-},
-
-palBtn: {
-  height: 44,
-  border: 'none',
-  borderRadius: 10,
-  color: '#ffffff',
-  fontWeight: 700,
-  cursor: 'pointer',
-  fontSize: 14,
-  boxShadow: '0 4px 10px rgba(0,0,0,0.08)',
-  transition: 'all 0.15s ease',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center'
-}
-
-
-/*reviewCard: {
-    background: '#fff',
-    padding: 16,
-    marginBottom: 14,
-    borderRadius: 10
-  }*/
+  page: { padding: 30 },
+  card: { background: '#fff', padding: 20 },
+  option: { display: 'block', marginTop: 10 }
 }
