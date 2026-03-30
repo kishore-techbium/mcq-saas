@@ -105,7 +105,7 @@ async function loadAnalytics(studentId) {
     name: k,
     accuracy: (v.correct / v.total) * 100,
     attempts: v.total
-  })).filter(s => s.attempts >= 5)
+  })).filter(s => s.attempts >= 2)
 
   if (list.length === 0) return
 
