@@ -423,19 +423,19 @@ if (currentQ) {
     accuracy
   })
 
-  await supabase
-    .from('exam_sessions')
-.update({
-  answers: {
-    ...answers,
-    timeSpent,
-    questionOrder: JSON.parse(localStorage.getItem(LS_KEY) || '{}')?.questionOrder
+await fetch('/api/exam/submit', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
   },
-      score,
-      submitted: true,
-      time_left: 0
-    })
-    .eq('id', sessionId)
+  body: JSON.stringify({
+    sessionId,
+    answers,
+    timeSpent,
+    questionOrder: JSON.parse(localStorage.getItem(LS_KEY) || '{}')?.questionOrder,
+    score
+  })
+})
 
   // ✅ NEW INSERT
   //if (answerRows.length > 0) {
