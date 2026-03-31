@@ -39,7 +39,7 @@ export default function ExamPage({ params }) {
   const [submitted, setSubmitted] = useState(false)
   const [review, setReview] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [processingDone, setProcessingDone] = useState(false)
+  
 
   /* 🎥 PROCTORING REFS */
   const videoRef = useRef(null)
@@ -168,36 +168,14 @@ useEffect(() => {
   }
 }, [currentIndex, questions.length])
 
-    /* ================= Add Polling logic ================= */
-useEffect(() => {
+  useEffect(() => {
   if (!submitted) return
 
-  let attempts = 0
+  const timer = setTimeout(() => {
+    window.location.href = `/exam/review?sessionId=${sessionId}`
+  }, 4000) // 4 seconds delay
 
-  const interval = setInterval(async () => {
-    attempts++
-
-    try {
-      const res = await fetch(`/api/check-status?sessionId=${sessionId}`)
-      const data = await res.json()
-
-      if (data.status === 'completed') {
-        setProcessingDone(true)
-        clearInterval(interval)
-      }
-
-      if (attempts >= 10) {
-        clearInterval(interval)
-      }
-
-    } catch (err) {
-      console.error('Polling error:', err)
-      clearInterval(interval)
-    }
-
-  }, 5000) // ✅ every 5 sec (optimized)
-
-  return () => clearInterval(interval)
+  return () => clearTimeout(timer)
 }, [submitted])
   /* ================= LOCAL STORAGE (UNCHANGED) ================= */
 
@@ -520,34 +498,25 @@ if (submitted) {
         </p>
 
         {/* Loader */}
-{!processingDone ? (
-  <>
-    <div style={styles.loader}></div>
-    <p style={{ marginTop: 10, color: '#666' }}>
-      Processing your results...
-    </p>
-  </>
-) : (
-  <p style={{ color: '#16a34a', fontWeight: 600 }}>
-    ✅ Results are ready!
-  </p>
-)}
+<div style={styles.loader}></div>
+
+<p style={{ marginTop: 10, color: '#666' }}>
+  Preparing your results...
+</p>
+
+<p style={{ marginTop: 10, fontSize: 13, color: '#999' }}>
+  You will be redirected automatically
+</p>
 
         <div style={{ marginTop: 25, display: 'flex', gap: 12 }}>
 <button
-  style={{
-    ...styles.primaryBtn,
-    opacity: processingDone ? 1 : 0.6,
-    cursor: processingDone ? 'pointer' : 'not-allowed'
-  }}
-  disabled={!processingDone}
+  style={styles.primaryBtn}
   onClick={() =>
     window.location.href = `/exam/review?sessionId=${sessionId}`
   }
 >
   📊 View Results
 </button>
-
           <button
             style={styles.secondaryBtn}
             onClick={() => window.location.href = '/dashboard'}
