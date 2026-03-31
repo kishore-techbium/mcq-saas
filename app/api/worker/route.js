@@ -55,7 +55,11 @@ for (const qid of questionIds) {
 }
       // insert answers
       if (answerRows.length > 0) {
-        await supabase.from('exam_answers').insert(answerRows)
+        await supabase
+  .from('exam_answers')
+  .upsert(answerRows, {
+    onConflict: ['exam_session_id', 'question_id']
+  })
       }
 
       // mark completed
