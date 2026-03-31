@@ -21,7 +21,8 @@ export async function POST(req) {
         },
         score,
         submitted: true,
-        time_left: 0
+        time_left: 0,
+        processing_status: 'pending'
       })
       .eq('id', sessionId)
 
