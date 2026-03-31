@@ -458,22 +458,49 @@ await fetch('/api/exam/submit', {
     )
   }
 
-  if (submitted) {
+if (submitted) {
   return (
-    <div style={styles.page}>
-      <h1>✅ Exam Submitted</h1>
-<p>Your result is being processed. Please wait for 1 minute.</p>
-      <div style={{ marginTop: 20, display: 'flex', gap: 12 }}>
-        <button
-          onClick={() =>
-            window.location.href = `/exam/review?sessionId=${sessionId}`
-          }>
-          Review Exam
-        </button>
+    <div style={styles.successPage}>
 
-        <button onClick={() => window.location.href = '/dashboard'}>
-          Dashboard
-        </button>
+      <div style={styles.successCard}>
+
+        <div style={styles.successIcon}>🎉</div>
+
+        <h1 style={{ marginBottom: 10 }}>
+          Submission Successful!
+        </h1>
+
+        <p style={{ color: '#555', marginBottom: 20 }}>
+          Your exam has been submitted successfully.
+        </p>
+
+        <p style={{ color: '#2563eb', fontWeight: 500 }}>
+          ⏳ Processing your results... (takes a few seconds)
+        </p>
+
+        {/* Loader */}
+        <div style={styles.loader}></div>
+
+        <div style={{ marginTop: 25, display: 'flex', gap: 12 }}>
+
+          <button
+            style={styles.primaryBtn}
+            onClick={() =>
+              window.location.href = `/exam/review?sessionId=${sessionId}`
+            }
+          >
+            📊 View Results
+          </button>
+
+          <button
+            style={styles.secondaryBtn}
+            onClick={() => window.location.href = '/dashboard'}
+          >
+            🏠 Dashboard
+          </button>
+
+        </div>
+
       </div>
     </div>
   )
