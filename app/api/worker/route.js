@@ -25,18 +25,34 @@ export async function GET() {
 
       const answerRows = []
 
-      for (const qid in answers) {
-        if (qid === 'timeSpent' || qid === 'questionOrder') continue
+      const questionIds = Object.keys(answers).filter(
+  qid => qid !== 'timeSpent' && qid !== 'questionOrder'
+)
 
-        answerRows.push({
-          exam_session_id: session.id,
-          question_id: qid,
-          selected_answer: answers[qid],
-          correct_answer: null, // we’ll improve later
-          is_correct: null
-        })
-      }
+// 1. fetch correct answers from DB
+const { data: questions } = await supabase
+  .from('question_bank')
+  .select('id, correct_answer')
+  .in('id', questionIds)
 
+const correctMap = {}
+questions.forEach(q => {
+  correctMap[q.id] = q.correct_answer
+})
+
+// 2. build answer rows
+for (const qid of questionIds) {
+  const selected = answers[qid]
+  const correct = correctMap[qid]
+
+  answerRows.push({
+    exam_session_id: session.id,
+    question_id: qid,
+    selected_answer: selected,
+    correct_answer: correct,
+    is_correct: selected === correct
+  })
+}
       // insert answers
       if (answerRows.length > 0) {
         await supabase.from('exam_answers').insert(answerRows)
