@@ -2,6 +2,15 @@
 
 import { supabase } from '../../../lib/supabase'
 import { useEffect, useRef, useState } from 'react'
+
+const style = document.createElement('style')
+style.innerHTML = `
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+`
+document.head.appendChild(style)
+
 function shuffleArray(arr) {
   return [...arr].sort(() => Math.random() - 0.5)
 }
@@ -754,8 +763,58 @@ palBtn: {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center'
-}
+},
+successPage: {
+  minHeight: '100vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: '#f1f5f9'
+},
 
+successCard: {
+  background: '#ffffff',
+  padding: 40,
+  borderRadius: 16,
+  textAlign: 'center',
+  boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
+  maxWidth: 400
+},
+
+successIcon: {
+  fontSize: 50,
+  marginBottom: 10
+},
+
+loader: {
+  margin: '20px auto',
+  width: 40,
+  height: 40,
+  border: '4px solid #e5e7eb',
+  borderTop: '4px solid #2563eb',
+  borderRadius: '50%',
+  animation: 'spin 1s linear infinite'
+},
+
+primaryBtn: {
+  background: '#2563eb',
+  color: '#fff',
+  border: 'none',
+  padding: '10px 16px',
+  borderRadius: 8,
+  fontWeight: 600,
+  cursor: 'pointer'
+},
+
+secondaryBtn: {
+  background: '#e5e7eb',
+  color: '#111',
+  border: 'none',
+  padding: '10px 16px',
+  borderRadius: 8,
+  fontWeight: 600,
+  cursor: 'pointer'
+}
 
 /*reviewCard: {
     background: '#fff',
