@@ -15,7 +15,8 @@ export default function ExamReview() {
   }, [])
 
   async function init() {
-
+// 🔥 trigger processing before loading data
+await fetch('/api/worker')
     try {
 
       const { data: { session: authSession } } =
