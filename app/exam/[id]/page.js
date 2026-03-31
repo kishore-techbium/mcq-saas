@@ -438,9 +438,9 @@ if (currentQ) {
     .eq('id', sessionId)
 
   // ✅ NEW INSERT
-  if (answerRows.length > 0) {
-    await supabase.from('exam_answers').insert(answerRows)
-  }
+  //if (answerRows.length > 0) {
+   // await supabase.from('exam_answers').insert(answerRows)
+  //}
 }
 
   /* ================= UI (UNCHANGED) ================= */
@@ -462,43 +462,12 @@ if (currentQ) {
   return (
     <div style={styles.page}>
       <h1>✅ Exam Submitted</h1>
-
-      <div style={{
-        background: '#fff',
-        padding: 20,
-        borderRadius: 12,
-        marginTop: 20,
-        boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
-        maxWidth: 400
-      }}>
-<h3 style={{ marginBottom: 10 }}>📊 Your Result</h3>
-
-{finalScore && (
-<>
-<p>
-<strong>Score:</strong> {finalScore.score} / {questions.length * (exam?.correct_marks || 4)}
-</p>
-
-<p>
-<strong>Percentage:</strong> {((finalScore.score / (questions.length * (exam?.correct_marks || 4))) * 100).toFixed(2)}%
-</p>
-
-<hr style={{ margin: '10px 0' }} />
-
-<p>✅ Correct: {finalScore.correct}</p>
-<p>❌ Wrong: {finalScore.wrong}</p>
-<p>⏭ Unattempted: {finalScore.unattempted}</p>
-<p>🎯 Accuracy: {finalScore.accuracy}%</p>
-</>
-)}
-      </div>
-
+<p>Your result is being processed. Please wait for 1 minute.</p>
       <div style={{ marginTop: 20, display: 'flex', gap: 12 }}>
         <button
           onClick={() =>
             window.location.href = `/exam/review?sessionId=${sessionId}`
-          }
-        >
+          }>
           Review Exam
         </button>
 
