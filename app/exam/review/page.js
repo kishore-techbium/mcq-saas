@@ -132,29 +132,68 @@ await fetch('/api/worker')
 
   const meta = session.answers?.__meta || {}
   const isPractice = meta.type === 'CUSTOM_TEST'
+const answersObj =
+  typeof session.answers === 'string'
+    ? JSON.parse(session.answers)
+    : session.answers || {}
 
+let correct = 0
+let wrong = 0
+let attempted = 0
+let score = 0
+
+questions.forEach(q => {
+  const ans = answersObj[q.id]
+
+  if (!ans) return
+
+  attempted++
+
+  const isCorrect = ans === q.correct_answer
+
+  if (isCorrect) {
+    score += exam?.correct_marks || 4
+    correct++
+  } else {
+    score -= Math.abs(exam?.negative_marks || 1)
+    wrong++
+  }
+})
+
+const unattempted = questions.length - attempted
+
+const accuracy =
+  attempted === 0
+    ? 0
+    : ((correct / attempted) * 100).toFixed(2)
   return (
     <div style={styles.page}>
 
       <h1>📘 Exam Review</h1>
 
-      <div style={styles.metaBox}>
+    <div style={styles.metaBox}>
 
-        {isPractice ? (
-          <>
-            <p><b>Subject:</b> {meta.subject}</p>
-            <p><b>Chapters:</b> {meta.chapters?.join(', ')}</p>
-            <p><b>Score:</b> {session.score} / {meta.total_questions}</p>
-          </>
-        ) : (
-          <>
-            <p><b>Exam:</b> {exam?.title}</p>
-            <p><b>Category:</b> {exam?.exam_category}</p>
-            <p><b>Score:</b> {session.score}</p>
-          </>
-        )}
+  {isPractice ? (
+    <>
+      <p><b>Subject:</b> {meta.subject}</p>
+      <p><b>Chapters:</b> {meta.chapters?.join(', ')}</p>
+    </>
+  ) : (
+    <>
+      <p><b>Exam:</b> {exam?.title}</p>
+      <p><b>Category:</b> {exam?.exam_category}</p>
+    </>
+  )}
 
-      </div>
+  <hr style={{ margin: '10px 0' }} />
+
+  <p>🏆 <b>Score:</b> {score}</p>
+  <p>✅ Correct: {correct}</p>
+  <p>❌ Wrong: {wrong}</p>
+  <p>⏭ Unattempted: {unattempted}</p>
+  <p>🎯 Accuracy: {accuracy}%</p>
+
+</div>
 
       {questions.map((q, index) => {
 
