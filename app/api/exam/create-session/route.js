@@ -34,6 +34,9 @@ const studentId = randomUUID() // ✅ always valid
 
   } catch (err) {
     console.error(err)
-    return Response.json({ error: 'failed' }, { status: 500 })
+    return Response.json(
+  { error: err.message, details: err },
+  { status: 500 }
+)
   }
 }
