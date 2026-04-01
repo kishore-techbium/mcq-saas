@@ -32,8 +32,7 @@ export async function POST(req) {
 
     if (error) throw error
 
-    // ✅ SAFE WORKER TRIGGER
-    fetch('https://mcq-saas.vercel.app/api/worker').catch(() => {})
+    
 
     return Response.json({ success: true })
 
