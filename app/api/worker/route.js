@@ -7,14 +7,15 @@ const supabase = createClient(
 
 export async function GET() {
   try {
- const { data: sessions } = await supabase
+ const { data: sessions, error } = await supabase
   .from('exam_sessions')
   .select('*')
   .eq('processing_status', 'pending')
   .limit(10)
-console.log("ALL sessions fetched:", sessions)
-    if (error) throw error
 
+console.log("ALL sessions fetched:", sessions)
+
+if (error) throw error
     if (!sessions || sessions.length === 0) {
       return Response.json({ message: 'No pending exams' })
     }
