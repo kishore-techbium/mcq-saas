@@ -7,12 +7,11 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // 🔹 Get pending + submitted sessions
-const { data: sessions, error } = await supabase
+ const { data: sessions } = await supabase
   .from('exam_sessions')
   .select('*')
+  .eq('processing_status', 'pending')
   .limit(10)
-
 console.log("ALL sessions fetched:", sessions)
     if (error) throw error
 
