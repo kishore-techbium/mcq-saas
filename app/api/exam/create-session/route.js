@@ -13,7 +13,7 @@ export async function POST(req) {
 
 const { examId, collegeId } = body
 
-const studentId = randomUUID() // ✅ always valid
+const studentId = "499fcc3c-a87f-4bcb-938b-1c7e0a82b16e"
     const { data, error } = await supabase
       .from('exam_sessions')
       .insert({
