@@ -7,6 +7,7 @@ const supabase = createClient(
 
 export async function GET() {
   try {
+    // 🔹 Get pending + submitted sessions
     const { data: sessions, error } = await supabase
       .from('exam_sessions')
       .select('*')
@@ -21,27 +22,42 @@ export async function GET() {
     }
 
     for (const session of sessions) {
+      console.log("Processing session:", session.id)
 
+      // 🔹 Safety check
       if (!session.answers) {
-        console.log("Skipping - no answers:", session.id)
+        console.log("No answers found, marking completed:", session.id)
+
+        await supabase
+          .from('exam_sessions')
+          .update({ processing_status: 'completed' })
+          .eq('id', session.id)
+
         continue
       }
 
-      console.log("Processing session:", session.id)
-
       const answers = session.answers
-      const timeSpent = answers.timeSpent || {}
 
+      // 🔹 Extract question IDs
       const questionIds = Object.keys(answers).filter(
         qid => qid !== 'timeSpent' && qid !== 'questionOrder'
       )
 
+      console.log("Question IDs:", questionIds)
+
+      // 🔹 If no valid questions → still complete
       if (questionIds.length === 0) {
-        console.log("No valid questions:", session.id)
+        console.log("No valid questions, marking completed:", session.id)
+
+        await supabase
+          .from('exam_sessions')
+          .update({ processing_status: 'completed' })
+          .eq('id', session.id)
+
         continue
       }
 
-      // Fetch correct answers
+      // 🔹 Fetch correct answers
       const { data: questions, error: qError } = await supabase
         .from('question_bank')
         .select('id, correct_answer')
@@ -49,27 +65,34 @@ export async function GET() {
 
       if (qError) throw qError
 
+      console.log("Questions fetched:", questions)
+
       const correctMap = {}
-      questions.forEach(q => {
-        correctMap[q.id] = q.correct_answer
-      })
+      if (questions) {
+        questions.forEach(q => {
+          correctMap[q.id] = q.correct_answer
+        })
+      }
 
       const answerRows = []
 
+      // 🔹 Build answer rows
       for (const qid of questionIds) {
         const selected = answers[qid]
-        const correct = correctMap[qid]
+        const correct = correctMap[qid] || null
 
         answerRows.push({
           exam_session_id: session.id,
           question_id: qid,
           selected_answer: selected,
           correct_answer: correct,
-          is_correct: selected === correct
+          is_correct: correct ? selected === correct : false
         })
       }
 
-      // Insert answers
+      console.log("Answer rows count:", answerRows.length)
+
+      // 🔹 Insert answers (if any)
       if (answerRows.length > 0) {
         const { error: insertError } = await supabase
           .from('exam_answers')
@@ -80,13 +103,15 @@ export async function GET() {
         if (insertError) throw insertError
       }
 
-      // Mark completed
+      // 🔹 ALWAYS mark completed (IMPORTANT FIX)
       const { error: updateError } = await supabase
         .from('exam_sessions')
         .update({ processing_status: 'completed' })
         .eq('id', session.id)
 
       if (updateError) throw updateError
+
+      console.log("Completed session:", session.id)
     }
 
     return Response.json({ success: true })
