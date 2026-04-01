@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
+import { randomUUID } from 'crypto'
+
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -9,8 +11,9 @@ export async function POST(req) {
   try {
     const body = await req.json()
 
-    const { studentId, examId, collegeId } = body
+const { examId, collegeId } = body
 
+const studentId = randomUUID() // ✅ always valid
     const { data, error } = await supabase
       .from('exam_sessions')
       .insert({
