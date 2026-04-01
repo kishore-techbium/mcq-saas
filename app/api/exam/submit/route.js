@@ -11,7 +11,11 @@ export async function POST(req) {
 
     const { sessionId, answers, timeSpent, questionOrder, score } = body
 
-    await supabase
+    if (!sessionId || !answers) {
+      return Response.json({ error: 'Invalid payload' }, { status: 400 })
+    }
+
+    const { error } = await supabase
       .from('exam_sessions')
       .update({
         answers: {
@@ -26,9 +30,11 @@ export async function POST(req) {
       })
       .eq('id', sessionId)
 
+    if (error) throw error
+
     return Response.json({ success: true })
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: 'failed' }, { status: 500 })
+    console.error('Submit API error:', err)
+    return Response.json({ error: err.message }, { status: 500 })
   }
 }
