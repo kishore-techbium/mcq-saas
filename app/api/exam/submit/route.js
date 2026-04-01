@@ -29,7 +29,10 @@ export async function POST(req) {
         processing_status: 'pending'
       })
       .eq('id', sessionId)
-
+// 🔥 trigger worker (fire and forget)
+fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/worker`)
+  .catch(() => {})
+    
     if (error) throw error
 
     return Response.json({ success: true })
