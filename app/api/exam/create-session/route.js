@@ -9,11 +9,11 @@ const supabase = createClient(
 
 export async function POST(req) {
   try {
-    const body = await req.json()
-
-const { examId, collegeId } = body
-
-const studentId = "499fcc3c-a87f-4bcb-938b-1c7e0a82b16e"
+       const body = await req.json()
+       const { studentId, examId, collegeId } = body
+      if (!studentId) {
+        return Response.json({ error: 'studentId required' }, { status: 400 })
+      }
     const { data, error } = await supabase
       .from('exam_sessions')
       .insert({
