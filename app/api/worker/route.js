@@ -12,7 +12,8 @@ export async function GET() {
   .from('exam_sessions')
   .select('*')
   .eq('processing_status', 'pending')
-  .limit(10)
+  .order('created_at', { ascending: false })
+.limit(10)
 
 console.log("ALL sessions fetched:", sessions)
 
