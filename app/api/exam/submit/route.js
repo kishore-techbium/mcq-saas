@@ -30,12 +30,10 @@ export async function POST(req) {
       })
       .eq('id', sessionId)
 
-    // ✅ FIRST check DB success
     if (error) throw error
 
-    // ✅ THEN trigger worker
-    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/worker`)
-      .catch(() => {})
+    // ✅ SAFE WORKER TRIGGER
+    fetch('/api/worker').catch(() => {})
 
     return Response.json({ success: true })
 
