@@ -33,24 +33,29 @@ export default function ExamReview() {
     }
 
     // 🔥 POLLING LOOP (KEY FIX)
-    let sess = null
+   let sess = null
 
-    for (let i = 0; i < 10; i++) { // retry up to 10 times
+for (let i = 0; i < 10; i++) {
 
-      const { data } = await supabase
-        .from('exam_sessions')
-        .select('*')
-        .eq('id', sessionId)
-        .single()
+  // 🔥 IMPORTANT: trigger worker
+  await fetch('/api/worker')
 
-      if (data?.processing_status === 'completed') {
-        sess = data
-        break
-      }
+  const { data } = await supabase
+    .from('exam_sessions')
+    .select('*')
+    .eq('id', sessionId)
+    .single()
 
-      // wait 1 second
-      await new Promise(res => setTimeout(res, 1000))
-    }
+  console.log("Polling attempt:", i, data?.processing_status)
+
+  if (data?.processing_status === 'completed') {
+    sess = data
+    break
+  }
+
+  // wait 1 sec
+  await new Promise(res => setTimeout(res, 1000))
+}
 
     if (!sess) {
       alert("Result is still processing. Please try again.")
