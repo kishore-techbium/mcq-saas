@@ -3,14 +3,6 @@
 import { supabase } from '../../../lib/supabase'
 import { useEffect, useRef, useState } from 'react'
 
-const style = document.createElement('style')
-style.innerHTML = `
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-`
-document.head.appendChild(style)
-
 function shuffleArray(arr) {
   return [...arr].sort(() => Math.random() - 0.5)
 }
@@ -53,7 +45,20 @@ export default function ExamPage({ params }) {
     init()
     return () => stopProctoring()
   }, [])
+useEffect(() => {
+  const style = document.createElement('style')
+  style.innerHTML = `
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  `
+  document.head.appendChild(style)
 
+  return () => {
+    document.head.removeChild(style)
+  }
+}, [])
+  
   async function init() {
     const { data: auth } = await supabase.auth.getUser()
     if (!auth.user) {
