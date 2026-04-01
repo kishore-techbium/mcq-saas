@@ -29,13 +29,16 @@ export async function POST(req) {
         processing_status: 'pending'
       })
       .eq('id', sessionId)
-// 🔥 trigger worker (fire and forget)
-fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/worker`)
-  .catch(() => {})
-    
+
+    // ✅ FIRST check DB success
     if (error) throw error
 
+    // ✅ THEN trigger worker
+    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/worker`)
+      .catch(() => {})
+
     return Response.json({ success: true })
+
   } catch (err) {
     console.error('Submit API error:', err)
     return Response.json({ error: err.message }, { status: 500 })
