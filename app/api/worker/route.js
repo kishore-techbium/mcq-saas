@@ -10,154 +10,148 @@ export async function GET() {
   try {
     console.log("🚀 WORKER STARTED")
 
-    // 🔥 STEP 1: FETCH ONE JOB FROM QUEUE
+    // 🔥 STEP 1: FETCH MULTIPLE JOBS
     const { data: jobs, error } = await supabase
       .from('job_queue')
       .select('*')
       .eq('status', 'pending')
       .order('created_at', { ascending: true })
-      .limit(1)
+      .limit(10)
 
     if (error) throw error
-if (!jobs || jobs.length === 0) {
-  // wait before retry
-  setTimeout(() => {
-    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/worker`)
-      .catch(() => {})
-  }, 3000)
 
-  return Response.json({ message: 'No jobs' })
-}
-
-    const job = jobs[0]
-    const sessionId = job.payload.sessionId
-
-    console.log("📦 Processing job:", job.id, "Session:", sessionId)
-
-    // 🔥 STEP 2: FETCH SESSION
-    const { data: session, error: sessionError } = await supabase
-      .from('exam_sessions')
-      .select('*')
-      .eq('id', sessionId)
-      .single()
-
-    if (sessionError) throw sessionError
-
-    if (!session) {
-      console.log("❌ Session not found")
-
-      await supabase
-        .from('job_queue')
-        .update({ status: 'failed' })
-        .eq('id', job.id)
-
-      return Response.json({ message: 'Session not found' })
+    if (!jobs || jobs.length === 0) {
+      console.log("❌ NO JOBS FOUND")
+      return Response.json({ message: 'No jobs' })
     }
 
-    // 🔹 Safety check
-    if (!session.answers) {
-      console.log("⚠️ No answers, marking completed")
+    console.log(`📦 Processing ${jobs.length} jobs`)
 
-      await supabase
-        .from('exam_sessions')
-        .update({ processing_status: 'completed' })
-        .eq('id', session.id)
+    // 🔁 PROCESS EACH JOB
+    for (const job of jobs) {
+      try {
+        const sessionId = job.payload.sessionId
 
-      await completeJob(job.id)
+        console.log("➡️ Job:", job.id, "Session:", sessionId)
 
-      // 🔁 CONTINUE WORKER LOOP (NON-BLOCKING)
-setTimeout(() => {
-  fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/worker`)
-    .catch(() => {})
-}, 1000)
+        // 🔥 FETCH SESSION
+        const { data: session, error: sessionError } = await supabase
+          .from('exam_sessions')
+          .select('*')
+          .eq('id', sessionId)
+          .single()
 
-return Response.json({ success: true })
-    }
+        if (sessionError || !session) {
+          console.log("❌ Session not found:", sessionId)
 
-    const answers = session.answers
+          await supabase
+            .from('job_queue')
+            .update({ status: 'failed' })
+            .eq('id', job.id)
 
-    // 🔹 Extract question IDs
-    const questionIds = Object.keys(answers).filter(
-      qid => qid !== 'timeSpent' && qid !== 'questionOrder'
-    )
+          continue
+        }
 
-    if (questionIds.length === 0) {
-      console.log("⚠️ No valid questions")
+        // 🔹 Safety check
+        if (!session.answers) {
+          console.log("⚠️ No answers")
 
-      await supabase
-        .from('exam_sessions')
-        .update({ processing_status: 'completed' })
-        .eq('id', session.id)
+          await markCompleted(session.id)
+          await completeJob(job.id)
+          continue
+        }
 
-      await completeJob(job.id)
+        const answers = session.answers
 
-      return Response.json({ success: true })
-    }
+        // 🔹 Extract question IDs
+        const questionIds = Object.keys(answers).filter(
+          qid => qid !== 'timeSpent' && qid !== 'questionOrder'
+        )
 
-    // 🔹 Fetch correct answers
-    const { data: questions, error: qError } = await supabase
-      .from('question_bank')
-      .select('id, correct_answer')
-      .in('id', questionIds)
+        if (questionIds.length === 0) {
+          console.log("⚠️ No valid questions")
 
-    if (qError) throw qError
+          await markCompleted(session.id)
+          await completeJob(job.id)
+          continue
+        }
 
-    const correctMap = {}
-    questions?.forEach(q => {
-      correctMap[q.id] = q.correct_answer
-    })
+        // 🔹 Fetch correct answers
+        const { data: questions, error: qError } = await supabase
+          .from('question_bank')
+          .select('id, correct_answer')
+          .in('id', questionIds)
 
-    const answerRows = []
+        if (qError) throw qError
 
-    // 🔹 Build answer rows
-    for (const qid of questionIds) {
-      const selected = answers[qid]
-      const correct = correctMap[qid] || null
-
-      answerRows.push({
-        exam_session_id: session.id,
-        question_id: qid,
-        selected_answer: selected,
-        correct_answer: correct,
-        is_correct: correct ? selected === correct : false
-      })
-    }
-
-    console.log("📊 Answer rows:", answerRows.length)
-
-    // 🔹 Insert answers
-    if (answerRows.length > 0) {
-      const { error: insertError } = await supabase
-        .from('exam_answers')
-        .upsert(answerRows, {
-          onConflict: ['exam_session_id', 'question_id']
+        const correctMap = {}
+        questions?.forEach(q => {
+          correctMap[q.id] = q.correct_answer
         })
 
-      if (insertError) throw insertError
+        const answerRows = []
+
+        // 🔹 Build answers
+        for (const qid of questionIds) {
+          const selected = answers[qid]
+          const correct = correctMap[qid] || null
+
+          answerRows.push({
+            exam_session_id: session.id,
+            question_id: qid,
+            selected_answer: selected,
+            correct_answer: correct,
+            is_correct: correct ? selected === correct : false
+          })
+        }
+
+        console.log("📊 Answer rows:", answerRows.length)
+
+        // 🔹 Insert answers
+        if (answerRows.length > 0) {
+          const { error: insertError } = await supabase
+            .from('exam_answers')
+            .upsert(answerRows, {
+              onConflict: ['exam_session_id', 'question_id']
+            })
+
+          if (insertError) throw insertError
+        }
+
+        // 🔹 Mark session complete
+        await markCompleted(session.id)
+
+        // 🔹 Mark job complete
+        await completeJob(job.id)
+
+        console.log("✅ Done:", job.id)
+
+      } catch (jobError) {
+        console.error("❌ Job failed:", job.id, jobError)
+
+        await supabase
+          .from('job_queue')
+          .update({ status: 'failed' })
+          .eq('id', job.id)
+      }
     }
-
-    // 🔹 Mark session completed
-    await supabase
-      .from('exam_sessions')
-      .update({ processing_status: 'completed' })
-      .eq('id', session.id)
-
-    console.log("✅ Session completed:", session.id)
-
-    // 🔹 Mark job completed
-    await completeJob(job.id)
-
-    console.log("✅ Job completed:", job.id)
 
     return Response.json({ success: true })
 
   } catch (err) {
-    console.error('❌ Worker error:', err)
+    console.error("❌ Worker error:", err)
     return Response.json({ error: err.message }, { status: 500 })
   }
 }
 
-// 🔥 helper
+// 🔧 helpers
+async function markCompleted(sessionId) {
+  await supabase
+    .from('exam_sessions')
+    .update({ processing_status: 'completed' })
+    .eq('id', sessionId)
+}
+
 async function completeJob(jobId) {
   await supabase
     .from('job_queue')
