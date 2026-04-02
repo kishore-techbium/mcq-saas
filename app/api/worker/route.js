@@ -8,24 +8,32 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    console.log("🚀 WORKER STARTED")
+// 🔒 STEP 1: FETCH UNLOCKED JOBS
+const { data: jobs, error } = await supabase
+  .from('job_queue')
+  .select('*')
+  .eq('status', 'pending')
+  .eq('locked', false)
+  .order('created_at', { ascending: true })
+  .limit(10)
 
-    // 🔥 STEP 1: FETCH MULTIPLE JOBS
-    const { data: jobs, error } = await supabase
-      .from('job_queue')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: true })
-      .limit(10)
+if (error) throw error
 
-    if (error) throw error
+if (!jobs || jobs.length === 0) {
+  console.log("❌ NO JOBS FOUND")
+  return Response.json({ message: 'No jobs' })
+}
 
-    if (!jobs || jobs.length === 0) {
-      console.log("❌ NO JOBS FOUND")
-      return Response.json({ message: 'No jobs' })
-    }
+// 🔒 STEP 2: LOCK THEM IMMEDIATELY
+const jobIds = jobs.map(j => j.id)
 
-    console.log(`📦 Processing ${jobs.length} jobs`)
+await supabase
+  .from('job_queue')
+  .update({
+    locked: true,
+    locked_at: new Date()
+  })
+  .in('id', jobIds)
 
     // 🔁 PROCESS EACH JOB
     for (const job of jobs) {
