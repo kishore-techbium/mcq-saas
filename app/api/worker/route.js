@@ -24,7 +24,15 @@ if (error) throw error
 
     for (const session of sessions) {
       console.log("Processing session:", session.id)
+// 🔥 GET JOB FOR THIS SESSION
+const { data: jobs } = await supabase
+  .from('job_queue')
+  .select('*')
+  .eq('payload->>sessionId', session.id)
+  .eq('status', 'pending')
+  .limit(1)
 
+const job = jobs?.[0]
       // 🔹 Safety check
       if (!session.answers) {
         console.log("No answers found, marking completed:", session.id)
@@ -36,6 +44,7 @@ if (error) throw error
 
         continue
       }
+      
 
       const answers = session.answers
 
@@ -113,6 +122,15 @@ if (error) throw error
       if (updateError) throw updateError
 
       console.log("Completed session:", session.id)
+      // ✅ MARK JOB COMPLETED
+if (job) {
+  await supabase
+    .from('job_queue')
+    .update({ status: 'completed' })
+    .eq('id', job.id)
+
+  console.log("Job completed:", job.id)
+}
     }
 
     return Response.json({ success: true })
