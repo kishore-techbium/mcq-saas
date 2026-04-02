@@ -37,9 +37,6 @@ export default function ExamReview() {
 
 for (let i = 0; i < 10; i++) {
 
-  // 🔥 IMPORTANT: trigger worker
-  await fetch('/api/worker')
-
   const { data } = await supabase
     .from('exam_sessions')
     .select('*')
