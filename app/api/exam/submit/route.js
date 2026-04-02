@@ -15,25 +15,38 @@ export async function POST(req) {
       return Response.json({ error: 'Invalid payload' }, { status: 400 })
     }
 
-    const { error } = await supabase
-      .from('exam_sessions')
-      .update({
-        answers: {
-          ...answers,
-          timeSpent,
-          questionOrder
-        },
-        score,
-        submitted: true,
-        time_left: 0,
-        processing_status: 'pending'
-      })
-      .eq('id', sessionId)
+console.log("🚀 SUBMIT API HIT")
 
+const { error } = await supabase
+  .from('exam_sessions')
+  .update({
+    answers: {
+      ...answers,
+      timeSpent,
+      questionOrder
+    },
+    score,
+    submitted: true,
+    time_left: 0,
+    processing_status: 'queued'
+  })
+  .eq('id', sessionId)
+
+console.log("✅ SESSION UPDATED")
+
+// 🔥 ADD THIS
+console.log("📦 INSERTING INTO QUEUE")
+
+const { data: queueData, error: queueError } = await supabase
+  .from('job_queue')
+  .insert({
+    type: 'PROCESS_EXAM',
+    payload: { sessionId }
+  })
+  .select()
+
+console.log("📦 QUEUE RESULT:", queueData, queueError)
     if (error) throw error
-
-    
-
     return Response.json({ success: true })
 
   } catch (err) {
