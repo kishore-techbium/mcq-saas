@@ -19,11 +19,15 @@ export async function GET() {
       .limit(1)
 
     if (error) throw error
+if (!jobs || jobs.length === 0) {
+  // wait before retry
+  setTimeout(() => {
+    fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/worker`)
+      .catch(() => {})
+  }, 3000)
 
-    if (!jobs || jobs.length === 0) {
-      console.log("❌ NO JOBS FOUND")
-      return Response.json({ message: 'No jobs' })
-    }
+  return Response.json({ message: 'No jobs' })
+}
 
     const job = jobs[0]
     const sessionId = job.payload.sessionId
