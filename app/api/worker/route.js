@@ -11,7 +11,7 @@ export async function GET() {
  const { data: sessions, error } = await supabase
   .from('exam_sessions')
   .select('*')
-  .eq('processing_status', 'pending')
+  .eq('processing_status', 'queued')
   .order('created_at', { ascending: false })
 .limit(10)
 
