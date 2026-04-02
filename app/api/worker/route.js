@@ -61,7 +61,13 @@ export async function GET() {
 
       await completeJob(job.id)
 
-      return Response.json({ success: true })
+      // 🔁 CONTINUE WORKER LOOP (NON-BLOCKING)
+setTimeout(() => {
+  fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/worker`)
+    .catch(() => {})
+}, 1000)
+
+return Response.json({ success: true })
     }
 
     const answers = session.answers
