@@ -106,8 +106,7 @@ for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
       }
     })
   )
-})
-    )
+}
 
   } catch (err) {
     console.error("❌ Worker error:", err)
