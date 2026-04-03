@@ -2,8 +2,10 @@
   "name": "mcq-exam-portal",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
+    "worker": "node worker.js",
     "build": "next build",
     "start": "next start"
   },
