@@ -42,7 +42,6 @@ async function processJobs() {
           try {
             const sessionId = job.payload.sessionId
 
-            // ✅ FETCH SESSION (OLD WORKING LOGIC)
             const { data: session } = await supabase
               .from('exam_sessions')
               .select('*')
@@ -106,6 +105,7 @@ async function processJobs() {
               if (isCorrect) subjectStats[key].correct++
             })
 
+            // ✅ SAVE ANSWERS
             if (answerRows.length > 0) {
               await supabase
                 .from('exam_answers')
@@ -114,8 +114,10 @@ async function processJobs() {
                 })
             }
 
+            // ✅ FIXED RESULT INSERT
             const resultRows = Object.values(subjectStats).map(stat => ({
               exam_session_id: sessionId,
+              college_id: session.college_id, // 🔥 FIX
               subject: stat.subject,
               chapter: stat.chapter,
               correct_count: stat.correct,
@@ -127,9 +129,13 @@ async function processJobs() {
             }))
 
             if (resultRows.length > 0) {
-              await supabase
+              const { error: resultError } = await supabase
                 .from('exam_results')
                 .insert(resultRows)
+
+              if (resultError) {
+                console.error("❌ RESULT INSERT ERROR:", resultError)
+              }
             }
 
             await supabase
@@ -144,7 +150,7 @@ async function processJobs() {
             await completeJob(job.id)
 
           } catch (err) {
-            console.error("❌ Job failed:", job.id)
+            console.error("❌ Job failed:", job.id, err)
 
             await supabase
               .from('job_queue')
