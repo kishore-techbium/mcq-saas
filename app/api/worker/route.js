@@ -5,10 +5,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-console.log("🚀 Worker started...")
-
 const CORRECT_MARKS = 4
 const NEGATIVE_MARKS = -1
+
+console.log("🚀 Worker started...")
 
 async function processJobs() {
   try {
@@ -20,16 +20,10 @@ async function processJobs() {
       .order('created_at', { ascending: true })
       .limit(30)
 
-    if (!jobs || jobs.length === 0) {
-      console.log("⏳ No jobs...")
-      return
-    }
-
-    console.log(`📦 Found ${jobs.length} jobs`)
+    if (!jobs || jobs.length === 0) return
 
     const jobIds = jobs.map(j => j.id)
 
-    // 🔒 LOCK JOBS
     await supabase
       .from('job_queue')
       .update({
@@ -46,16 +40,27 @@ async function processJobs() {
       await Promise.all(
         batch.map(async (job) => {
           try {
-            const payload = job.payload
-            const sessionId = payload.sessionId
+            const sessionId = job.payload.sessionId
 
-            console.log("➡️ Processing:", sessionId)
+            // ✅ FETCH SESSION (OLD WORKING LOGIC)
+            const { data: session } = await supabase
+              .from('exam_sessions')
+              .select('*')
+              .eq('id', sessionId)
+              .single()
 
-            const answers = JSON.parse(payload.answers || "{}")
+            if (!session || !session.answers) {
+              await markCompleted(sessionId)
+              await completeJob(job.id)
+              return
+            }
 
-            const questionIds = Object.keys(answers)
+            const answers = session.answers
 
-            // ✅ FETCH QUESTIONS
+            const questionIds = Object.keys(answers).filter(
+              qid => qid !== 'timeSpent' && qid !== 'questionOrder'
+            )
+
             const { data: questions } = await supabase
               .from('question_bank')
               .select('id, correct_answer, subject, chapter')
@@ -63,8 +68,6 @@ async function processJobs() {
 
             let totalScore = 0
             let correctCount = 0
-            let wrongCount = 0
-            let totalQuestions = questionIds.length
 
             const answerRows = []
             const subjectStats = {}
@@ -77,7 +80,6 @@ async function processJobs() {
                 correctCount++
                 totalScore += CORRECT_MARKS
               } else {
-                wrongCount++
                 totalScore += NEGATIVE_MARKS
               }
 
@@ -89,7 +91,6 @@ async function processJobs() {
                 is_correct: isCorrect
               })
 
-              // 📊 SUBJECT + CHAPTER ANALYTICS
               const key = `${q.subject}-${q.chapter}`
 
               if (!subjectStats[key]) {
@@ -97,21 +98,14 @@ async function processJobs() {
                   subject: q.subject,
                   chapter: q.chapter,
                   correct: 0,
-                  wrong: 0,
                   total: 0
                 }
               }
 
               subjectStats[key].total++
-
-              if (isCorrect) {
-                subjectStats[key].correct++
-              } else {
-                subjectStats[key].wrong++
-              }
+              if (isCorrect) subjectStats[key].correct++
             })
 
-            // ✅ INSERT ANSWERS
             if (answerRows.length > 0) {
               await supabase
                 .from('exam_answers')
@@ -120,7 +114,6 @@ async function processJobs() {
                 })
             }
 
-            // ✅ INSERT ANALYTICS
             const resultRows = Object.values(subjectStats).map(stat => ({
               exam_session_id: sessionId,
               subject: stat.subject,
@@ -139,7 +132,6 @@ async function processJobs() {
                 .insert(resultRows)
             }
 
-            // ✅ UPDATE SESSION (FINAL SCORE)
             await supabase
               .from('exam_sessions')
               .update({
@@ -149,55 +141,43 @@ async function processJobs() {
               })
               .eq('id', sessionId)
 
-            // ✅ MARK JOB COMPLETE
+            await completeJob(job.id)
+
+          } catch (err) {
+            console.error("❌ Job failed:", job.id)
+
             await supabase
               .from('job_queue')
               .update({
-                status: 'completed',
+                status: 'failed',
                 locked: false
               })
               .eq('id', job.id)
-
-            console.log("✅ Done:", sessionId)
-
-          } catch (err) {
-            console.error("❌ Job failed:", job.id, err.message)
-
-            // 🔁 RETRY LOGIC
-            if (job.attempts < job.max_attempts) {
-              await supabase
-                .from('job_queue')
-                .update({
-                  status: 'pending',
-                  attempts: job.attempts + 1,
-                  locked: false
-                })
-                .eq('id', job.id)
-            } else {
-              await supabase
-                .from('job_queue')
-                .update({
-                  status: 'failed',
-                  locked: false
-                })
-                .eq('id', job.id)
-            }
           }
         })
       )
     }
-
-    // 🧹 CLEANUP OLD COMPLETED JOBS
-    await supabase
-      .from('job_queue')
-      .delete()
-      .eq('status', 'completed')
-      .lt('created_at', new Date(Date.now() - 60 * 60 * 1000))
 
   } catch (err) {
     console.error("❌ Worker error:", err)
   }
 }
 
-// 🔁 LOOP
+async function markCompleted(sessionId) {
+  await supabase
+    .from('exam_sessions')
+    .update({ processing_status: 'completed' })
+    .eq('id', sessionId)
+}
+
+async function completeJob(jobId) {
+  await supabase
+    .from('job_queue')
+    .update({
+      status: 'completed',
+      locked: false
+    })
+    .eq('id', jobId)
+}
+
 setInterval(processJobs, 500)
