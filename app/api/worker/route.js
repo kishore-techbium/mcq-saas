@@ -16,7 +16,7 @@ async function processJobs() {
       .eq('status', 'pending')
       .eq('locked', false)
       .order('created_at', { ascending: true })
-      .limit(50)   // 🔥 increased from 10 → 50
+      .limit(30)   // 🔥 increased from 10 → 50
 
     if (error) throw error
 
@@ -36,70 +36,77 @@ async function processJobs() {
       .in('id', jobIds)
 
     // 🔥 PROCESS IN PARALLEL
-    await Promise.all(
-      jobs.map(async (job) => {
-        try {
-          const sessionId = job.payload.sessionId
+    const BATCH_SIZE = 5
 
-          const { data: session } = await supabase
-            .from('exam_sessions')
-            .select('*')
-            .eq('id', sessionId)
-            .single()
+for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
+  const batch = jobs.slice(i, i + BATCH_SIZE)
 
-          if (!session) return
+  await Promise.all(
+    batch.map(async (job) => {
+      try {
+        const sessionId = job.payload.sessionId
 
-          const answers = session.answers || {}
+        const { data: session } = await supabase
+          .from('exam_sessions')
+          .select('*')
+          .eq('id', sessionId)
+          .single()
 
-          const questionIds = Object.keys(answers).filter(
-            qid => qid !== 'timeSpent' && qid !== 'questionOrder'
-          )
+        if (!session) return
 
-          const { data: questions } = await supabase
-            .from('question_bank')
-            .select('id, correct_answer')
-            .in('id', questionIds)
+        const answers = session.answers || {}
 
-          const correctMap = {}
-          questions?.forEach(q => {
-            correctMap[q.id] = q.correct_answer
-          })
+        const questionIds = Object.keys(answers).filter(
+          qid => qid !== 'timeSpent' && qid !== 'questionOrder'
+        )
 
-          const answerRows = questionIds.map(qid => ({
-            exam_session_id: sessionId,
-            question_id: qid,
-            selected_answer: answers[qid],
-            correct_answer: correctMap[qid],
-            is_correct: answers[qid] === correctMap[qid]
-          }))
+        const { data: questions } = await supabase
+          .from('question_bank')
+          .select('id, correct_answer')
+          .in('id', questionIds)
 
-          if (answerRows.length > 0) {
-            await supabase
-              .from('exam_answers')
-              .upsert(answerRows, {
-                onConflict: ['exam_session_id', 'question_id']
-              })
-          }
+        const correctMap = {}
+        questions?.forEach(q => {
+          correctMap[q.id] = q.correct_answer
+        })
 
+        const answerRows = questionIds.map(qid => ({
+          exam_session_id: sessionId,
+          question_id: qid,
+          selected_answer: answers[qid],
+          correct_answer: correctMap[qid],
+          is_correct: answers[qid] === correctMap[qid]
+        }))
+
+        if (answerRows.length > 0) {
           await supabase
-            .from('exam_sessions')
-            .update({ processing_status: 'completed' })
-            .eq('id', sessionId)
-
-          await supabase
-            .from('job_queue')
-            .update({ status: 'completed' })
-            .eq('id', job.id)
-
-        } catch (err) {
-          console.error("❌ Job failed:", job.id)
-
-          await supabase
-            .from('job_queue')
-            .update({ status: 'failed' })
-            .eq('id', job.id)
+            .from('exam_answers')
+            .upsert(answerRows, {
+              onConflict: ['exam_session_id', 'question_id']
+            })
         }
-      })
+
+        await supabase
+          .from('exam_sessions')
+          .update({ processing_status: 'completed' })
+          .eq('id', sessionId)
+
+        await supabase
+          .from('job_queue')
+          .update({ status: 'completed' })
+          .eq('id', job.id)
+
+      } catch (err) {
+        console.error("❌ Job failed:", job.id)
+
+        await supabase
+          .from('job_queue')
+          .update({ status: 'failed' })
+          .eq('id', job.id)
+      }
+    })
+  )
+})
     )
 
   } catch (err) {
