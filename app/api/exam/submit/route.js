@@ -8,17 +8,21 @@ const supabase = createClient(
 export async function POST(req) {
   try {
     const body = await req.json()
-
     const { sessionId, answers, timeSpent, questionOrder } = body
 
     if (!sessionId || !answers) {
       return Response.json({ error: 'Invalid payload' }, { status: 400 })
     }
 
-    // ✅ STEP 1: LIGHT UPDATE ONLY
+    // ✅ SAVE ANSWERS EXACTLY LIKE OLD SYSTEM
     const { error } = await supabase
       .from('exam_sessions')
       .update({
+        answers: {
+          ...answers,
+          timeSpent,
+          questionOrder
+        },
         submitted: true,
         submitted_at: new Date(),
         processing_status: 'queued'
@@ -27,21 +31,14 @@ export async function POST(req) {
 
     if (error) throw error
 
-    // ✅ STEP 2: PUSH EVERYTHING TO QUEUE (STRINGIFIED)
-    const { error: queueError } = await supabase
+    // ✅ QUEUE ONLY SESSION ID (LIGHTWEIGHT)
+    await supabase
       .from('job_queue')
       .insert({
         type: 'PROCESS_EXAM',
-        payload: {
-          sessionId,
-          answers: JSON.stringify(answers),
-          timeSpent,
-          questionOrder
-        },
+        payload: { sessionId },
         status: 'pending'
       })
-
-    if (queueError) throw queueError
 
     return Response.json({ success: true })
 
