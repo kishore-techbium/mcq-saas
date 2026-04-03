@@ -8,13 +8,14 @@ const supabase = createClient(
 export async function POST(req) {
   try {
     const body = await req.json()
+
     const { sessionId, answers, timeSpent, questionOrder } = body
 
     if (!sessionId || !answers) {
       return Response.json({ error: 'Invalid payload' }, { status: 400 })
     }
 
-    // ✅ STEP 1: ONLY MARK SUBMITTED (NO HEAVY DATA)
+    // ✅ STEP 1: LIGHT UPDATE ONLY
     const { error } = await supabase
       .from('exam_sessions')
       .update({
@@ -26,14 +27,14 @@ export async function POST(req) {
 
     if (error) throw error
 
-    // ✅ STEP 2: PUSH FULL DATA TO QUEUE (NOT DB COLUMN)
+    // ✅ STEP 2: PUSH EVERYTHING TO QUEUE (STRINGIFIED)
     const { error: queueError } = await supabase
       .from('job_queue')
       .insert({
         type: 'PROCESS_EXAM',
         payload: {
           sessionId,
-          answers,
+          answers: JSON.stringify(answers),
           timeSpent,
           questionOrder
         },
