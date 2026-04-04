@@ -180,4 +180,4 @@ async function completeJob(jobId) {
     .eq('id', jobId)
 }
 
-setInterval(processJobs, 500)
+setInterval(processJobs, 200)
