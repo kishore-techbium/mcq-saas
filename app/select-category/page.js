@@ -13,8 +13,10 @@ export default function SelectCategory() {
     checkUser()
   }, [])
 
-  async function checkUser() {
-
+const [called, setCalled] = useState(false)
+async function checkUser() {
+  if (called) return
+setCalled(true)
     const { data } = await supabase.auth.getUser()
 
     if (!data.user) {
@@ -35,9 +37,10 @@ export default function SelectCategory() {
     }
 
     setStudentName(student?.first_name || 'Student') // ✅ NEW
-    if (student?.id) {
-  loadAnalytics(student.id)
-}
+// TEMP DISABLED
+// if (student?.id) {
+//   loadAnalytics(student.id)
+// }
   }
 
   function go(cat) {
