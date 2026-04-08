@@ -22,7 +22,7 @@ const studentData = await getStudentsWithCollege()
   const { data: attempts } = await supabase
   .from('exam_sessions')
   .select('student_id')
-  .range(0, 5000)
+  .eq('college_id', studentData[0]?.college_id)
   const attemptMap = {}
 
   attempts?.forEach(a => {
