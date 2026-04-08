@@ -20,9 +20,9 @@ export default function StudentListPage() {
 const studentData = await getStudentsWithCollege()
   // 2️⃣ Fetch attempt counts grouped
   const { data: attempts } = await supabase
-    .from('exam_sessions')
-    .select('student_id')
-
+  .from('exam_sessions')
+  .select('student_id')
+  .range(0, 5000)
   const attemptMap = {}
 
   attempts?.forEach(a => {
