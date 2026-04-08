@@ -175,9 +175,8 @@ const validSessions = sessions.filter(s => s.score && s.score > 0)
 const sortedSessions = [...validSessions].sort(
   (a, b) => new Date(b.created_at) - new Date(a.created_at)
 )
-  (a, b) => new Date(b.created_at) - new Date(a.created_at)
-)
- const latestScore = sortedSessions[0]?.score ?? 0
+
+const latestScore = sortedSessions[0]?.score ?? 0
 const firstScore = sortedSessions[sortedSessions.length - 1]?.score ?? 0
 const improvement = latestScore - firstScore
 
