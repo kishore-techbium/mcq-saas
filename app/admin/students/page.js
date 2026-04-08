@@ -19,10 +19,8 @@ export default function StudentListPage() {
   // 1️⃣ Fetch students
 const studentData = await getStudentsWithCollege()
   // 2️⃣ Fetch attempt counts grouped
-  const { data: attempts } = await supabase
-  .from('exam_sessions')
-  .select('student_id')
-  .range(0, 50000)
+const res = await fetch('/api/admin/student-attempts')
+const attemptMap = await res.json()
   const attemptMap = {}
 
   attempts?.forEach(a => {
