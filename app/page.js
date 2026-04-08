@@ -31,7 +31,7 @@ async function checkUser() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-         redirectTo: 'https://examzcanvas.com/auth/callback'
+         redirectTo: window.location.origin + '/auth/callback'
       }
     })
   }
