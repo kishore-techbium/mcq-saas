@@ -6,7 +6,9 @@ const supabase = createClient(
 )
 
 export async function GET() {
-  const { data, error } = await supabase.rpc('get_student_attempt_counts')
+  const { data } = await supabase.rpc('get_student_attempt_counts', {
+  college: YOUR_COLLEGE_ID
+})
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 })
