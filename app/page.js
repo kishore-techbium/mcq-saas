@@ -28,20 +28,12 @@ async function checkUser() {
 }
 
   async function loginWithGoogle() {
-const handleGoogleLogin = async () => {
-  const { data } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: "https://examzcanvas.com/auth/callback",
-      skipBrowserRedirect: true
-    }
-  })
-
-  if (data?.url) {
-    // FORCE full browser open
-    window.location.href = data.url
-  }
-}
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + '/auth/callback'
+      }
+    })
   }
 
   if (checking) {
