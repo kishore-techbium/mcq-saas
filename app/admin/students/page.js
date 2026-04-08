@@ -23,11 +23,7 @@ const res = await fetch('/api/admin/student-attempts')
 const attemptMap = await res.json()
   const attemptMap = {}
 
-  attempts?.forEach(a => {
-const sid = String(a.student_id)
 
-attemptMap[sid] = (attemptMap[sid] || 0) + 1
-  })
 
   // 3️⃣ Merge counts into students
     console.log('STUDENT IDS:', studentData.map(s => s.id))
