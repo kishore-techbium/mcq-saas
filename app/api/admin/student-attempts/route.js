@@ -5,17 +5,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-export async function GET() {
-const { data: students } = await supabase
-  .from('students')
-  .select('college_id')
-  .limit(1)
+export async function GET(req) {
+  const { searchParams } = new URL(req.url)
+  const collegeId = searchParams.get('collegeId')
 
-const collegeId = students?.[0]?.college_id
-
-const { data, error } = await supabase.rpc('get_student_attempt_counts', {
-  college: collegeId
-})
+  const { data, error } = await supabase.rpc('get_student_attempt_counts', {
+    college: collegeId
+  })
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 })
