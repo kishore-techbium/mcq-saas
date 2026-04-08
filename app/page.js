@@ -28,12 +28,17 @@ async function checkUser() {
 }
 
   async function loginWithGoogle() {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/auth/callback'
-      }
-    })
+await supabase.auth.signInWithOAuth({
+  provider: "google",
+  options: {
+    redirectTo: window.location.origin + "/auth/callback",
+    skipBrowserRedirect: true
+  }
+}).then(({ data }) => {
+  if (data?.url) {
+    window.open(data.url, "_blank")
+  }
+})
   }
 
   if (checking) {
