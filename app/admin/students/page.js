@@ -31,6 +31,8 @@ const studentData = await getStudentsWithCollege()
   })
 
   // 3️⃣ Merge counts into students
+    console.log('STUDENT IDS:', studentData.map(s => s.id))
+console.log('ATTEMPT MAP:', attemptMap)
   const merged = (studentData || []).map(s => ({
     ...s,
     attempt_count: attemptMap[s.id] || 0
