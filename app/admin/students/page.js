@@ -21,11 +21,7 @@ const studentData = await getStudentsWithCollege()
   // 2️⃣ Fetch attempt counts grouped
 const res = await fetch('/api/admin/student-attempts')
 const attemptMap = await res.json()
-  const attemptMap = {}
-
-
-
-  // 3️⃣ Merge counts into students
+   // 3️⃣ Merge counts into students
     console.log('STUDENT IDS:', studentData.map(s => s.id))
 console.log('ATTEMPT MAP:', attemptMap)
   const merged = (studentData || []).map(s => ({
