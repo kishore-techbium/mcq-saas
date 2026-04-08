@@ -9,7 +9,12 @@ const supabase = createClient(
 export async function POST(req) {
   try {
        const body = await req.json()
-       const { studentId, examId, collegeId } = body
+       const { studentId, examId } = body
+    const { data: student } = await supabase
+  .from('students')
+  .select('college_id')
+  .eq('id', studentId)
+  .single()
       if (!studentId) {
         return Response.json({ error: 'studentId required' }, { status: 400 })
       }
@@ -18,7 +23,7 @@ export async function POST(req) {
       .insert({
         student_id: studentId,
         exam_id: examId,
-        college_id: collegeId,
+        college_id: student?.college_id,
         attempt_number: 1,
         submitted: false,
         score: 0,
