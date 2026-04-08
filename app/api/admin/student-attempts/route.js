@@ -6,8 +6,15 @@ const supabase = createClient(
 )
 
 export async function GET() {
-  const { data } = await supabase.rpc('get_student_attempt_counts', {
-  college: YOUR_COLLEGE_ID
+const { data: students } = await supabase
+  .from('students')
+  .select('college_id')
+  .limit(1)
+
+const collegeId = students?.[0]?.college_id
+
+const { data, error } = await supabase.rpc('get_student_attempt_counts', {
+  college: collegeId
 })
 
   if (error) {
