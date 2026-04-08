@@ -28,17 +28,20 @@ async function checkUser() {
 }
 
   async function loginWithGoogle() {
-await supabase.auth.signInWithOAuth({
-  provider: "google",
-  options: {
-    redirectTo: window.location.origin + "/auth/callback",
-    skipBrowserRedirect: true
-  }
-}).then(({ data }) => {
+const handleGoogleLogin = async () => {
+  const { data } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: "https://examzcanvas.com/auth/callback",
+      skipBrowserRedirect: true
+    }
+  })
+
   if (data?.url) {
-    window.open(data.url, "_blank")
+    // FORCE full browser open
+    window.location.href = data.url
   }
-})
+}
   }
 
   if (checking) {
