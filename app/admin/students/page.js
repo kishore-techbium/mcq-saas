@@ -19,7 +19,10 @@ export default function StudentListPage() {
   // 1️⃣ Fetch students
 const studentData = await getStudentsWithCollege()
   // 2️⃣ Fetch attempt counts grouped
-const res = await fetch('/api/admin/student-attempts')
+const collegeId = studentData[0]?.college_id
+
+const res = await fetch(`/api/admin/student-attempts?collegeId=${collegeId}`)
+
 const attemptMap = await res.json()
    // 3️⃣ Merge counts into students
     console.log('STUDENT IDS:', studentData.map(s => s.id))
