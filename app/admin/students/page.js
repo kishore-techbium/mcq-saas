@@ -25,8 +25,9 @@ const studentData = await getStudentsWithCollege()
   const attemptMap = {}
 
   attempts?.forEach(a => {
-    attemptMap[a.student_id] =
-      (attemptMap[a.student_id] || 0) + 1
+const sid = String(a.student_id)
+
+attemptMap[sid] = (attemptMap[sid] || 0) + 1
   })
 
   // 3️⃣ Merge counts into students
@@ -34,7 +35,7 @@ const studentData = await getStudentsWithCollege()
 console.log('ATTEMPT MAP:', attemptMap)
   const merged = (studentData || []).map(s => ({
     ...s,
-    attempt_count: attemptMap[s.id] || 0
+    attempt_count: attemptMap[String(s.id)] || 0
   }))
 
   setStudents(merged)
