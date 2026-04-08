@@ -6,9 +6,7 @@ const supabase = createClient(
 )
 
 export async function GET() {
-  const { data, error } = await supabase
-    .from('exam_sessions')
-    .select('student_id')
+  const { data, error } = await supabase.rpc('get_student_attempt_counts')
 
   if (error) {
     return Response.json({ error: error.message }, { status: 500 })
@@ -16,9 +14,8 @@ export async function GET() {
 
   const attemptMap = {}
 
-  data.forEach(a => {
-    const sid = String(a.student_id)
-    attemptMap[sid] = (attemptMap[sid] || 0) + 1
+  data.forEach(row => {
+    attemptMap[String(row.student_id)] = Number(row.attempts)
   })
 
   return Response.json(attemptMap)
