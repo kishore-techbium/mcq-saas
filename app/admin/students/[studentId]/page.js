@@ -215,30 +215,27 @@ const filteredSubtopics = subtopicPerformance.filter(
   (s) => s.attempts >= 2
 )
 // ===== TOP INSIGHTS =====
-
-// weakest → ascending accuracy
-const topWeak = [...filteredSubtopics]
+const WEAK_THRESHOLD = 60
+const STRONG_THRESHOLD = 80
+const topWeak = filteredSubtopics
+  .filter(s => s.accuracy < WEAK_THRESHOLD)
   .sort((a, b) => a.accuracy - b.accuracy)
   .slice(0, 5)
 
-// strongest → descending accuracy
-const topStrong = [...filteredSubtopics]
+const topStrong = filteredSubtopics
+  .filter(s => s.accuracy >= STRONG_THRESHOLD)
   .sort((a, b) => b.accuracy - a.accuracy)
   .slice(0, 5)
 
 const strongestSubtopic =
-  filteredSubtopics.length > 0
-    ? filteredSubtopics.reduce((a, b) =>
-        a.accuracy > b.accuracy ? a : b
-      )
-    : null
+  filteredSubtopics
+    .filter(s => s.accuracy >= STRONG_THRESHOLD)
+    .sort((a, b) => b.accuracy - a.accuracy)[0] || null
 
 const weakestSubtopic =
-  filteredSubtopics.length > 0
-    ? filteredSubtopics.reduce((a, b) =>
-        a.accuracy < b.accuracy ? a : b
-      )
-    : null
+  filteredSubtopics
+    .filter(s => s.accuracy < WEAK_THRESHOLD)
+    .sort((a, b) => a.accuracy - b.accuracy)[0] || null
   // ===== RETAKE INTELLIGENCE =====
 
   let mostRetakenExam = '-'
