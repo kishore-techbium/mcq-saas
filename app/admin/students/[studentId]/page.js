@@ -170,10 +170,12 @@ if (sessionData?.length > 0) {
     totalAttempts > 0
       ? Math.max(...sessions.map((s) => s.score || 0))
       : 0
-
-  const latestScore = sessions[0]?.score ?? 0
-  const firstScore = sessions[sessions.length - 1]?.score ?? 0
-  const improvement = latestScore - firstScore
+const sortedSessions = [...sessions].sort(
+  (a, b) => new Date(b.created_at) - new Date(a.created_at)
+)
+ const latestScore = sortedSessions[0]?.score ?? 0
+const firstScore = sortedSessions[sortedSessions.length - 1]?.score ?? 0
+const improvement = latestScore - firstScore
 
   const trend =
     improvement > 0
