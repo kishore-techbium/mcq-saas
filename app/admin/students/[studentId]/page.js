@@ -170,7 +170,11 @@ if (sessionData?.length > 0) {
     totalAttempts > 0
       ? Math.max(...sessions.map((s) => s.score || 0))
       : 0
-const sortedSessions = [...sessions].sort(
+const validSessions = sessions.filter(s => s.score && s.score > 0)
+
+const sortedSessions = [...validSessions].sort(
+  (a, b) => new Date(b.created_at) - new Date(a.created_at)
+)
   (a, b) => new Date(b.created_at) - new Date(a.created_at)
 )
  const latestScore = sortedSessions[0]?.score ?? 0
