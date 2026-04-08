@@ -173,7 +173,7 @@ async function loadAnalytics(studentId) {
   </div>
 )}
         <p style={{ color: '#555', marginBottom: 20 }}>
-          Practice high-quality MCQs, track your performance, and improve your rank with real exam-level questions.
+          Practice high-quality MCQs, track your performance, and improve your rank with real exam-level questions..
         </p>
 
         <p style={{ color: '#2563eb', fontWeight: 600, marginBottom: 30 }}>
