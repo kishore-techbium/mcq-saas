@@ -513,15 +513,7 @@ if (submitted) {
   You will be redirected automatically
 </p>
 
-        <div style={{ marginTop: 25, display: 'flex', gap: 12 }}>
-<button
-  style={styles.primaryBtn}
-  onClick={() =>
-    window.location.href = `/exam/review?sessionId=${sessionId}`
-  }
->
-  📊 View Results
-</button>
+<div style={{ marginTop: 25, display: 'flex', justifyContent: 'center' }}>
           <button
             style={styles.secondaryBtn}
             onClick={() => window.location.href = '/dashboard'}
