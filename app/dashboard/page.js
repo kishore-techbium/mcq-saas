@@ -213,7 +213,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* ❌ HIDE AVAILABLE EXAMS IN REVIEW MODE */}
-      {view !== 'review' && (
+      {view === 'review' && (
         <Section title="🟢 Available Exams">
           {availableExams.length === 0 && (
             <p style={styles.empty}>No available exams.</p>
@@ -321,15 +321,22 @@ function ExamCard({ title, subtitle, footer, action, onClick, color }) {
 
 const styles = {
   page: { padding: 40, background: '#f8fafc' },
-  header: { display: 'flex', justifyContent: 'space-between' },
+  header: {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center' // ✅ ADD THIS
+},
   headerActions: { display: 'flex', gap: 12 },
-  logoutBtn: {
-    padding: '8px 14px',
-    background: '#dc2626',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 8
-  },
+logoutBtn: {
+  padding: '10px 16px',
+  background: '#dc2626',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 10,
+  fontWeight: 600,
+  cursor: 'pointer',
+  height: 'fit-content'
+},
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
