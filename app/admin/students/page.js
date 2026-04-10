@@ -13,20 +13,34 @@ export default function StudentListPage() {
     fetchStudents()
   }, [])
 
-  async function fetchStudents() {
+async function fetchStudents() {
   setLoading(true)
 
   // 1️⃣ Fetch students
-const studentData = await getStudentsWithCollege()
-  // 2️⃣ Fetch attempt counts grouped
-const collegeId = studentData[0]?.college_id
+  const studentData = await getStudentsWithCollege()
 
-const res = await fetch(`/api/admin/student-attempts?collegeId=${collegeId}`)
+  const collegeId = studentData[0]?.college_id
 
-const attemptMap = await res.json()
-   // 3️⃣ Merge counts into students
-    console.log('STUDENT IDS:', studentData.map(s => s.id))
-console.log('ATTEMPT MAP:', attemptMap)
+  // ❌ REMOVE API CALL
+  // const res = await fetch(...)
+  // const attemptMap = await res.json()
+
+  // ✅ FETCH DIRECTLY FROM exam_sessions
+  const { data: sessions } = await supabase
+    .from('exam_sessions')
+    .select('student_id')
+    .eq('submitted', true)
+    .eq('college_id', collegeId)
+
+  // ✅ BUILD ATTEMPT MAP
+  const attemptMap = {}
+
+  sessions?.forEach(s => {
+    const key = String(s.student_id)
+    attemptMap[key] = (attemptMap[key] || 0) + 1
+  })
+
+  // ✅ MERGE
   const merged = (studentData || []).map(s => ({
     ...s,
     attempt_count: attemptMap[String(s.id)] || 0
@@ -35,7 +49,6 @@ console.log('ATTEMPT MAP:', attemptMap)
   setStudents(merged)
   setLoading(false)
 }
-
   /* ================= EXPORT TO EXCEL ================= */
 
   function exportToExcel() {
