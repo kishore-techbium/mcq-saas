@@ -36,6 +36,10 @@ export default function ExamAnalyticsPage() {
   const [studentsMap, setStudentsMap] = useState({})
   const [activeTab, setActiveTab] = useState('overview')
   const [loading, setLoading] = useState(true)
+  const [weakSubjects, setWeakSubjects] = useState([])
+  const [weakChapters, setWeakChapters] = useState([])
+  const [strongAreas, setStrongAreas] = useState([])
+  const [difficulty, setDifficulty] = useState('')
 
   useEffect(() => {
     if (examId) fetchAll()
@@ -75,6 +79,72 @@ export default function ExamAnalyticsPage() {
     setExam(examData)
     setSessions(sessionData || [])
     setStudentsMap(studentMap)
+// =========================
+// 🔥 PERFORMANCE INTELLIGENCE
+// =========================
+
+
+// SUBJECT STATS
+const { data: subjectStats } = await supabase
+  .from('student_subject_stats')
+  .select('*')
+  .in('student_id', studentIds)
+
+const subjectAgg = {}
+
+subjectStats?.forEach(s => {
+  if (!subjectAgg[s.subject]) {
+    subjectAgg[s.subject] = { total: 0, count: 0 }
+  }
+  subjectAgg[s.subject].total += s.accuracy
+  subjectAgg[s.subject].count++
+})
+
+const subjectArray = Object.entries(subjectAgg).map(([k, v]) => ({
+  subject: k,
+  accuracy: v.total / v.count
+}))
+
+subjectArray.sort((a, b) => a.accuracy - b.accuracy)
+
+setWeakSubjects(subjectArray.slice(0, 3))
+setStrongAreas(subjectArray.slice(-3).reverse())
+
+// CHAPTER STATS
+const { data: subtopicStats } = await supabase
+  .from('student_subtopic_stats')
+  .select('*')
+  .in('student_id', studentIds)
+
+const chapterAgg = {}
+
+subtopicStats?.forEach(s => {
+  if (!chapterAgg[s.chapter]) {
+    chapterAgg[s.chapter] = { total: 0, count: 0 }
+  }
+  chapterAgg[s.chapter].total += s.accuracy
+  chapterAgg[s.chapter].count++
+})
+
+const chapterArray = Object.entries(chapterAgg).map(([k, v]) => ({
+  chapter: k,
+  accuracy: v.total / v.count
+}))
+
+chapterArray.sort((a, b) => a.accuracy - b.accuracy)
+
+setWeakChapters(chapterArray.slice(0, 5))
+
+// DIFFICULTY CALCULATION
+const avgScore =
+  submitted.length > 0
+    ? submitted.reduce((a, b) => a + (b.score || 0), 0) / submitted.length
+    : 0
+
+if (avgScore < 10) setDifficulty('Hard')
+else if (avgScore < 25) setDifficulty('Medium')
+else setDifficulty('Easy')
+    
     setLoading(false)
   }
 
@@ -233,7 +303,7 @@ const percent = (s.score / maxScore) * 100
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 30 }}>
-        {['overview', 'leaderboard', 'graphs'].map(tab => (
+        {['overview', 'leaderboard', 'graphs', 'intelligence'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -407,6 +477,7 @@ const percent = (s.score / maxScore) * 100
             gap: 20
           }}
         >
+      
           <div style={chartCard}>
             <h4>Score Distribution</h4>
             <Bar data={distributionData} height={150} />
@@ -418,6 +489,47 @@ const percent = (s.score / maxScore) * 100
           </div>
         </div>
       )}
+
+      {/* 🔥 INTELLIGENCE TAB */}
+{activeTab === 'intelligence' && (
+  <div
+    style={{
+      background: '#ffffff',
+      padding: 25,
+      borderRadius: 12,
+      boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
+    }}
+  >
+    <h2>🧠 Performance Intelligence</h2>
+
+    <p><strong>Exam Difficulty:</strong> {difficulty}</p>
+
+    <h4 style={{ marginTop: 20 }}>🔴 Weak Subjects</h4>
+    {weakSubjects.length === 0 && <p>-</p>}
+    {weakSubjects.map((s, i) => (
+      <p key={i}>
+        {s.subject} → {s.accuracy.toFixed(1)}%
+      </p>
+    ))}
+
+    <h4 style={{ marginTop: 20 }}>🟠 Weak Chapters</h4>
+    {weakChapters.length === 0 && <p>-</p>}
+    {weakChapters.map((c, i) => (
+      <p key={i}>
+        {c.chapter} → {c.accuracy.toFixed(1)}%
+      </p>
+    ))}
+
+    <h4 style={{ marginTop: 20 }}>🟢 Strong Areas</h4>
+    {strongAreas.length === 0 && <p>-</p>}
+    {strongAreas.map((s, i) => (
+      <p key={i}>
+        {s.subject} → {s.accuracy.toFixed(1)}%
+      </p>
+    ))}
+  </div>
+)}
+        
     </div>
   )
 }
