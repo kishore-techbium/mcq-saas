@@ -16,29 +16,26 @@ export default function CollegeInsights() {
   }, [])
 
 async function init() {
-  const { data: authData } = await supabase.auth.getUser()
-  const user = authData?.user
+const { data: authData } = await supabase.auth.getUser()
+const user = authData?.user
 
-  if (!user) {
-    alert('Not logged in')
-    return
-  }
+if (!user) {
+  alert('Not logged in')
+  return
+}
 
-  const { data: userData } = await supabase
-    .from('students')
-    .select('college_id, role, name')
-    .eq('id', user.id)
-    .single()
+const { data: userData } = await supabase
+  .from('students')
+  .select('college_id, role, name')
+  .eq('email', user.email)   // 🔥 FIXED
+  .single()
 
-  if (!userData) {
-    alert('User not found')
-    return
-  }
+if (!userData) {
+  alert('User not found in students table')
+  return
+}
 
-  if (userData.role !== 'admin' && userData.role !== 'superadmin') {
-    alert('Access denied')
-    return
-  }
+const college_id = userData.college_id
 
   // 🔥 pass college_id here
   await loadAll(userData.college_id)
