@@ -211,7 +211,7 @@ function downloadPDF() {
 display: 'none',
 width: '800px',
 background: '#fff',
-padding: 20
+padding: 20,
   top: 0,
   width: '800px',
   background: '#fff',
