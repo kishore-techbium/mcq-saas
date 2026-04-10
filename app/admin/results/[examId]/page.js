@@ -67,7 +67,13 @@ const submittedLocal = sessionsLocal.filter(
     console.log('sessionsLocal:', sessionsLocal)
 console.log('submittedLocal:', submittedLocal)
     // Students
-    const studentIds = [...new Set(submittedLocal.map(s => s.student_id))]
+    const studentIds = [
+  ...new Set(
+    submittedLocal
+      .map(s => s.student_id)
+      .filter(id => id && typeof id === 'string')
+  )
+]
     const { data: students } = await supabase
       .from('students')
       .select('*')
