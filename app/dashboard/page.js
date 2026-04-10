@@ -235,7 +235,9 @@ export default function StudentDashboard() {
       )}
 
       {/* ✅ ALWAYS SHOW REVIEW CONTENT */}
-      <Section title="📘 Review Taken Exams">
+{view === 'review' && (
+  <Section title="📘 Review Taken Exams">
+      
        {completedExams.length === 0 && practiceTests.length === 0 && (
   <div style={{ textAlign: 'center', padding: 20 }}>
     <p style={{ fontSize: 16, color: '#666' }}>
@@ -279,7 +281,8 @@ export default function StudentDashboard() {
             )
           })}
         </div>
-      </Section>
+        </Section>
+)}
     </div>
   )
 }
