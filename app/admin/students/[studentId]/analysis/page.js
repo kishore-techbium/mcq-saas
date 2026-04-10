@@ -79,26 +79,27 @@ export default function AnalysisPage() {
 function downloadPDF() {
   const element = document.getElementById('pdf-report')
 
-  if (!element) return
+  if (!element) {
+    alert('PDF content not ready')
+    return
+  }
 
-  // force browser to render
-  element.style.display = 'block'
-
-  setTimeout(() => {
-    html2pdf()
-      .set({
-        margin: 0.5,
-        filename: `${student?.name || 'student'}-report.pdf`,
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-      })
-      .from(element)
-      .save()
-      .then(() => {
-        // hide again after export
-        element.style.display = 'none'
-      })
-  }, 1000) // 🔥 increased delay
+  html2pdf()
+    .set({
+      margin: 0.5,
+      filename: `${student?.name || 'student'}-report.pdf`,
+      html2canvas: {
+        scale: 2,
+        useCORS: true
+      },
+      jsPDF: {
+        unit: 'in',
+        format: 'a4',
+        orientation: 'portrait'
+      }
+    })
+    .from(element)
+    .save()
 }
 
   function getColor(value) {
@@ -207,16 +208,19 @@ function downloadPDF() {
       })}
 
       {/* 🔥 PDF VERSION (HIDDEN) */}
-      <div id="pdf-report" style={{
-display: 'none',
-width: '800px',
-background: '#fff',
-padding: 20,
-  top: 0,
-  width: '800px',
-  background: '#fff',
-  padding: 20
-}}>
+    <div
+  id="pdf-report"
+  style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '800px',
+    background: '#fff',
+    padding: 20,
+    zIndex: -1,      // 👈 hides behind UI
+    opacity: 0       // 👈 invisible but rendered
+  }}
+>
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
           <h2>{collegeName}</h2>
           <h3>Student Performance Report</h3>
