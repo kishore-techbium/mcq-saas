@@ -60,9 +60,10 @@ export default function ExamAnalyticsPage() {
       .from('exam_sessions')
       .select('*')
       .eq('exam_id', examId)
-
+const sessionsLocal = sessionData || []
+const submittedLocal = sessionsLocal.filter(s => s.submitted)
     // Students
-    const studentIds = [...new Set(sessionData.map(s => s.student_id))]
+    const studentIds = [...new Set(submittedLocal.map(s => s.student_id))]
     const { data: students } = await supabase
       .from('students')
       .select('*')
@@ -137,8 +138,8 @@ setWeakChapters(chapterArray.slice(0, 5))
 
 // DIFFICULTY CALCULATION
 const avgScore =
-  submitted.length > 0
-    ? submitted.reduce((a, b) => a + (b.score || 0), 0) / submitted.length
+  submittedLocal.length > 0
+    ? submittedLocal.reduce((a, b) => a + (b.score || 0), 0) / submittedLocal.length
     : 0
 
 if (avgScore < 10) setDifficulty('Hard')
