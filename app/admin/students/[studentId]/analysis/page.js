@@ -77,18 +77,20 @@ export default function AnalysisPage() {
   }
 
   function downloadPDF() {
-    const element = document.getElementById('pdf-report')
+  const element = document.getElementById('pdf-report')
 
-    const opt = {
-      margin: 0.5,
-      filename: `${student?.name || 'student'}-report.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-    }
-
-    html2pdf().set(opt).from(element).save()
-  }
+  setTimeout(() => {
+    html2pdf()
+      .set({
+        margin: 0.5,
+        filename: `${student?.name || 'student'}-report.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'a4' }
+      })
+      .from(element)
+      .save()
+  }, 500)
+}
 
   function getColor(value) {
     if (value < 50) return '#dc2626'
@@ -192,7 +194,14 @@ export default function AnalysisPage() {
       })}
 
       {/* 🔥 PDF VERSION (HIDDEN) */}
-      <div id="pdf-report" style={{ display: 'none', padding: 20 }}>
+      <div id="pdf-report" style={{
+  position: 'absolute',
+  left: '-9999px',
+  top: 0,
+  width: '800px',
+  background: '#fff',
+  padding: 20
+}}>
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
           <h2>{collegeName}</h2>
           <h3>Student Performance Report</h3>
