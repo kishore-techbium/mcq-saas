@@ -161,12 +161,17 @@ export default function StudentDetailsPage() {
         </div>
 
         {/* 🔥 AI INSIGHTS */}
-        <div style={{ marginTop: 15 }}>
-          <strong>🧠 AI Insights:</strong>
+        <div style={{
+  marginTop: 15,
+  padding: 10,
+  background: '#f9fafb',
+  borderRadius: 8
+}}>
+          <strong>🧠 Student Intelligence Report:</strong>
 
           {insights.length === 0 && <div>-</div>}
 
-          {insights.map((i, index) => (
+          {insights.slice(0, 3).map((i, index) => (
             <div key={index} style={{ fontSize: 13, marginTop: 5 }}>
               {i.severity === 'high' && '🔴 '}
               {i.severity === 'medium' && '🟠 '}
