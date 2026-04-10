@@ -124,9 +124,10 @@ console.log('studentIds:', studentIds)
 console.log('subjectStats:', subjectStats)
 
 
-setWeakSubjects(subjectArray.slice(0, 3))
-setStrongAreas(subjectArray.slice(-3).reverse())
-
+const total = subjectArray.length
+const weakCount = Math.ceil(total / 2)
+setWeakSubjects(subjectArray.slice(0, weakCount))
+setStrongAreas(subjectArray.slice(weakCount).reverse())
 // CHAPTER STATS 
   const { data: subtopicStats } = await supabase
   .from('student_subtopic_stats')
@@ -153,7 +154,7 @@ const chapterArray = Object.entries(chapterAgg).map(([k, v]) => ({
 
 chapterArray.sort((a, b) => a.accuracy - b.accuracy)
 
-setWeakChapters(chapterArray.slice(0, 5))
+setWeakChapters(chapterArray.slice(0, Math.ceil(chapterArray.length / 2)))
 
 // DIFFICULTY CALCULATION
 const avgScore =
