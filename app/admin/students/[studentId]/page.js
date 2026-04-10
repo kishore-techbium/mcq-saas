@@ -3,11 +3,12 @@
 import { supabase } from '../../../../lib/supabase'
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 
 export default function StudentDetailsPage() {
   const { studentId } = useParams()
-
+  const router = useRouter()
   const [student, setStudent] = useState(null)
   const [sessions, setSessions] = useState([])
   const [grouped, setGrouped] = useState({})
@@ -181,9 +182,12 @@ export default function StudentDetailsPage() {
           ))}
         </div>
 
-        <button style={{ marginTop: 10 }}>
-          View Detailed Analysis →
-        </button>
+<button
+  style={{ marginTop: 10 }}
+  onClick={() => router.push(`/admin/students/${studentId}/analysis`)}
+>
+  View Detailed Analysis →
+</button>
 
         <button style={styles.exportBtn} onClick={exportExcel}>
           Download Excel
