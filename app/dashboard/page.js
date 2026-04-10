@@ -236,9 +236,16 @@ export default function StudentDashboard() {
 
       {/* ✅ ALWAYS SHOW REVIEW CONTENT */}
       <Section title="📘 Review Taken Exams">
-        {completedExams.length === 0 && practiceTests.length === 0 && (
-          <p style={styles.empty}>No exams taken yet.</p>
-        )}
+       {completedExams.length === 0 && practiceTests.length === 0 && (
+  <div style={{ textAlign: 'center', padding: 20 }}>
+    <p style={{ fontSize: 16, color: '#666' }}>
+      📭 No exams taken yet to review.
+    </p>
+    <p style={{ fontSize: 14, color: '#999' }}>
+      Start an exam and come back here to analyze your performance.
+    </p>
+  </div>
+)}
 
         <div style={styles.grid}>
           {/* COMPLETED */}
