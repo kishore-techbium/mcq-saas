@@ -11,43 +11,51 @@ export default function CollegeInsights() {
   const [subjects, setSubjects] = useState([])
   const [subtopics, setSubtopics] = useState([])
 
+  const [selectedSubject, setSelectedSubject] = useState(null)
+  const [adminName, setAdminName] = useState('')
+
   useEffect(() => {
     init()
   }, [])
 
-async function init() {
-const { data: authData } = await supabase.auth.getUser()
-const user = authData?.user
+  async function init() {
+    // 🔐 AUTH (MATCHING YOUR ADMIN DASHBOARD)
+    const { data: authData } = await supabase.auth.getUser()
+    const user = authData?.user
 
-if (!user) {
-  alert('Not logged in')
-  return
-}
+    if (!user) {
+      alert('Not logged in')
+      window.location.href = '/'
+      return
+    }
 
-const { data: userData } = await supabase
-  .from('students')
-  .select('college_id, role, name')
-  .eq('email', user.email)   // 🔥 FIXED
-  .single()
+    const { data: userData } = await supabase
+      .from('students')
+      .select('college_id, role, first_name')
+      .eq('email', user.email) // ✅ IMPORTANT FIX
+      .single()
 
-if (!userData) {
-  alert('User not found in students table')
-  return
-}
+    if (!userData) {
+      alert('User not found in students table')
+      return
+    }
 
-const college_id = userData.college_id
+    if (userData.role !== 'admin' && userData.role !== 'superadmin') {
+      alert('Access denied')
+      window.location.href = '/'
+      return
+    }
 
-  // 🔥 pass college_id here
-  await loadAll(userData.college_id)
+    setAdminName(userData.first_name || 'Admin')
 
-  setLoading(false)
-}
+    await loadAll(userData.college_id)
 
-async function loadAll(college_id) {
-    
+    setLoading(false)
+  }
 
+  async function loadAll(college_id) {
     // =========================
-    // ✅ TOP CARDS
+    // TOP CARDS
     // =========================
     const { count: totalStudents } = await supabase
       .from('students')
@@ -68,12 +76,14 @@ async function loadAll(college_id) {
       totalScore += r.total_score_sum || 0
     })
 
-    const avgScore = totalAttempts ? (totalScore / totalAttempts).toFixed(2) : 0
+    const avgScore = totalAttempts
+      ? (totalScore / totalAttempts).toFixed(2)
+      : 0
 
     setStats({ totalStudents, totalAttempts, avgScore })
 
     // =========================
-    // 🏆 TOP PERFORMERS
+    // TOP PERFORMERS
     // =========================
     const { data: toppers } = await supabase
       .from('student_overall_stats')
@@ -87,18 +97,20 @@ async function loadAll(college_id) {
 
     const { data: students } = await supabase
       .from('students')
-      .select('id, name')
+      .select('id, first_name')
       .in('id', ids)
 
     const topList = toppers?.map(t => ({
       ...t,
-      name: students?.find(s => s.id === t.student_id)?.name || 'Unknown'
+      name:
+        students?.find(s => s.id === t.student_id)?.first_name ||
+        'Unknown'
     }))
 
     setTopStudents(topList || [])
 
     // =========================
-    // 📉 SUBJECT ANALYSIS
+    // SUBJECT ANALYSIS
     // =========================
     const { data: subjectStats } = await supabase
       .from('student_subject_stats')
@@ -111,22 +123,26 @@ async function loadAll(college_id) {
       if (!subjectMap[s.subject]) {
         subjectMap[s.subject] = { attempts: 0, correct: 0 }
       }
+
       subjectMap[s.subject].attempts += s.attempts || 0
       subjectMap[s.subject].correct += s.correct || 0
     })
 
     const subjectArray = Object.keys(subjectMap).map(sub => ({
       subject: sub,
-      accuracy: subjectMap[sub].correct / subjectMap[sub].attempts,
+      accuracy:
+        subjectMap[sub].attempts > 0
+          ? subjectMap[sub].correct / subjectMap[sub].attempts
+          : 0,
       attempts: subjectMap[sub].attempts
     }))
 
-    subjectArray.sort((a,b)=>a.accuracy - b.accuracy)
+    subjectArray.sort((a, b) => a.accuracy - b.accuracy)
 
     setSubjects(subjectArray)
 
     // =========================
-    // 🔬 SUBTOPIC ANALYSIS (USP)
+    // SUBTOPIC ANALYSIS
     // =========================
     const { data: subtopicStats } = await supabase
       .from('student_subtopic_stats')
@@ -153,10 +169,11 @@ async function loadAll(college_id) {
 
     const subArray = Object.values(subMap).map(s => ({
       ...s,
-      accuracy: s.correct / s.attempts
+      accuracy:
+        s.attempts > 0 ? s.correct / s.attempts : 0
     }))
 
-    subArray.sort((a,b)=>a.accuracy - b.accuracy)
+    subArray.sort((a, b) => a.accuracy - b.accuracy)
 
     setSubtopics(subArray)
   }
@@ -164,12 +181,14 @@ async function loadAll(college_id) {
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
   return (
-    <div style={{ padding: 40, background:'#f1f5f9', minHeight:'100vh' }}>
-
+    <div style={styles.page}>
       <h1>🎓 College Intelligence Dashboard</h1>
+      <p style={{ marginBottom: 20 }}>
+        Welcome, <strong>{adminName}</strong>
+      </p>
 
       {/* TOP CARDS */}
-      <div style={{ display:'flex', gap:20, marginBottom:30 }}>
+      <div style={styles.cards}>
         <Card title="Students" value={stats.totalStudents} />
         <Card title="Attempts" value={stats.totalAttempts} />
         <Card title="Avg Score" value={stats.avgScore} />
@@ -177,21 +196,29 @@ async function loadAll(college_id) {
 
       {/* TOP PERFORMERS */}
       <Section title="🏆 Top Performers">
-        {table(
-          ['Name','Avg','Attempts','Best'],
-          topStudents.map(s=>[
-            s.name, s.avg_score, s.total_attempts, s.best_score
+        {renderTable(
+          ['Name', 'Avg', 'Attempts', 'Best'],
+          topStudents.map(s => [
+            s.name,
+            s.avg_score,
+            s.total_attempts,
+            s.best_score
           ])
         )}
       </Section>
 
-      {/* WEAK SUBJECTS */}
-      <Section title="📉 Weak Subjects">
-        {table(
-          ['Subject','Accuracy','Attempts'],
-          subjects.slice(0,5).map(s=>[
-            s.subject,
-            (s.accuracy*100).toFixed(1)+'%',
+      {/* SUBJECTS */}
+      <Section title="📉 Weak Subjects (Click to Drill Down)">
+        {renderTable(
+          ['Subject', 'Accuracy', 'Attempts'],
+          subjects.slice(0, 5).map(s => [
+            <span
+              style={styles.link}
+              onClick={() => setSelectedSubject(s.subject)}
+            >
+              {s.subject}
+            </span>,
+            (s.accuracy * 100).toFixed(1) + '%',
             s.attempts
           ])
         )}
@@ -199,82 +226,119 @@ async function loadAll(college_id) {
 
       {/* STRONG SUBJECTS */}
       <Section title="📈 Strong Subjects">
-        {table(
-          ['Subject','Accuracy','Attempts'],
-          subjects.slice(-5).reverse().map(s=>[
+        {renderTable(
+          ['Subject', 'Accuracy', 'Attempts'],
+          subjects.slice(-5).reverse().map(s => [
             s.subject,
-            (s.accuracy*100).toFixed(1)+'%',
+            (s.accuracy * 100).toFixed(1) + '%',
             s.attempts
           ])
         )}
       </Section>
 
-      {/* WEAK SUBTOPICS */}
-      <Section title="🔬 Weak Subtopics">
-        {table(
-          ['Subject','Subtopic','Accuracy','Attempts'],
-          subtopics.slice(0,10).map(s=>[
-            s.subject,
-            s.subtopic,
-            (s.accuracy*100).toFixed(1)+'%',
-            s.attempts
-          ])
+      {/* SUBTOPICS */}
+      <Section
+        title={`🔬 Weak Subtopics ${
+          selectedSubject ? `- ${selectedSubject}` : ''
+        }`}
+      >
+        {selectedSubject && (
+          <button
+            onClick={() => setSelectedSubject(null)}
+            style={styles.resetBtn}
+          >
+            Reset
+          </button>
+        )}
+
+        {renderTable(
+          ['Subject', 'Subtopic', 'Accuracy', 'Attempts'],
+          (selectedSubject
+            ? subtopics.filter(s => s.subject === selectedSubject)
+            : subtopics
+          )
+            .slice(0, 10)
+            .map(s => [
+              s.subject,
+              s.subtopic,
+              (s.accuracy * 100).toFixed(1) + '%',
+              s.attempts
+            ])
         )}
       </Section>
-
     </div>
   )
 }
 
-// ================= UI HELPERS =================
+/* UI COMPONENTS */
 
-function Card({title,value}) {
+function Card({ title, value }) {
   return (
-    <div style={{
-      background:'#fff',
-      padding:20,
-      borderRadius:12,
-      boxShadow:'0 5px 15px rgba(0,0,0,0.08)'
-    }}>
-      <div style={{ color:'#666' }}>{title}</div>
-      <div style={{ fontSize:22, fontWeight:700 }}>{value}</div>
+    <div style={styles.card}>
+      <div>{title}</div>
+      <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
     </div>
   )
 }
 
-function Section({title, children}) {
+function Section({ title, children }) {
   return (
-    <div style={{
-      background:'#fff',
-      padding:20,
-      borderRadius:16,
-      marginBottom:20
-    }}>
+    <div style={styles.section}>
       <h2>{title}</h2>
       {children}
     </div>
   )
 }
 
-function table(headers, rows) {
+function renderTable(headers, rows) {
   return (
-    <table style={{ width:'100%', borderCollapse:'collapse' }}>
+    <table style={styles.table}>
       <thead>
         <tr>
-          {headers.map((h,i)=>(
-            <th key={i} style={{ textAlign:'left', padding:10 }}>{h}</th>
+          {headers.map((h, i) => (
+            <th key={i}>{h}</th>
           ))}
         </tr>
       </thead>
       <tbody>
-        {rows.map((r,i)=>(
-          <tr key={i} style={{ borderTop:'1px solid #eee' }}>
-            {r.map((c,j)=>(
-              <td key={j} style={{ padding:10 }}>{c}</td>
+        {rows.map((r, i) => (
+          <tr key={i}>
+            {r.map((c, j) => (
+              <td key={j}>{c}</td>
             ))}
           </tr>
         ))}
       </tbody>
     </table>
   )
+}
+
+/* STYLES */
+
+const styles = {
+  page: { padding: 40, background: '#f1f5f9', minHeight: '100vh' },
+  cards: { display: 'flex', gap: 20, marginBottom: 30 },
+  card: {
+    background: '#fff',
+    padding: 20,
+    borderRadius: 12,
+    boxShadow: '0 5px 15px rgba(0,0,0,0.08)'
+  },
+  section: {
+    background: '#fff',
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 20
+  },
+  table: { width: '100%', borderCollapse: 'collapse' },
+  link: { color: '#2563eb', cursor: 'pointer', fontWeight: 600 },
+  resetBtn: {
+    marginBottom: 10,
+    padding: '6px 10px',
+    borderRadius: 6,
+    border: 'none',
+    background: '#ef4444',
+    color: '#fff',
+    cursor: 'pointer'
+  }
 }
