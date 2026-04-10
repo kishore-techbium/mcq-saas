@@ -508,10 +508,6 @@ if (submitted) {
           You can view your results anytime from your dashboard.
         </p>
 
-<p style={{ marginTop: 20, fontStyle: 'italic', color: '#444' }}>
-  "{getRandomQuote()}"
-</p>
-
         <div style={{ marginTop: 25 }}>
           <button
             style={styles.primaryBtn}
