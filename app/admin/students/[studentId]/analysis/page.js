@@ -27,25 +27,16 @@ const [collegeName, setCollegeName] = useState('')
 
 async function fetchData() {
 
-  // ✅ Fetch student
-  const { data: studentData } = await supabase
-    .from('students')
-    .select('name, college_id')
-    .eq('id', studentId)
-    .single()
+  // ✅ Fetch student and college
+const { data: studentData } = await supabase
+  .from('students')
+  .select('first_name, last_name, college_name')
+  .eq('id', studentId)
 
-  setStudent(studentData || null)
+const student = studentData?.[0]
 
-  // ✅ Fetch college
-  if (studentData?.college_id) {
-    const { data: college } = await supabase
-      .from('colleges')
-      .select('name')
-      .eq('id', studentData.college_id)
-      .single()
-
-    setCollegeName(college?.name || '')
-  }
+setStudent(student || null)
+setCollegeName(student?.college_name || '')
 
   // ✅ Existing stats logic (unchanged)
   const { data: stats } = await supabase
@@ -113,8 +104,8 @@ function downloadPDF() {
     <h1 style={styles.heading}>📊 Detailed Analysis</h1>
 
     <div style={{ fontSize: 14, color: '#555' }}>
-      <strong>{collegeName || 'Loading college...'}</strong><br/>
-      Student: {student?.name || 'Loading student...'}
+   <strong>{collegeName || '-'}</strong><br/>
+Student: {student ? `${student.first_name} ${student.last_name}` : '-'}
     </div>
   </div>
 
