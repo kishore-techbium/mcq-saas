@@ -100,7 +100,9 @@ console.log('submittedLocal:', submittedLocal)
 const { data: subjectStats } = await supabase
   .from('student_subject_stats')
   .select('*')
-.in('student_id', studentIds.length ? studentIds : ['dummy'])
+  .or(
+    studentIds.map(id => `student_id.eq.${id}`).join(',')
+  )
 const subjectAgg = {}
 
 subjectStats?.forEach(s => {
@@ -125,11 +127,14 @@ console.log('subjectStats:', subjectStats)
 setWeakSubjects(subjectArray.slice(0, 3))
 setStrongAreas(subjectArray.slice(-3).reverse())
 
-// CHAPTER STATS
-const { data: subtopicStats } = await supabase
+// CHAPTER STATS 
+  const { data: subtopicStats } = await supabase
   .from('student_subtopic_stats')
-  .select('*')
-  .in('student_id', studentIds.length ? studentIds : ['dummy'])
+.select('*')
+  .or(
+    studentIds.map(id => `student_id.eq.${id}`).join(',')
+  )
+  
 console.log('subtopicStats:', subtopicStats)
 const chapterAgg = {}
 
