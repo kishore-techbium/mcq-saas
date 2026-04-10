@@ -31,7 +31,7 @@ export default function ExamPage({ params }) {
   const [submitted, setSubmitted] = useState(false)
   const [review, setReview] = useState(false)
   const [loading, setLoading] = useState(true)
-  
+const [showConfirm, setShowConfirm] = useState(false)  
 
   /* 🎥 PROCTORING REFS */
   const videoRef = useRef(null)
@@ -508,9 +508,9 @@ if (submitted) {
           You can view your results anytime from your dashboard.
         </p>
 
-        <p style={{ marginTop: 20, fontStyle: 'italic', color: '#444' }}>
-          "Success is the sum of small efforts repeated daily."
-        </p>
+<p style={{ marginTop: 20, fontStyle: 'italic', color: '#444' }}>
+  "{getRandomQuote()}"
+</p>
 
         <div style={{ marginTop: 25 }}>
           <button
@@ -587,12 +587,12 @@ if (submitted) {
           <button
             style={styles.submitBtn}
             onClick={() => {
-              if (timeLeft > 0) {
-                setShowConfirm(true)
-              } else {
-                submitExam()
-              }
-            }}
+  if (timeLeft > 0) {
+    setShowConfirm(true)
+  } else {
+    submitExam()
+  }
+}}
           >
           Submit
         </button>
@@ -690,7 +690,7 @@ if (submitted) {
     </div>
   </div>
 )}  
-    
+   
     </div>
    
   )
@@ -886,7 +886,6 @@ modalBox: {
   borderRadius: 12,
   width: '90%',
   maxWidth: 400,
-  textAlign: 'center',
-  boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+  textAlign: 'center'
 }
 }
