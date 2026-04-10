@@ -110,7 +110,7 @@ async function loadResults() {
       ReAttempts: r.reattempts,
       Avg: r.avg_score,
       Max: r.max_score,
-      Min: r.min_score,
+      
       LastAttempt: r.last_attempt
         ? new Date(r.last_attempt).toLocaleString()
         : '-'
@@ -175,7 +175,7 @@ async function loadResults() {
               <th style={styles.right} onClick={()=>handleSort('reattempts')}>Re-Attempts</th>
               <th style={styles.right} onClick={()=>handleSort('avg_score')}>Avg</th>
               <th style={styles.right}>Max</th>
-              <th style={styles.right}>Min</th>
+              
               <th style={styles.left}>Last Attempt</th>
               <th></th>
             </tr>
@@ -196,7 +196,7 @@ async function loadResults() {
                 <td style={styles.right}>{r.reattempts}</td>
                 <td style={styles.right}>{r.avg_score}</td>
                 <td style={styles.right}>{r.max_score}</td>
-                <td style={styles.right}>{r.min_score}</td>
+                
                 <td style={styles.left}>
                   {r.last_attempt ? new Date(r.last_attempt).toLocaleString() : '-'}
                 </td>
