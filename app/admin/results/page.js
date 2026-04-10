@@ -28,59 +28,67 @@ async function init() {
   setLoading(false)
 }
 
-  async function loadResults() {
-    const { data: exams } = await supabase
-      .from('exams')
-      .select('id, title, exam_category, exam_type, created_at')
-      .order('created_at', { ascending: false })
+async function loadResults() {
+  // ✅ Get exams (same as before)
+  const { data: exams } = await supabase
+    .from('exams')
+    .select('id, title, exam_category, exam_type, created_at')
+    .order('created_at', { ascending: false })
 
-    const { data: sessions } = await supabase
-      .from('exam_sessions')
-      .select('exam_id, score, student_id, attempt_number, created_at')
-      .eq('submitted', true)
-      .not('exam_id', 'is', null)
+  // ✅ Get analytics data instead of sessions
+  const { data: stats } = await supabase
+    .from('student_exam_stats')
+    .select('*')
 
-    const stats = {}
+  const grouped = {}
 
-    ;(sessions || []).forEach(s => {
-      if (!stats[s.exam_id]) {
-        stats[s.exam_id] = {
-          attempts: 0,
-          total: 0,
-          max: s.score,
-          min: s.score,
-          last: s.created_at,
-          students: new Set(),
-          reattempts: 0
-        }
+  // 🔥 GROUP BY exam_id
+  ;(stats || []).forEach((s) => {
+    if (!grouped[s.exam_id]) {
+      grouped[s.exam_id] = {
+        students: 0,
+        attempts: 0,
+        avgSum: 0,
+        max: s.best_score,
+        min: s.best_score,
+        last: s.last_attempt_at
       }
+    }
 
-      const e = stats[s.exam_id]
-      e.attempts++
-      e.total += s.score
-      e.max = Math.max(e.max, s.score)
-      e.min = Math.min(e.min, s.score)
-      e.last = e.last > s.created_at ? e.last : s.created_at
-      e.students.add(s.student_id)
-      if (s.attempt_number > 1) e.reattempts++
-    })
+    const e = grouped[s.exam_id]
 
-    const finalRows = (exams || []).map(exam => {
-      const s = stats[exam.id]
-      return {
-        ...exam,
-        students: s ? s.students.size : 0,
-        attempts: s ? s.attempts : 0,
-        reattempts: s ? s.reattempts : 0,
-        avg_score: s ? (s.total / s.attempts).toFixed(2) : '-',
-        max_score: s ? s.max : '-',
-        min_score: s ? s.min : '-',
-        last_attempt: s ? s.last : null
-      }
-    })
+    e.students += 1
+    e.attempts += s.attempts || 0
+    e.avgSum += s.avg_score || 0
 
-    setRows(finalRows)
-  }
+    e.max = Math.max(e.max, s.best_score || 0)
+    e.min = Math.min(e.min, s.best_score || 0)
+
+    if (!e.last || s.last_attempt_at > e.last) {
+      e.last = s.last_attempt_at
+    }
+  })
+
+  // 🔥 BUILD FINAL ROWS
+  const finalRows = (exams || []).map((exam) => {
+    const s = grouped[exam.id]
+
+    return {
+      ...exam,
+      students: s ? s.students : 0,
+      attempts: s ? s.attempts : 0,
+      reattempts: '-', // optional (can add later)
+      avg_score: s
+        ? (s.avgSum / s.students).toFixed(2)
+        : '-',
+      max_score: s ? s.max : '-',
+      min_score: s ? s.min : '-',
+      last_attempt: s ? s.last : null
+    }
+  })
+
+  setRows(finalRows)
+}
 
   function handleSort(field) {
     if (sortField === field) {
