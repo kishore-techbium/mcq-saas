@@ -11,8 +11,8 @@ export default function StudentDetailsPage() {
   const [student, setStudent] = useState(null)
   const [sessions, setSessions] = useState([])
   const [grouped, setGrouped] = useState({})
-  const [subtopicData, setSubtopicData] = useState([])
   const [loading, setLoading] = useState(true)
+  const [insights, setInsights] = useState([])
 
   useEffect(() => {
     if (studentId) fetchData()
@@ -33,6 +33,15 @@ export default function StudentDetailsPage() {
       .eq('student_id', studentId)
       .eq('submitted', true)
       .order('created_at', { ascending: false })
+
+    // 🔥 FETCH AI INSIGHTS
+    const { data: insightsData } = await supabase
+      .from('student_insights')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('score', { ascending: false })
+
+    setInsights(insightsData || [])
 
     let enriched = []
 
@@ -95,41 +104,7 @@ export default function StudentDetailsPage() {
     setStudent(studentData)
     setSessions(enriched)
     setGrouped(groupedData)
-    // ===== FETCH SUBTOPIC LEVEL DATA =====
 
-if (sessionData?.length > 0) {
-
-  const sessionIds = sessionData.map(s => s.id)
-
-  const { data: answerData } = await supabase
-    .from('exam_answers')
-    .select('question_id, is_correct, exam_session_id')
-    .in('exam_session_id', sessionIds)
-
-  if (answerData && answerData.length > 0) {
-
-    const questionIds = [
-      ...new Set(answerData.map(a => a.question_id))
-    ]
-
-    const { data: questionData } = await supabase
-      .from('question_bank')
-      .select('id, subject, chapter, subtopic')
-      .in('id', questionIds)
-
-    const questionMap = {}
-    questionData?.forEach(q => {
-      questionMap[q.id] = q
-    })
-
-    const merged = answerData.map(a => ({
-      ...a,
-      ...(questionMap[a.question_id] || {})
-    }))
-
-    setSubtopicData(merged)
-  }
-}
     setLoading(false)
   }
 
@@ -153,8 +128,6 @@ if (sessionData?.length > 0) {
 
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
-  // ===== ADVANCED ANALYTICS =====
-
   const totalAttempts = sessions.length
   const totalExams = Object.keys(grouped).length
 
@@ -170,93 +143,9 @@ if (sessionData?.length > 0) {
     totalAttempts > 0
       ? Math.max(...sessions.map((s) => s.score || 0))
       : 0
-const validSessions = sessions.filter(s => s.score && s.score > 0)
 
-const sortedSessions = [...validSessions].sort(
-  (a, b) => new Date(b.created_at) - new Date(a.created_at)
-)
-
-const latestScore = sortedSessions[0]?.score ?? 0
-const firstScore = sortedSessions[sortedSessions.length - 1]?.score ?? 0
-const improvement = latestScore - firstScore
-
-  const trend =
-    improvement > 0
-      ? 'Improving 📈'
-      : improvement < 0
-      ? 'Declining 📉'
-      : 'Stable ➖'
-
-  // ===== SUBJECT ANALYSIS =====
-
-// ===== SUBTOPIC ANALYSIS =====
-
-let subtopicStats = {}
-
-subtopicData.forEach((row) => {
-  const key = `${row.subject} → ${row.chapter} → ${row.subtopic}`
-
-  if (!subtopicStats[key]) {
-    subtopicStats[key] = { total: 0, correct: 0 }
-  }
-
-  subtopicStats[key].total += 1
-  if (row.is_correct) subtopicStats[key].correct += 1
-})
-
-const subtopicPerformance = Object.entries(subtopicStats).map(
-  ([key, values]) => ({
-    name: key,
-    accuracy:
-      values.total > 0
-        ? (values.correct / values.total) * 100
-        : 0,
-    attempts: values.total
-  })
-)
-
-// ❗ Ignore low data (<5 attempts)
-const filteredSubtopics = subtopicPerformance.filter(
-  (s) => s.attempts >= 2
-)
-// ===== TOP INSIGHTS =====
-const WEAK_THRESHOLD = 60
-const STRONG_THRESHOLD = 80
-const topWeak = filteredSubtopics
-  .filter(s => s.accuracy < WEAK_THRESHOLD)
-  .sort((a, b) => a.accuracy - b.accuracy)
-  .slice(0, 5)
-
-const topStrong = filteredSubtopics
-  .filter(s => s.accuracy >= STRONG_THRESHOLD)
-  .sort((a, b) => b.accuracy - a.accuracy)
-  .slice(0, 5)
-
-const strongestSubtopic =
-  filteredSubtopics
-    .filter(s => s.accuracy >= STRONG_THRESHOLD)
-    .sort((a, b) => b.accuracy - a.accuracy)[0] || null
-
-const weakestSubtopic =
-  filteredSubtopics
-    .filter(s => s.accuracy < WEAK_THRESHOLD)
-    .sort((a, b) => a.accuracy - b.accuracy)[0] || null
-  // ===== RETAKE INTELLIGENCE =====
-
-  let mostRetakenExam = '-'
-  let maxAttempts = 0
-
-  Object.entries(grouped).forEach(([exam, attempts]) => {
-    if (attempts.length > maxAttempts) {
-      maxAttempts = attempts.length
-      mostRetakenExam = exam
-    }
-  })
-
-  const avgAttemptsPerExam =
-    totalExams > 0
-      ? (totalAttempts / totalExams).toFixed(2)
-      : 0
+  const latestScore =
+    sessions.length > 0 ? sessions[0]?.score || 0 : 0
 
   return (
     <div style={styles.page}>
@@ -269,64 +158,27 @@ const weakestSubtopic =
           <strong> Avg:</strong> {averageScore} |
           <strong> Best:</strong> {bestScore} |
           <strong> Latest:</strong> {latestScore}
-    {/* 🔥 TOP INSIGHTS */}
-
-<div style={{ marginTop: 10 }}>
-  <strong>Top Weak Areas:</strong>
-  {topWeak.length === 0 && <div>-</div>}
-  {topWeak.map((s, i) => (
-    <div key={i} style={{ color: '#dc2626', fontSize: 13 }}>
-      {s.name} ({s.accuracy.toFixed(1)}%)
-    </div>
-  ))}
-  {/* 🔥 RECOMMENDATION */}
-<div style={{ marginTop: 10 }}>
-  <strong>🎯 Recommendation:</strong>{' '}
-  {weakestSubtopic
-    ? `Focus on ${weakestSubtopic.name} (${weakestSubtopic.accuracy.toFixed(1)}%)`
-    : '-'}
-</div>
-
-{/* 🔥 INSIGHT */}
-<div>
-  <strong>📊 Insight:</strong>{' '}
-  {trend.includes('Improving')
-    ? 'Student is improving overall.'
-    : trend.includes('Declining')
-    ? 'Performance is declining. Needs attention.'
-    : 'Performance is stable.'}
-</div>
-</div>
-
-<div style={{ marginTop: 10 }}>
-  <strong>Top Strong Areas:</strong>
-  {topStrong.length === 0 && <div>-</div>}
-  {topStrong.map((s, i) => (
-    <div key={i} style={{ color: '#16a34a', fontSize: 13 }}>
-      {s.name} ({s.accuracy.toFixed(1)}%)
-    </div>
-  ))}
-</div>
         </div>
 
-        <div>
-          <strong>Trend:</strong> {trend} |
-    <strong> Strongest:</strong>{' '}
-  {strongestSubtopic
-  ? `${strongestSubtopic.name} (${strongestSubtopic.accuracy.toFixed(1)}%)`
-  : '-'}{' '}
-|
+        {/* 🔥 AI INSIGHTS */}
+        <div style={{ marginTop: 15 }}>
+          <strong>🧠 AI Insights:</strong>
 
-<strong> Weakest:</strong>{' '}
-{weakestSubtopic
-  ? `${weakestSubtopic.name} (${weakestSubtopic.accuracy.toFixed(1)}%)`
-  : '-'}
+          {insights.length === 0 && <div>-</div>}
+
+          {insights.map((i, index) => (
+            <div key={index} style={{ fontSize: 13, marginTop: 5 }}>
+              {i.severity === 'high' && '🔴 '}
+              {i.severity === 'medium' && '🟠 '}
+              {i.severity === 'low' && '🟢 '}
+              {i.message}
+            </div>
+          ))}
         </div>
 
-        <div>
-          <strong>Most Retaken:</strong> {mostRetakenExam} |
-          <strong> Avg Attempts/Exam:</strong> {avgAttemptsPerExam}
-        </div>
+        <button style={{ marginTop: 10 }}>
+          View Detailed Analysis →
+        </button>
 
         <button style={styles.exportBtn} onClick={exportExcel}>
           Download Excel
