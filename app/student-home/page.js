@@ -38,6 +38,11 @@ export default function StudentHome() {
     window.location.href = `/dashboard?category=${category}`
   }
 
+  // ✅ NEW FUNCTION
+  function goReview() {
+    window.location.href = `/dashboard?category=${category}&view=review`
+  }
+
   if (loading) {
     return <p style={{ padding: 40 }}>Loading…</p>
   }
@@ -51,6 +56,7 @@ export default function StudentHome() {
       </p>
 
       <div style={styles.grid}>
+        
         {/* CREATE YOUR OWN TEST */}
         <div style={styles.card}>
           <h2>🧠 Create Your Own Test</h2>
@@ -76,6 +82,20 @@ export default function StudentHome() {
             View Tests
           </button>
         </div>
+
+        {/* ✅ NEW CARD ADDED (NO EXISTING CHANGE) */}
+        <div style={{ ...styles.card, background: '#eef2ff' }}>
+          <h2>📘 Review Taken Exams</h2>
+          <p style={styles.desc}>
+            Revisit your completed exams and practice tests.
+            Analyze your performance and improve your weak areas.
+          </p>
+
+          <button style={styles.primaryBtn} onClick={goReview}>
+            Review Now
+          </button>
+        </div>
+
       </div>
     </div>
   )
