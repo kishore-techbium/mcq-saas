@@ -16,7 +16,8 @@ import {
 
 export default function AnalysisPage() {
   const { studentId } = useParams()
-
+const [student, setStudent] = useState(null)
+const [collegeName, setCollegeName] = useState('')
   const [data, setData] = useState({})
   const [expanded, setExpanded] = useState({})
 
@@ -24,37 +25,58 @@ export default function AnalysisPage() {
     if (studentId) fetchData()
   }, [studentId])
 
-  async function fetchData() {
-    const { data: stats } = await supabase
-      .from('student_subtopic_stats')
-      .select('*')
-      .eq('student_id', studentId)
+async function fetchData() {
 
-    if (!stats) return
+  // ✅ Fetch student
+  const { data: studentData } = await supabase
+    .from('students')
+    .select('name, college_id')
+    .eq('id', studentId)
+    .single()
 
-    const grouped = {}
+  setStudent(studentData || null)
 
-    stats.forEach((row) => {
-      if (!grouped[row.subject]) {
-        grouped[row.subject] = {}
-      }
+  // ✅ Fetch college
+  if (studentData?.college_id) {
+    const { data: college } = await supabase
+      .from('colleges')
+      .select('name')
+      .eq('id', studentData.college_id)
+      .single()
 
-      if (!grouped[row.subject][row.chapter]) {
-        grouped[row.subject][row.chapter] = {
-          totalAccuracy: 0,
-          count: 0,
-          subtopics: []
-        }
-      }
-
-      grouped[row.subject][row.chapter].totalAccuracy += row.accuracy
-      grouped[row.subject][row.chapter].count += 1
-
-      grouped[row.subject][row.chapter].subtopics.push(row)
-    })
-
-    setData(grouped)
+    setCollegeName(college?.name || '')
   }
+
+  // ✅ Existing stats logic (unchanged)
+  const { data: stats } = await supabase
+    .from('student_subtopic_stats')
+    .select('*')
+    .eq('student_id', studentId)
+
+  if (!stats) return
+
+  const grouped = {}
+
+  stats.forEach((row) => {
+    if (!grouped[row.subject]) {
+      grouped[row.subject] = {}
+    }
+
+    if (!grouped[row.subject][row.chapter]) {
+      grouped[row.subject][row.chapter] = {
+        totalAccuracy: 0,
+        count: 0,
+        subtopics: []
+      }
+    }
+
+    grouped[row.subject][row.chapter].totalAccuracy += row.accuracy
+    grouped[row.subject][row.chapter].count += 1
+    grouped[row.subject][row.chapter].subtopics.push(row)
+  })
+
+  setData(grouped)
+}
 
   function getColor(value) {
     if (value < 50) return '#dc2626' // red
@@ -85,8 +107,16 @@ function downloadPDF() {
   
     return (
   <div style={styles.page} id="analysis-report">
-  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-  <h1 style={styles.heading}>📊 Detailed Analysis</h1>
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+  
+  <div>
+    <h1 style={styles.heading}>📊 Detailed Analysis</h1>
+
+    <div style={{ fontSize: 14, color: '#555' }}>
+      <strong>{collegeName || 'Loading college...'}</strong><br/>
+      Student: {student?.name || 'Loading student...'}
+    </div>
+  </div>
 
   <button
     onClick={downloadPDF}
