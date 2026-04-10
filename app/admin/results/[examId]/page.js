@@ -110,7 +110,7 @@ subjectArray.sort((a, b) => a.accuracy - b.accuracy)
 
 console.log('studentIds:', studentIds)
 console.log('subjectStats:', subjectStats)
-console.log('subtopicStats:', subtopicStats)
+
 
 setWeakSubjects(subjectArray.slice(0, 3))
 setStrongAreas(subjectArray.slice(-3).reverse())
@@ -120,7 +120,7 @@ const { data: subtopicStats } = await supabase
   .from('student_subtopic_stats')
   .select('*')
   .in('student_id', studentIds)
-
+console.log('subtopicStats:', subtopicStats)
 const chapterAgg = {}
 
 subtopicStats?.forEach(s => {
