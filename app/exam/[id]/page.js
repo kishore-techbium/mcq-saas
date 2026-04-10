@@ -584,9 +584,22 @@ if (submitted) {
             >
               Next
             </button>
-            <button style={styles.submitBtn} onClick={submitExam}>
-              Submit
-            </button>
+                <button
+  style={styles.submitBtn}
+  onClick={() => {
+    if (timeLeft > 0) {
+      const confirmSubmit = confirm(
+        "Are you sure you want to submit the exam?\n\nYou still have time left."
+      )
+
+      if (!confirmSubmit) return
+    }
+
+    submitExam()
+  }}
+>
+  Submit
+</button>
           </div>
         </div>
 
