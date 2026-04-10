@@ -584,22 +584,18 @@ if (submitted) {
             >
               Next
             </button>
-                <button
-  style={styles.submitBtn}
-  onClick={() => {
-    if (timeLeft > 0) {
-      const confirmSubmit = confirm(
-        "Are you sure you want to submit the exam?\n\nYou still have time left."
-      )
-
-      if (!confirmSubmit) return
-    }
-
-    submitExam()
-  }}
->
-  Submit
-</button>
+          <button
+            style={styles.submitBtn}
+            onClick={() => {
+              if (timeLeft > 0) {
+                setShowConfirm(true)
+              } else {
+                submitExam()
+              }
+            }}
+          >
+          Submit
+        </button>
           </div>
         </div>
 
@@ -664,7 +660,38 @@ if (submitted) {
 </div>
 
         </div>
+    {showConfirm && (
+  <div style={styles.modalOverlay}>
+    <div style={styles.modalBox}>
+      <h3 style={{ marginBottom: 10 }}>⚠️ Submit Exam?</h3>
+
+      <p style={{ color: '#555', marginBottom: 20 }}>
+        You still have time left. Are you sure you want to submit?
+      </p>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+        <button
+          style={styles.secondaryBtn}
+          onClick={() => setShowConfirm(false)}
+        >
+          Cancel
+        </button>
+
+        <button
+          style={styles.primaryBtn}
+          onClick={() => {
+            setShowConfirm(false)
+            submitExam()
+          }}
+        >
+          Submit
+        </button>
       </div>
+    </div>
+  </div>
+)}  
+    
+    </div>
    
   )
 }
@@ -838,12 +865,28 @@ secondaryBtn: {
   borderRadius: 8,
   fontWeight: 600,
   cursor: 'pointer'
-}
+},
 
-/*reviewCard: {
-    background: '#fff',
-    padding: 16,
-    marginBottom: 14,
-    borderRadius: 10
-  }*/
+modalOverlay: {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  width: '100%',
+  height: '100%',
+  background: 'rgba(0,0,0,0.5)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  zIndex: 9999
+},
+
+modalBox: {
+  background: '#fff',
+  padding: 24,
+  borderRadius: 12,
+  width: '90%',
+  maxWidth: 400,
+  textAlign: 'center',
+  boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+}
 }
