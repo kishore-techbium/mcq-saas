@@ -213,7 +213,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* ❌ HIDE AVAILABLE EXAMS IN REVIEW MODE */}
-      {view === 'review' && (
+{view !== 'review' && (
         <Section title="🟢 Available Exams">
           {availableExams.length === 0 && (
             <p style={styles.empty}>No available exams.</p>
