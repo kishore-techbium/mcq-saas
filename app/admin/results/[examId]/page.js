@@ -61,7 +61,11 @@ export default function ExamAnalyticsPage() {
       .select('*')
       .eq('exam_id', examId)
 const sessionsLocal = sessionData || []
-const submittedLocal = sessionsLocal.filter(s => s.submitted)
+const submittedLocal = sessionsLocal.filter(
+  s => s.submitted !== false
+)
+    console.log('sessionsLocal:', sessionsLocal)
+console.log('submittedLocal:', submittedLocal)
     // Students
     const studentIds = [...new Set(submittedLocal.map(s => s.student_id))]
     const { data: students } = await supabase
