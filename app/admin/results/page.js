@@ -150,7 +150,7 @@ async function loadResults() {
       <h1>📊 Exam Intelligence Dashboard</h1>
 <div style={{ marginBottom: 20 }}>
   <button
-    onClick={() => window.location.href = '/admin/college-insights'}
+    onClick={() => window.location.href = '/admin/results/college-insights'}
     style={{
       padding: '10px 16px',
       background: '#6366f1',
