@@ -173,15 +173,7 @@ useEffect(() => {
   }
 }, [currentIndex, questions.length])
 
-  useEffect(() => {
-  if (!submitted) return
-
-  const timer = setTimeout(() => {
-    window.location.href = `/exam/review?sessionId=${sessionId}`
-  }, 4000) // 4 seconds delay
-
-  return () => clearTimeout(timer)
-}, [submitted])
+ 
   /* ================= LOCAL STORAGE (UNCHANGED) ================= */
 
  function persist(extra = {}) {
@@ -481,46 +473,52 @@ await fetch('/api/exam/submit', {
       </div>
     )
   }
+function getRandomQuote() {
+  const quotes = [
+    "Success is the sum of small efforts repeated daily.",
+    "Push yourself, because no one else will do it for you.",
+    "Dream big. Start small. Act now.",
+    "Consistency is what transforms average into excellence.",
+    "Every expert was once a beginner.",
+    "Your only limit is your mind.",
+    "Hard work beats talent when talent doesn’t work hard.",
+    "Stay focused and never give up."
+  ]
 
+  return quotes[Math.floor(Math.random() * quotes.length)]
+}
 if (submitted) {
   return (
     <div style={styles.successPage}>
-
       <div style={styles.successCard}>
 
         <div style={styles.successIcon}>🎉</div>
 
-        <h1 style={{ marginBottom: 10 }}>
-          Submission Successful!
-        </h1>
+        <h1>Exam Submitted Successfully!</h1>
 
-        <p style={{ color: '#555', marginBottom: 20 }}>
-          Your exam has been submitted successfully.
+        <p style={{ color: '#555', marginTop: 10 }}>
+          Great effort! Keep pushing your limits 🚀
         </p>
 
-        <p style={{ color: '#2563eb', fontWeight: 500 }}>
-          ⏳ Processing your results... (takes a few seconds)
+<p style={{ marginTop: 20, fontStyle: 'italic', color: '#444' }}>
+  "{getRandomQuote()}"
+</p>
+
+        <p style={{ marginTop: 10, fontSize: 14, color: '#666' }}>
+          You can view your results anytime from your dashboard.
         </p>
 
-        {/* Loader */}
-<div style={styles.loader}></div>
+        <p style={{ marginTop: 20, fontStyle: 'italic', color: '#444' }}>
+          "Success is the sum of small efforts repeated daily."
+        </p>
 
-<p style={{ marginTop: 10, color: '#666' }}>
-  Preparing your results...
-</p>
-
-<p style={{ marginTop: 10, fontSize: 13, color: '#999' }}>
-  You will be redirected automatically
-</p>
-
-<div style={{ marginTop: 25, display: 'flex', justifyContent: 'center' }}>
+        <div style={{ marginTop: 25 }}>
           <button
-            style={styles.secondaryBtn}
+            style={styles.primaryBtn}
             onClick={() => window.location.href = '/dashboard'}
           >
-            🏠 Dashboard
+            🏠 Go to Dashboard
           </button>
-
         </div>
 
       </div>
