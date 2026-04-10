@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '../../../../../lib/supabase'
+import html2pdf from 'html2pdf.js'
 import {
   BarChart,
   Bar,
@@ -54,7 +55,19 @@ export default function AnalysisPage() {
 
     setData(grouped)
   }
+function downloadPDF() {
+  const element = document.getElementById('analysis-report')
 
+  const opt = {
+    margin: 0.5,
+    filename: 'student-analysis.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+  }
+
+  html2pdf().set(opt).from(element).save()
+}
   function getColor(value) {
     if (value < 50) return '#dc2626' // red
     if (value < 70) return '#f59e0b' // orange
@@ -68,10 +81,25 @@ export default function AnalysisPage() {
     }))
   }
 
-  return (
-    <div style={styles.page}>
-      <h1 style={styles.heading}>📊 Detailed Analysis</h1>
+return (
+  <div style={styles.page} id="analysis-report">
+  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+  <h1 style={styles.heading}>📊 Detailed Analysis</h1>
 
+  <button
+    onClick={downloadPDF}
+    style={{
+      padding: '8px 14px',
+      background: '#16a34a',
+      color: '#fff',
+      border: 'none',
+      borderRadius: 6,
+      cursor: 'pointer'
+    }}
+  >
+    Download PDF
+  </button>
+</div>
       {Object.entries(data).map(([subject, chapters]) => {
         const chartData = Object.entries(chapters).map(
           ([chapter, value]) => ({
