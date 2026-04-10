@@ -679,10 +679,10 @@ if (submitted) {
 
         <button
           style={styles.primaryBtn}
-          onClick={() => {
-            setShowConfirm(false)
-            submitExam()
-          }}
+onClick={() => {
+  setShowConfirm(false)
+  if (!submitted) submitExam()
+}}
         >
           Submit
         </button>
