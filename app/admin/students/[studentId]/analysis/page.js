@@ -76,20 +76,29 @@ export default function AnalysisPage() {
     setData(grouped)
   }
 
-  function downloadPDF() {
+function downloadPDF() {
   const element = document.getElementById('pdf-report')
+
+  if (!element) return
+
+  // force browser to render
+  element.style.display = 'block'
 
   setTimeout(() => {
     html2pdf()
       .set({
         margin: 0.5,
         filename: `${student?.name || 'student'}-report.pdf`,
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'a4' }
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
       })
       .from(element)
       .save()
-  }, 500)
+      .then(() => {
+        // hide again after export
+        element.style.display = 'none'
+      })
+  }, 1000) // 🔥 increased delay
 }
 
   function getColor(value) {
@@ -111,9 +120,13 @@ export default function AnalysisPage() {
       <div style={styles.header}>
         <h1 style={styles.heading}>📊 Detailed Analysis</h1>
 
-        <button onClick={downloadPDF} style={styles.pdfBtn}>
-          Download PDF
-        </button>
+<button 
+  onClick={downloadPDF} 
+  style={styles.pdfBtn}
+  disabled={!student || Object.keys(data).length === 0}
+>
+  Download PDF
+</button>
       </div>
 
       {/* UI VIEW */}
@@ -195,8 +208,10 @@ export default function AnalysisPage() {
 
       {/* 🔥 PDF VERSION (HIDDEN) */}
       <div id="pdf-report" style={{
-  position: 'absolute',
-  left: '-9999px',
+display: 'none',
+width: '800px',
+background: '#fff',
+padding: 20
   top: 0,
   width: '800px',
   background: '#fff',
