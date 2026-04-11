@@ -4,11 +4,17 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
 export default function Dashboard() {
+const [authorized, setAuthorized] = useState(false)
+  const [stats, setStats] = useState({
+    colleges: 0,
+    students: 0,
+    exams: 0
+  })
+
 useEffect(() => {
   checkAccess()
 }, [])
-
-async function checkAccess() {
+  async function checkAccess() {
   const { data: auth } = await supabase.auth.getUser()
 
   if (!auth.user) {
@@ -16,7 +22,6 @@ async function checkAccess() {
     return
   }
 
-  // ✅ CHECK ROLE FROM students TABLE
   const { data: user } = await supabase
     .from('students')
     .select('role')
@@ -24,20 +29,15 @@ async function checkAccess() {
     .maybeSingle()
 
   if (!user || user.role !== 'superadmin') {
-    alert('Unauthorized access')
     window.location.href = '/dashboard'
+    return
   }
+
+  setAuthorized(true)
+
+  // ✅ only load stats after authorization
+  loadStats()
 }
-  const [stats, setStats] = useState({
-    colleges: 0,
-    students: 0,
-    exams: 0
-  })
-
-  useEffect(() => {
-    loadStats()
-  }, [])
-
   async function loadStats() {
 
     const { count: colleges } = await supabase
@@ -54,7 +54,9 @@ async function checkAccess() {
 
     setStats({ colleges, students, exams })
   }
-
+if (!authorized) {
+  return <p style={{ padding: 40 }}>Checking access...</p>
+}
   return (
     <div>
       <h1>Dashboard</h1>
