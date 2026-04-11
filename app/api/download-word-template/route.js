@@ -1,5 +1,5 @@
 export const dynamic = 'force-dynamic'
-import { NextResponse } from 'next/server'
+
 import { supabase } from '../../../lib/supabase'
 import {
   Document,
@@ -172,7 +172,7 @@ export async function GET() {
 
   } catch (err) {
     console.error(err)
-    return NextResponse.json(
+    return Response.json(
       { error: 'Failed to generate Word template' },
       { status: 500 }
     )
