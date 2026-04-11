@@ -11,12 +11,9 @@ const BATCH_SIZE = 25
 
 export default function UploadExcelPage(){
 
-  const router = useRouter()
-
   const [file,setFile] = useState(null)
   const [zipFile,setZipFile] = useState(null)
 
-  const [allRows,setAllRows] = useState([])
   const [batches,setBatches] = useState([])
   const [currentBatch,setCurrentBatch] = useState(0)
 
@@ -24,6 +21,7 @@ export default function UploadExcelPage(){
   const [errors,setErrors] = useState([])
   const [uploading,setUploading] = useState(false)
 
+  const [stats,setStats] = useState(null)
   const [toast,setToast] = useState(null)
 
   function showToast(msg,type='success'){
@@ -32,21 +30,18 @@ export default function UploadExcelPage(){
   }
 
   // =============================
-  // ZIP PROCESS
+  // ZIP
   // =============================
   async function processZip(zipFile){
     if(!zipFile) return {}
-
     const zip = await JSZip.loadAsync(zipFile)
-    const map = {}
-
+    const map={}
     for(const f in zip.files){
-      const file = zip.files[f]
+      const file=zip.files[f]
       if(!file.dir){
-        map[file.name] = await file.async('blob')
+        map[file.name]=await file.async('blob')
       }
     }
-
     return map
   }
 
@@ -54,27 +49,21 @@ export default function UploadExcelPage(){
   // MASTER VALIDATION
   // =============================
   async function validateMaster(rows){
+    const { data } = await supabase.from('subjects_master').select('*')
 
-    const { data } = await supabase
-      .from('subjects_master')
-      .select('*')
-
-    const errors = []
-
+    const errs=[]
     rows.forEach((r,i)=>{
       const ok = data.some(m =>
-        m.exam_category === r.exam_category &&
-        m.subject === r.subject &&
-        m.chapter === r.chapter &&
-        m.subtopic === r.subtopic
+        m.exam_category===r.exam_category &&
+        m.subject===r.subject &&
+        m.chapter===r.chapter &&
+        m.subtopic===r.subtopic
       )
-
       if(!ok){
-        errors.push(`Row ${i+2}: Invalid mapping → ${r.exam_category} | ${r.subject} | ${r.chapter} | ${r.subtopic}`)
+        errs.push(`Row ${i+2}: Invalid mapping`)
       }
     })
-
-    return errors
+    return errs
   }
 
   // =============================
@@ -82,32 +71,25 @@ export default function UploadExcelPage(){
   // =============================
   async function handlePreview(){
 
-    if(!file) return showToast('Select Excel','error')
-
     const buffer = await file.arrayBuffer()
     const wb = XLSX.read(buffer)
     const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]])
 
-    // MASTER VALIDATION (STRICT)
     const masterErrors = await validateMaster(rows)
 
     if(masterErrors.length){
-      setErrors(masterErrors.slice(0,20))
+      setErrors(masterErrors)
       return showToast('Master validation failed','error')
     }
 
     const zipMap = await processZip(zipFile)
     setImageMap(zipMap)
 
-    // Add extra fields
     const enriched = rows.map(r=>({
       ...r,
       rejected:false,
-      rejection_reason:'',
       edited:false
     }))
-
-    setAllRows(enriched)
 
     const temp=[]
     for(let i=0;i<enriched.length;i+=BATCH_SIZE){
@@ -136,19 +118,27 @@ export default function UploadExcelPage(){
   }
 
   // =============================
-  // UPLOAD BATCH
+  // UPLOAD
   // =============================
   async function uploadBatch(){
 
     setUploading(true)
-
     const collegeId = await getAdminCollege()
+
+    let uploaded=0
+    let rejected=0
+    let edited=0
+
     const batch = batches[currentBatch]
 
-    for(let i=0;i<batch.length;i++){
+    for(let r of batch){
 
-      const r = batch[i]
-      if(r.rejected) continue
+      if(r.rejected){
+        rejected++
+        continue
+      }
+
+      if(r.edited) edited++
 
       let q = r.question || ''
       let e = r.explanation || ''
@@ -158,32 +148,38 @@ export default function UploadExcelPage(){
         q += `<br><img src="${url}" />`
       }
 
-      if(r.explanation_image_name && imageMap[r.explanation_image_name]){
-        const url = await uploadImage(imageMap[r.explanation_image_name],r.explanation_image_name)
-        e += `<br><img src="${url}" />`
-      }
+      console.log('INSERTING:', r)
 
-      await supabase.from('question_bank').insert([{
+      const { error } = await supabase.from('question_bank').insert([{
         ...r,
         question:q,
         explanation:e,
         college_id:collegeId
       }])
+
+      if(error){
+        console.error('ERROR:', error)
+      }else{
+        uploaded++
+      }
     }
 
     setUploading(false)
 
+    setStats({
+      total:batch.length,
+      uploaded,
+      rejected,
+      edited
+    })
+
     if(currentBatch+1 < batches.length){
       setCurrentBatch(currentBatch+1)
     }else{
-      showToast('All batches uploaded')
-      router.push('/admin')
+      showToast('All batches completed')
     }
   }
 
-  // =============================
-  // EDIT
-  // =============================
   function updateField(i,field,value){
     const copy=[...batches]
     copy[currentBatch][i][field]=value
@@ -191,28 +187,25 @@ export default function UploadExcelPage(){
     setBatches(copy)
   }
 
-  // =============================
-  // REJECT
-  // =============================
   function toggleReject(i){
     const copy=[...batches]
-    copy[currentBatch][i].rejected = !copy[currentBatch][i].rejected
+    copy[currentBatch][i].rejected=!copy[currentBatch][i].rejected
     setBatches(copy)
   }
 
   const batch = batches[currentBatch] || []
 
   return (
-    <div style={{padding:20}}>
+    <div style={{padding:30, maxWidth:900, margin:'auto'}}>
 
-      <h2>Excel Upload (Batch Mode)</h2>
+      <h2 style={{fontSize:22, marginBottom:20}}>📊 Excel Upload</h2>
 
       <input type="file" onChange={e=>setFile(e.target.files[0])}/>
       <br/><br/>
       <input type="file" onChange={e=>setZipFile(e.target.files[0])}/>
       <br/><br/>
 
-      <button onClick={handlePreview}>Start</button>
+      <button onClick={handlePreview} style={btn}>Preview</button>
 
       {errors.length>0 && (
         <div style={{color:'red'}}>
@@ -220,74 +213,54 @@ export default function UploadExcelPage(){
         </div>
       )}
 
-      {batch.length>0 && (
-        <>
-          <h3>Batch {currentBatch+1} / {batches.length}</h3>
+      {batch.map((r,i)=>(
+        <div key={i} style={card}>
+          <b>Q{i+1}</b>
 
-          {batch.map((r,i)=>(
-            <div key={i} style={{border:'1px solid #ccc',marginBottom:10,padding:10}}>
+          <textarea
+            value={r.question}
+            onChange={e=>updateField(i,'question',e.target.value)}
+            style={input}
+          />
 
-              <b>Q{i+1}</b>
-
-              <textarea
-                value={r.question}
-                onChange={e=>updateField(i,'question',e.target.value)}
-              />
-
-              {r.image_name && imageMap[r.image_name] && (
-                <img src={URL.createObjectURL(imageMap[r.image_name])} width={120}/>
-              )}
-
-              {['option_a','option_b','option_c','option_d'].map(op=>(
-                <input
-                  key={op}
-                  value={r[op]}
-                  onChange={e=>updateField(i,op,e.target.value)}
-                />
-              ))}
-
-              <input
-                value={r.correct_answer}
-                onChange={e=>updateField(i,'correct_answer',e.target.value)}
-              />
-
-              <textarea
-                value={r.explanation}
-                onChange={e=>updateField(i,'explanation',e.target.value)}
-              />
-
-              {r.explanation_image_name && imageMap[r.explanation_image_name] && (
-                <img src={URL.createObjectURL(imageMap[r.explanation_image_name])} width={120}/>
-              )}
-
-              <br/>
-
-              <button onClick={()=>toggleReject(i)}>
-                {r.rejected ? 'Undo Reject' : 'Reject'}
-              </button>
-
-            </div>
+          {['option_a','option_b','option_c','option_d'].map(op=>(
+            <input key={op} value={r[op]}
+              onChange={e=>updateField(i,op,e.target.value)}
+              style={input}
+            />
           ))}
 
-          <button onClick={uploadBatch}>
-            {uploading ? 'Uploading...' : 'Upload Batch'}
+          <button onClick={()=>toggleReject(i)} style={rejectBtn}>
+            {r.rejected ? 'Undo' : 'Reject'}
           </button>
-        </>
+        </div>
+      ))}
+
+      {batch.length>0 && (
+        <button onClick={uploadBatch} style={uploadBtn}>
+          {uploading ? 'Uploading...' : 'Upload Batch'}
+        </button>
       )}
 
-      {toast && (
-        <div style={{
-          position:'fixed',
-          bottom:20,
-          right:20,
-          background: toast.type==='error'?'red':'green',
-          color:'#fff',
-          padding:10
-        }}>
-          {toast.msg}
+      {stats && (
+        <div style={statsBox}>
+          Total: {stats.total} <br/>
+          Uploaded: {stats.uploaded} <br/>
+          Rejected: {stats.rejected} <br/>
+          Edited: {stats.edited}
         </div>
       )}
 
+      {toast && <div style={toastStyle}>{toast.msg}</div>}
     </div>
   )
 }
+
+// ===== STYLES =====
+const card={border:'1px solid #ddd', padding:15, marginBottom:10, borderRadius:8}
+const input={display:'block', width:'100%', marginBottom:8, padding:8}
+const btn={padding:'10px 15px', background:'#2563eb', color:'#fff', border:'none', borderRadius:6}
+const uploadBtn={...btn, marginTop:20}
+const rejectBtn={background:'#ef4444', color:'#fff', padding:'5px 10px', border:'none', borderRadius:5}
+const statsBox={background:'#ecfdf5', padding:15, marginTop:20, borderRadius:8}
+const toastStyle={position:'fixed', bottom:20, right:20, background:'green', color:'#fff', padding:10}
