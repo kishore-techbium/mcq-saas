@@ -76,7 +76,10 @@ export default function UploadWordPage(){
         const match = block.match(new RegExp(`${label}:\\s*([^<]*)`,'i'))
         return match ? match[1]?.trim() : ''
       }
-
+const getQuestionHTML = ()=>{
+  const match = block.match(/Q:\s*([\s\S]*?)A\./i)
+  return match ? match[1].trim() : ''
+}
       const getOption = (letter)=>{
         const match = block.match(new RegExp(`${letter}\\.\\s*([^<]*)`,'i'))
         return match ? match[1]?.trim() : ''
@@ -89,10 +92,6 @@ export default function UploadWordPage(){
         subtopic:get('Subtopic'),
         difficulty:get('Difficulty'),
 
-        const getQuestionHTML = ()=>{
-  const match = block.match(/Q:\s*([\s\S]*?)A\./i)
-  return match ? match[1].trim() : ''
-}
       question_html:getQuestionHTML(),
 
         option_a:getOption('A'),
