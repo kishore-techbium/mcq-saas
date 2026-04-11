@@ -89,7 +89,11 @@ export default function UploadWordPage(){
         subtopic:get('Subtopic'),
         difficulty:get('Difficulty'),
 
-        question_html:block,
+        const getQuestionHTML = ()=>{
+  const match = block.match(/Q:\s*([\s\S]*?)A\./i)
+  return match ? match[1].trim() : ''
+}
+      question_html:getQuestionHTML(),
 
         option_a:getOption('A'),
         option_b:getOption('B'),
