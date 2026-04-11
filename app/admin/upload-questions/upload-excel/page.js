@@ -129,7 +129,23 @@ export default function UploadExcelPage(){
 
     const zipMap = await processZip(zipFile)
     setImageMap(zipMap)
+// 🔥 IMAGE VALIDATION
+const imageErrors = []
 
+rows.forEach((r, i) => {
+  if (r.image_name && !zipMap[r.image_name]) {
+    imageErrors.push(`Row ${i+2}: Missing image ${r.image_name}`)
+  }
+
+  if (r.explanation_image_name && !zipMap[r.explanation_image_name]) {
+    imageErrors.push(`Row ${i+2}: Missing explanation image ${r.explanation_image_name}`)
+  }
+})
+
+if (imageErrors.length) {
+  setErrors(imageErrors)
+  return showToast('Image validation failed', 'error')
+}
     const enriched = rows.map(r=>({
       ...r,
       rejected:false,
@@ -332,6 +348,13 @@ export default function UploadExcelPage(){
                 onChange={e=>updateField(i,'question',e.target.value)}
                 style={input}
               />
+              {/* 🔥 QUESTION IMAGE PREVIEW */}
+{r.image_name && imageMap[r.image_name] && (
+  <img
+    src={URL.createObjectURL(imageMap[r.image_name])}
+    style={{maxWidth:200, marginBottom:10}}
+  />
+)}
 
               {['option_a','option_b','option_c','option_d'].map(op=>(
                 <input key={op}
@@ -340,7 +363,13 @@ export default function UploadExcelPage(){
                   style={input}
                 />
               ))}
-
+{/* 🔥 EXPLANATION IMAGE PREVIEW */}
+{r.explanation_image_name && imageMap[r.explanation_image_name] && (
+  <img
+    src={URL.createObjectURL(imageMap[r.explanation_image_name])}
+    style={{maxWidth:200, marginTop:10}}
+  />
+)}
               <button onClick={()=>toggleReject(i)} style={rejectBtn}>
                 {r.rejected ? 'Undo Reject' : 'Reject'}
               </button>
