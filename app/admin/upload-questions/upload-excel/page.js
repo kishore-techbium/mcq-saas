@@ -190,10 +190,6 @@ if (imageErrors.length) {
   // =============================
   async function uploadBatch(){
 
-    // ✅ NEW VALIDATION
-    if(!selectedExam){
-      return showToast('Please select exam','error')
-    }
 
     setUploading(true)
 
