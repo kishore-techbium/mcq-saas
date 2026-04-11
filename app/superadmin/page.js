@@ -4,7 +4,30 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
 export default function Dashboard() {
+useEffect(() => {
+  checkAccess()
+}, [])
 
+async function checkAccess() {
+  const { data: auth } = await supabase.auth.getUser()
+
+  if (!auth.user) {
+    window.location.href = '/'
+    return
+  }
+
+  // ✅ CHECK ROLE FROM students TABLE
+  const { data: user } = await supabase
+    .from('students')
+    .select('role')
+    .eq('id', auth.user.id)
+    .maybeSingle()
+
+  if (!user || user.role !== 'superadmin') {
+    alert('Unauthorized access')
+    window.location.href = '/dashboard'
+  }
+}
   const [stats, setStats] = useState({
     colleges: 0,
     students: 0,
