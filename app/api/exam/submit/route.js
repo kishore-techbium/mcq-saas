@@ -14,20 +14,39 @@ export async function POST(req) {
       return Response.json({ error: 'Invalid payload' }, { status: 400 })
     }
 
-    // ✅ SAVE ANSWERS EXACTLY LIKE OLD SYSTEM
-    const { error } = await supabase
-      .from('exam_sessions')
-      .update({
-        answers: {
-          ...answers,
-          timeSpent,
-          questionOrder
-        },
-        submitted: true,
-        submitted_at: new Date(),
-        processing_status: 'queued'
-      })
-      .eq('id', sessionId)
+const { data: sessionData, error: sessionError } = await supabase
+  .from('exam_sessions')
+  .select('student_id')
+  .eq('id', sessionId)
+  .single()
+
+if (sessionError || !sessionData) {
+  throw new Error('Session not found')
+}
+
+const { data: userData, error: userError } = await supabase
+  .from('students')
+  .select('college_id')
+  .eq('id', sessionData.student_id)
+  .single()
+
+if (userError || !userData || !userData.college_id) {
+  throw new Error('College not found for student')
+}
+const { error } = await supabase
+  .from('exam_sessions')
+  .update({
+    answers: {
+      ...answers,
+      timeSpent,
+      questionOrder
+    },
+    submitted: true,
+    submitted_at: new Date(),
+    processing_status: 'queued',
+    college_id: userData.college_id
+  })
+  .eq('id', sessionId)
 
     if (error) throw error
 
