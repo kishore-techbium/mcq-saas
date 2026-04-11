@@ -271,11 +271,44 @@ export default function UploadWordPage(){
               <b>Q{i+1}</b>
 
               {/* ✅ EDITABLE */}
-              <textarea
-                value={r.question_html}
-                onChange={e=>updateField(i,'question_html',e.target.value)}
-                style={{width:'100%',height:120}}
-              />
+{/* QUESTION */}
+<textarea
+  value={r.question_html}
+  onChange={e=>updateField(i,'question_html',e.target.value)}
+  style={{width:'100%',height:120, marginBottom:10}}
+/>
+
+{/* OPTIONS */}
+<input
+  value={r.option_a}
+  onChange={e=>updateField(i,'option_a',e.target.value)}
+  placeholder="Option A"
+/>
+
+<input
+  value={r.option_b}
+  onChange={e=>updateField(i,'option_b',e.target.value)}
+  placeholder="Option B"
+/>
+
+<input
+  value={r.option_c}
+  onChange={e=>updateField(i,'option_c',e.target.value)}
+  placeholder="Option C"
+/>
+
+<input
+  value={r.option_d}
+  onChange={e=>updateField(i,'option_d',e.target.value)}
+  placeholder="Option D"
+/>
+
+{/* ANSWER */}
+<input
+  value={r.correct_answer}
+  onChange={e=>updateField(i,'correct_answer',e.target.value)}
+  placeholder="Correct Answer (A/B/C/D)"
+/>
 
               <button onClick={()=>toggleReject(i)} style={rejectBtn}>
                 {r.rejected ? 'Undo Reject' : 'Reject'}
