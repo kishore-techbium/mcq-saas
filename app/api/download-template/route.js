@@ -8,8 +8,8 @@ export async function GET() {
     // ============================
     // 1. FETCH MASTER DATA
     // ============================
-    const { data, error } = await supabase
-      .from('subjects_master')
+const { data, error } = await supabaseServer
+  .from('subjects_master')
       .select('exam_category, subject, chapter, subtopic')
       .eq('is_active', true)
 
