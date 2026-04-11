@@ -33,7 +33,7 @@ export default function CollegeInsights() {
       .from('students')
       .select('college_id, role, first_name')
       .eq('email', user.email) // ✅ IMPORTANT FIX
-      .single()
+      .maybeSingle()
 
     if (!userData) {
       alert('User not found in students table')
