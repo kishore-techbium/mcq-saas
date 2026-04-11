@@ -172,9 +172,12 @@ export async function GET() {
 
   } catch (err) {
     console.error(err)
-    return Response.json(
-      { error: 'Failed to generate Word template' },
-      { status: 500 }
-    )
+return new Response(
+  JSON.stringify({ error: 'Failed to generate Word template' }),
+  {
+    status: 500,
+    headers: { 'Content-Type': 'application/json' }
+  }
+)
   }
 }
