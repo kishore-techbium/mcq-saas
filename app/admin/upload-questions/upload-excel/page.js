@@ -2,7 +2,6 @@
 
 import { supabase } from '../../../../lib/supabase'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
 import { getAdminCollege } from '../../../../lib/getAdminCollege'
 
@@ -11,320 +10,218 @@ const REQUIRED_COLUMNS = [
   'option_a','option_b','option_c','option_d','correct_answer'
 ]
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024
+const BATCH_SIZE = 25
 
 export default function UploadExcelPage() {
 
-  const router = useRouter()
+  const [file,setFile] = useState(null)
+  const [rows,setRows] = useState([])
 
-  const [file, setFile] = useState(null)
-  const [previewRows, setPreviewRows] = useState([])
-  const [isPreview, setIsPreview] = useState(false)
+  const [currentBatch,setCurrentBatch] = useState(0)
+  const [batches,setBatches] = useState([])
 
-  const [selectedExam, setSelectedExam] = useState('')
-  const [exams, setExams] = useState([])
+  const [selectedExam,setSelectedExam] = useState('')
+  const [exams,setExams] = useState([])
 
-  const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 25
+  const [uploading,setUploading] = useState(false)
 
-  const [errors, setErrors] = useState([])
-  const [progress, setProgress] = useState(0)
-  const [uploading, setUploading] = useState(false)
-
-  const [stats, setStats] = useState({
+  const [stats,setStats] = useState({
     total:0,
-    uploaded:0
+    uploaded:0,
+    rejected:0,
+    edited:0
   })
 
-  const [toast, setToast] = useState(null)
+  const [toast,setToast] = useState(null)
 
-  useEffect(() => { loadExams() }, [])
+  useEffect(()=>{ loadExams() },[])
 
-  // ✅ SAME LOGIC (FIXED SAFE)
-  async function loadExams() {
+  async function loadExams(){
     const collegeId = await getAdminCollege()
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('exams')
       .select('id,title')
       .eq('college_id', collegeId)
 
-    if(error){
-      console.error(error)
-    }else{
-      setExams(data || [])
-    }
+    setExams(data || [])
   }
 
-  function showToast(message, type='success') {
-    setToast({ message, type })
+  function showToast(msg,type='success'){
+    setToast({msg,type})
     setTimeout(()=>setToast(null),3000)
-  }
-
-  function validateRow(row,index){
-    const errs=[]
-
-    REQUIRED_COLUMNS.forEach(col=>{
-      if(row[col] === undefined || row[col] === null || String(row[col]).trim()===''){
-        errs.push(`Row ${index+2}: Missing ${col}`)
-      }
-    })
-
-    if(row.difficulty && !['Easy','Medium','Hard'].includes(row.difficulty)){
-      errs.push(`Row ${index+2}: Invalid difficulty`)
-    }
-
-    if(row.correct_answer && !['A','B','C','D'].includes(row.correct_answer)){
-      errs.push(`Row ${index+2}: Invalid answer`)
-    }
-
-    return errs
   }
 
   async function handlePreview(){
 
     if(!file) return showToast('Select file','error')
-    if(file.size>MAX_FILE_SIZE) return showToast('File too large','error')
 
-    try{
-      const buffer=await file.arrayBuffer()
-      const wb=XLSX.read(buffer)
-      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]])
+    const buffer = await file.arrayBuffer()
+    const wb = XLSX.read(buffer)
+    const excelRows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]])
 
-      if(!rows.length) return showToast('Empty file','error')
+    const enriched = excelRows.map(r=>({
+      ...r,
+      rejected:false,
+      edited:false
+    }))
 
-      const headers=Object.keys(rows[0])
-      const missing=REQUIRED_COLUMNS.filter(c=>!headers.includes(c))
-
-      if(missing.length){
-        setErrors(missing.map(m=>`Missing ${m}`))
-        return showToast('Missing columns','error')
-      }
-
-      let allErrors=[]
-      rows.forEach((r,i)=>allErrors.push(...validateRow(r,i)))
-
-      if(allErrors.length){
-        setErrors(allErrors)
-        return showToast('Validation failed','error')
-      }
-
-      setPreviewRows(rows)
-      setIsPreview(true)
-      setCurrentPage(1)
-
-      setStats({
-        total: rows.length,
-        uploaded: 0
-      })
-
-    }catch{
-      showToast('Invalid file','error')
+    const temp=[]
+    for(let i=0;i<enriched.length;i+=BATCH_SIZE){
+      temp.push(enriched.slice(i,i+BATCH_SIZE))
     }
+
+    setRows(enriched)
+    setBatches(temp)
+    setCurrentBatch(0)
+
+    setStats({
+      total: enriched.length,
+      uploaded:0,
+      rejected:0,
+      edited:0
+    })
   }
 
-  async function handleUpload(){
+  async function uploadBatch(){
 
-    if(!previewRows.length) return
-
-    const collegeId=await getAdminCollege()
+    if(!selectedExam) return showToast('Select exam','error')
 
     setUploading(true)
-    setProgress(40)
 
-    try{
+    const collegeId = await getAdminCollege()
+    const batch = batches[currentBatch]
 
-      const payload=previewRows.map(r=>({...r,college_id:collegeId}))
+    let uploaded=0
+    let rejected=0
+    let edited=0
 
-      const {data:inserted,error}=await supabase
-        .from('question_bank')
-        .insert(payload)
-        .select()
+    for(let r of batch){
 
-      if(error) throw error
-
-      if(selectedExam){
-        await supabase.from('exam_questions').insert(
-          inserted.map(q=>({
-            exam_id:selectedExam,
-            question_id:q.id
-          }))
-        )
+      if(r.rejected){
+        rejected++
+        continue
       }
 
-      setStats({
-        total: previewRows.length,
-        uploaded: inserted.length
-      })
+      if(r.edited) edited++
 
-      setProgress(100)
-      showToast('Uploaded successfully')
+      const { data,error } = await supabase
+        .from('question_bank')
+        .insert([{ ...r, college_id:collegeId }])
+        .select()
 
-      setTimeout(()=>router.push('/admin'),1000)
+      if(!error && data){
 
-    }catch(err){
-      console.error(err)
-      showToast('Upload failed','error')
+        await supabase.from('exam_questions').insert([{
+          exam_id:selectedExam,
+          question_id:data[0].id
+        }])
+
+        uploaded++
+      }
     }
 
+    setStats(prev=>({
+      total: prev.total,
+      uploaded: prev.uploaded + uploaded,
+      rejected: prev.rejected + rejected,
+      edited: prev.edited + edited
+    }))
+
     setUploading(false)
+
+    if(currentBatch+1 < batches.length){
+      setCurrentBatch(currentBatch+1)
+    }else{
+      showToast('All batches uploaded')
+    }
   }
 
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-  const paginatedRows = previewRows.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  function updateField(i,field,value){
+    const copy=[...batches]
+    copy[currentBatch][i][field]=value
+    copy[currentBatch][i].edited=true
+    setBatches(copy)
+  }
+
+  function toggleReject(i){
+    const copy=[...batches]
+    copy[currentBatch][i].rejected=!copy[currentBatch][i].rejected
+    setBatches(copy)
+  }
+
+  const batch = batches[currentBatch] || []
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
+    <div style={styles.container}>
 
-        <h1 style={styles.heading}>📊 Upload Questions via Excel</h1>
+      <h2>📊 Excel Upload</h2>
 
-        {/* FILE */}
-        <div style={styles.section}>
-          <label style={styles.label}>Excel File</label>
-          <input 
-            type="file" 
-            accept=".xlsx,.xls"
-            onChange={e=>setFile(e.target.files[0])}
-          />
-          <div style={styles.fileName}>{file?.name}</div>
-        </div>
+      <select
+        value={selectedExam}
+        onChange={e=>setSelectedExam(e.target.value)}
+        style={styles.select}
+      >
+        <option value="">Select Exam</option>
+        {exams.map(e=>(
+          <option key={e.id} value={e.id}>{e.title}</option>
+        ))}
+      </select>
 
-        {/* EXAM */}
-        <div style={styles.section}>
-          <label style={styles.label}>Select Exam</label>
-          <select
-            value={selectedExam}
-            onChange={e=>setSelectedExam(e.target.value)}
-            style={styles.select}
-          >
-            <option value="">-- Select Exam --</option>
-            {exams.map(e=>(
-              <option key={e.id} value={e.id}>
-                {e.title}
-              </option>
-            ))}
-          </select>
-        </div>
+      <input type="file" onChange={e=>setFile(e.target.files[0])}/>
 
-        {!isPreview && (
-          <button style={styles.previewBtn} onClick={handlePreview}>
-            Preview Questions
-          </button>
-        )}
+      <button onClick={handlePreview}>Preview</button>
 
-        {isPreview && (
-          <button style={styles.uploadBtn} onClick={handleUpload}>
-            {uploading ? `Uploading ${progress}%` : 'Upload Questions'}
-          </button>
-        )}
-
-        {/* STATS */}
-        {isPreview && (
-          <div style={styles.stats}>
-            Total: {stats.total} | Uploaded: {stats.uploaded}
-          </div>
-        )}
-
-        {/* TABLE */}
-        {isPreview && previewRows.length>0 && (
-          <div style={styles.previewBox}>
-            <h3>Preview ({previewRows.length})</h3>
-
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Question</th>
-                  <th>A</th>
-                  <th>B</th>
-                  <th>C</th>
-                  <th>D</th>
-                  <th>Ans</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {paginatedRows.map((r,i)=>(
-                  <tr key={i}>
-                    <td>{startIndex + i + 1}</td>
-                    <td>{r.question}</td>
-                    <td>{r.option_a}</td>
-                    <td>{r.option_b}</td>
-                    <td>{r.option_c}</td>
-                    <td>{r.option_d}</td>
-                    <td>{r.correct_answer}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* PAGINATION */}
-            <div style={styles.pagination}>
-              {Array.from({length: Math.ceil(previewRows.length / ITEMS_PER_PAGE)}).map((_,i)=>(
-                <button
-                  key={i}
-                  onClick={()=>setCurrentPage(i+1)}
-                  style={{
-                    ...styles.pageBtn,
-                    background: currentPage===i+1 ? '#2563eb' : '#ddd',
-                    color: currentPage===i+1 ? '#fff' : '#000'
-                  }}
-                >
-                  {i+1}
-                </button>
-              ))}
-            </div>
-
-          </div>
-        )}
-
-        {errors.length>0 && (
-          <div style={styles.errorBox}>
-            {errors.slice(0,5).map((e,i)=><div key={i}>{e}</div>)}
-          </div>
-        )}
-
-        {toast && (
-          <div style={{
-            ...styles.toast,
-            background: toast.type==='error'?'#dc2626':'#16a34a'
-          }}>
-            {toast.message}
-          </div>
-        )}
-
+      {/* STATS */}
+      <div style={styles.stats}>
+        Total: {stats.total} |
+        Uploaded: {stats.uploaded} |
+        Rejected: {stats.rejected} |
+        Edited: {stats.edited}
       </div>
+
+      {/* BATCH INFO */}
+      {batch.length>0 && (
+        <div>Batch {currentBatch+1} / {batches.length}</div>
+      )}
+
+      {/* QUESTIONS */}
+      {batch.map((r,i)=>(
+        <div key={i} style={styles.card}>
+
+          <b>Q{currentBatch*BATCH_SIZE + i +1}</b>
+
+          <textarea
+            value={r.question}
+            onChange={e=>updateField(i,'question',e.target.value)}
+          />
+
+          <input value={r.option_a} onChange={e=>updateField(i,'option_a',e.target.value)} />
+          <input value={r.option_b} onChange={e=>updateField(i,'option_b',e.target.value)} />
+          <input value={r.option_c} onChange={e=>updateField(i,'option_c',e.target.value)} />
+          <input value={r.option_d} onChange={e=>updateField(i,'option_d',e.target.value)} />
+
+          <button onClick={()=>toggleReject(i)}>
+            {r.rejected?'Undo':'Reject'}
+          </button>
+
+        </div>
+      ))}
+
+      {batch.length>0 && (
+        <button onClick={uploadBatch}>
+          {uploading?'Uploading...':'Upload Batch'}
+        </button>
+      )}
+
+      {toast && <div>{toast.msg}</div>}
     </div>
   )
 }
 
-/* ================= STYLES ================= */
-
 const styles = {
-  page:{padding:30,display:'flex',justifyContent:'center',background:'#f9fafb'},
-  card:{maxWidth:1000,width:'100%',background:'#fff',padding:20,borderRadius:10,boxShadow:'0 0 10px rgba(0,0,0,0.05)'},
-  heading:{fontSize:22,marginBottom:15},
-
-  section:{marginBottom:15},
-  label:{fontWeight:'bold',display:'block',marginBottom:5},
-  fileName:{fontSize:12,color:'#555'},
-
-  select:{width:'100%',padding:8},
-
-  previewBtn:{background:'#2563eb',color:'#fff',padding:10,border:'none'},
-  uploadBtn:{background:'#16a34a',color:'#fff',padding:10,border:'none'},
-
-  stats:{marginTop:10,fontWeight:'bold'},
-
-  previewBox:{marginTop:20},
-
-  table:{width:'100%',borderCollapse:'collapse'},
-  pagination:{marginTop:10},
-
-  pageBtn:{marginRight:5,padding:'5px 10px'},
-
-  errorBox:{background:'#fee2e2',marginTop:10,padding:10},
-
-  toast:{position:'fixed',bottom:20,right:20,color:'#fff',padding:10,borderRadius:6}
+  container:{maxWidth:900,margin:'auto',padding:20},
+  select:{width:'100%',marginBottom:10},
+  stats:{marginTop:10},
+  card:{border:'1px solid #ddd',padding:10,marginTop:10}
 }
