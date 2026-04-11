@@ -329,7 +329,7 @@ function renderTable(headers, rows) {
     padding: '12px',
     fontSize: 14,
     fontWeight: 500,
-    textAlign: typeof c === 'number' ? 'right' : 'left'
+    textAlign: j === 0 ? 'left' : 'right'
   }}
 >
   {c}
