@@ -1,7 +1,7 @@
 'use client'
 
 import { supabase } from '../../../../lib/supabase'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import mammoth from 'mammoth'
 import { getAdminCollege } from '../../../../lib/getAdminCollege'
 
@@ -13,20 +13,25 @@ export default function UploadWordPage(){
   const [batches,setBatches] = useState([])
   const [currentBatch,setCurrentBatch] = useState(0)
 
-  const [stats,setStats] = useState(null)
-  const [toast,setToast] = useState(null)
+  const [exams,setExams] = useState([])
+  const [selectedExam,setSelectedExam] = useState('')
 
-  function showToast(msg){
-    setToast(msg)
-    setTimeout(()=>setToast(null),3000)
+  const [globalStats,setGlobalStats] = useState({
+    total:0, uploaded:0, rejected:0, edited:0
+  })
+
+  useEffect(()=>{
+    loadExams()
+  },[])
+
+  async function loadExams(){
+    const { data } = await supabase.from('exams').select('*')
+    setExams(data || [])
   }
-
-  const clean = (t)=> t?.replace(/\s+/g,' ').trim()
 
   async function parseWord(file){
 
     const buffer = await file.arrayBuffer()
-
     const result = await mammoth.convertToHtml({ arrayBuffer:buffer })
 
     const html = result.value
@@ -38,12 +43,7 @@ export default function UploadWordPage(){
 
       const get = (label)=>{
         const match = block.match(new RegExp(`${label}:\\s*([^<]*)`,'i'))
-        return match ? clean(match[1]) : ''
-      }
-
-      const getOption = (letter)=>{
-        const match = block.match(new RegExp(`${letter}\\.\\s*([^<]*)`,'i'))
-        return match ? clean(match[1]) : ''
+        return match ? match[1]?.trim() : ''
       }
 
       return {
@@ -53,15 +53,7 @@ export default function UploadWordPage(){
         subtopic:get('Subtopic'),
         difficulty:get('Difficulty'),
 
-        question_html:block,
-
-        option_a:getOption('A'),
-        option_b:getOption('B'),
-        option_c:getOption('C'),
-        option_d:getOption('D'),
-
-        correct_answer:get('Answer'),
-        explanation:get('Explanation'),
+        question:block,
 
         rejected:false,
         edited:false
@@ -80,50 +72,59 @@ export default function UploadWordPage(){
 
     setBatches(temp)
     setCurrentBatch(0)
+
+    setGlobalStats({
+      total: parsed.length,
+      uploaded:0,
+      rejected:0,
+      edited:0
+    })
   }
 
   async function uploadBatch(){
 
     const collegeId = await getAdminCollege()
-
-    let uploaded=0
-    let rejected=0
-    let edited=0
-
     const batch = batches[currentBatch]
+
+    let batchUploaded=0
+    let batchRejected=0
 
     for(let r of batch){
 
       if(r.rejected){
-        rejected++
+        batchRejected++
         continue
       }
 
-      if(r.edited) edited++
+      const { data } = await supabase
+        .from('question_bank')
+        .insert([{
+          ...r,
+          college_id:collegeId
+        }])
+        .select()
 
-      const { error } = await supabase.from('question_bank').insert([{
-        ...r,
-        question:r.question_html,
-        college_id:collegeId
-      }])
+      if(data){
 
-      if(!error) uploaded++
+        await supabase.from('exam_questions').insert([{
+          exam_id:selectedExam,
+          question_id:data[0].id
+        }])
+
+        batchUploaded++
+      }
     }
 
-    setStats({total:batch.length, uploaded, rejected, edited})
+    setGlobalStats(prev=>({
+      total:prev.total,
+      uploaded:prev.uploaded+batchUploaded,
+      rejected:prev.rejected+batchRejected,
+      edited:prev.edited
+    }))
 
     if(currentBatch+1 < batches.length){
       setCurrentBatch(currentBatch+1)
-    }else{
-      showToast('All batches completed')
     }
-  }
-
-  function updateField(i,field,value){
-    const copy=[...batches]
-    copy[currentBatch][i][field]=value
-    copy[currentBatch][i].edited=true
-    setBatches(copy)
   }
 
   function toggleReject(i){
@@ -135,9 +136,16 @@ export default function UploadWordPage(){
   const batch = batches[currentBatch] || []
 
   return (
-    <div style={{padding:30, maxWidth:900, margin:'auto'}}>
+    <div style={{padding:30,maxWidth:900,margin:'auto'}}>
 
       <h2>📄 Word Upload</h2>
+
+      <select onChange={e=>setSelectedExam(e.target.value)} style={input}>
+        <option>Select Exam</option>
+        {exams.map(e=>(
+          <option key={e.id} value={e.id}>{e.name}</option>
+        ))}
+      </select>
 
       <input type="file" onChange={e=>setFile(e.target.files[0])}/>
       <br/><br/>
@@ -146,39 +154,38 @@ export default function UploadWordPage(){
 
       {batch.map((r,i)=>(
         <div key={i} style={card}>
-          <b>Q{i+1}</b>
-
-          <div dangerouslySetInnerHTML={{__html:r.question_html}}/>
+          <textarea
+            value={r.question}
+            onChange={e=>{
+              const copy=[...batches]
+              copy[currentBatch][i].question=e.target.value
+              copy[currentBatch][i].edited=true
+              setBatches(copy)
+            }}
+            style={{width:'100%',height:120}}
+          />
 
           <button onClick={()=>toggleReject(i)} style={rejectBtn}>
-            {r.rejected ? 'Undo' : 'Reject'}
+            {r.rejected?'Undo':'Reject'}
           </button>
         </div>
       ))}
 
       {batch.length>0 && (
-        <button onClick={uploadBatch} style={uploadBtn}>
+        <button onClick={uploadBatch} style={btn}>
           Upload Batch
         </button>
       )}
 
-      {stats && (
-        <div style={statsBox}>
-          Total: {stats.total} <br/>
-          Uploaded: {stats.uploaded} <br/>
-          Rejected: {stats.rejected} <br/>
-          Edited: {stats.edited}
-        </div>
-      )}
-
-      {toast && <div style={toastStyle}>{toast}</div>}
+      <div style={statsBox}>
+        Total:{globalStats.total} | Uploaded:{globalStats.uploaded}
+      </div>
     </div>
   )
 }
 
-const card={border:'1px solid #ddd', padding:15, marginBottom:10, borderRadius:8}
-const btn={padding:'10px 15px', background:'#2563eb', color:'#fff', border:'none', borderRadius:6}
-const uploadBtn={...btn, marginTop:20}
-const rejectBtn={background:'#ef4444', color:'#fff', padding:'5px 10px', border:'none', borderRadius:5}
-const statsBox={background:'#ecfdf5', padding:15, marginTop:20, borderRadius:8}
-const toastStyle={position:'fixed', bottom:20, right:20, background:'green', color:'#fff', padding:10}
+const card={border:'1px solid #ddd',padding:10,marginBottom:10}
+const input={width:'100%',padding:8,marginBottom:8}
+const btn={padding:10,background:'#2563eb',color:'#fff',border:'none'}
+const rejectBtn={background:'red',color:'#fff',padding:5}
+const statsBox={background:'#ecfdf5',padding:10,marginTop:10}
