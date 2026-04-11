@@ -120,14 +120,16 @@ export async function GET() {
       }
     })
 
-  } catch (err) {
-    console.error(err)
-    return new Response(
-  JSON.stringify({ error: 'Failed to generate Word template' }),
-  {
-    status: 500,
-    headers: { 'Content-Type': 'application/json' }
-  }
-)
-  }
+  } 
+  catch (err) {
+  console.error('FULL ERROR:', err)
+
+  return new Response(
+    JSON.stringify({ error: err.message }),
+    {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    }
+  )
+}
 }
