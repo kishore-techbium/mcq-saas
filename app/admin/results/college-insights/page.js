@@ -301,15 +301,41 @@ function renderTable(headers, rows) {
       <thead>
         <tr>
           {headers.map((h, i) => (
-            <th key={i}>{h}</th>
+            <th
+  key={i}
+  style={{
+    textAlign: 'left',
+    padding: '10px',
+    fontSize: 13,
+    color: '#64748b'
+  }}
+>
+  {h}
+</th>
           ))}
         </tr>
       </thead>
       <tbody>
         {rows.map((r, i) => (
-          <tr key={i}>
+          <tr
+  key={i}
+  style={{
+    background: '#f8fafc',
+    borderRadius: 10
+  }}
+>
             {r.map((c, j) => (
-              <td key={j}>{c}</td>
+ <td
+  key={j}
+  style={{
+    padding: '12px',
+    fontSize: 14,
+    fontWeight: 500,
+    textAlign: typeof c === 'number' ? 'right' : 'left'
+  }}
+>
+  {c}
+</td>
             ))}
           </tr>
         ))}
@@ -323,19 +349,26 @@ function renderTable(headers, rows) {
 const styles = {
   page: { padding: 40, background: '#f1f5f9', minHeight: '100vh' },
   cards: { display: 'flex', gap: 20, marginBottom: 30 },
+  
   card: {
-    background: '#fff',
-    padding: 20,
-    borderRadius: 12,
-    boxShadow: '0 5px 15px rgba(0,0,0,0.08)'
-  },
+  background: '#fff',
+  padding: 20,
+  borderRadius: 12,
+  minWidth: 180,
+  textAlign: 'center',
+      boxShadow: '0 5px 15px rgba(0,0,0,0.08)'
+},
   section: {
     background: '#fff',
     padding: 20,
     borderRadius: 16,
     marginBottom: 20
   },
-  table: { width: '100%', borderCollapse: 'collapse' },
+  table: {
+  width: '100%',
+  borderCollapse: 'separate',
+  borderSpacing: '0 8px'
+},
   link: { color: '#2563eb', cursor: 'pointer', fontWeight: 600 },
   resetBtn: {
     marginBottom: 10,
