@@ -6,20 +6,33 @@ import { useState } from 'react'
 import mammoth from 'mammoth'
 import { getAdminCollege } from '../../../../lib/getAdminCollege'
 
+const BATCH_SIZE = 25
+
 export default function UploadWordPage(){
 
   const [file,setFile] = useState(null)
-  const [rows,setRows] = useState([])
-  const [isPreview,setIsPreview] = useState(false)
 
+  const [allRows,setAllRows] = useState([])
+  const [batches,setBatches] = useState([])
+  const [currentBatch,setCurrentBatch] = useState(0)
+
+  const [errors,setErrors] = useState([])
   const [uploading,setUploading] = useState(false)
-  const [progress,setProgress] = useState(0)
   const [status,setStatus] = useState('')
-  const [stats,setStats] = useState(null)
+  const [progress,setProgress] = useState(0)
+
+  const [toast,setToast] = useState(null)
+
+  function showToast(msg,type='success'){
+    setToast({msg,type})
+    setTimeout(()=>setToast(null),3000)
+  }
 
   const clean = (t)=> t?.replace(/\s+/g,' ').trim()
 
-  // ✅ PARSE WORD (TEXT + IMAGE)
+  // =============================
+  // PARSE WORD (WITH IMAGE)
+  // =============================
   async function parseWord(file){
 
     setStatus('Processing...')
@@ -49,16 +62,12 @@ export default function UploadWordPage(){
       }
     )
 
-    setProgress(60)
-
     const html = result.value
 
     const blocks = html
       .split(/Question\s+\d+:/i)
       .map(b => b.trim())
       .filter(b => b && b.includes('Q:'))
-
-    setProgress(80)
 
     return blocks.map(block=>{
 
@@ -74,17 +83,16 @@ export default function UploadWordPage(){
         return match ? clean(match[1]) : ''
       }
 
-      // ✅ EXTRACT QUESTION HTML (WITH IMAGE)
       const getQuestionHTML = ()=>{
         const match = block.match(/Q:\s*([\s\S]*?)A\./i)
         return match ? match[1].trim() : ''
       }
 
       return {
-        exam_category:get('Exam Category') || 'JEE_MAINS',
-        subject:get('Subject') || 'General',
-        chapter:get('Chapter') || 'General',
-        subtopic:get('Subtopic') || 'General',
+        exam_category:get('Exam Category'),
+        subject:get('Subject'),
+        chapter:get('Chapter'),
+        subtopic:get('Subtopic'),
         difficulty:get('Difficulty') || 'Medium',
 
         question_html:getQuestionHTML(),
@@ -94,157 +102,214 @@ export default function UploadWordPage(){
         option_c:getOption('C'),
         option_d:getOption('D'),
 
-        correct_answer:get('Answer')?.trim().toUpperCase() || 'A',
-        explanation:get('Explanation') || ''
+        correct_answer:get('Answer')?.trim().toUpperCase(),
+        explanation:get('Explanation') || '',
+
+        rejected:false,
+        rejection_reason:'',
+        edited:false
       }
     })
   }
 
+  // =============================
+  // MASTER VALIDATION (STRICT)
+  // =============================
+  async function validateMaster(rows){
+
+    const { data } = await supabase
+      .from('subjects_master')
+      .select('*')
+
+    const errs = []
+
+    rows.forEach((r,i)=>{
+      const ok = data.some(m =>
+        m.exam_category === r.exam_category &&
+        m.subject === r.subject &&
+        m.chapter === r.chapter &&
+        m.subtopic === r.subtopic
+      )
+
+      if(!ok){
+        errs.push(`Row ${i+1}: Invalid mapping → ${r.exam_category} | ${r.subject} | ${r.chapter} | ${r.subtopic}`)
+      }
+    })
+
+    return errs
+  }
+
+  // =============================
+  // PREVIEW
+  // =============================
   async function handlePreview(){
 
     if(!file) return alert('Select file')
 
     const parsed = await parseWord(file)
 
-    setRows(parsed)
-    setIsPreview(true)
+    const masterErrors = await validateMaster(parsed)
+
+    if(masterErrors.length){
+      setErrors(masterErrors.slice(0,20))
+      return showToast('Master validation failed','error')
+    }
+
+    const temp=[]
+    for(let i=0;i<parsed.length;i+=BATCH_SIZE){
+      temp.push(parsed.slice(i,i+BATCH_SIZE))
+    }
+
+    setAllRows(parsed)
+    setBatches(temp)
+    setCurrentBatch(0)
 
     setProgress(100)
     setStatus(`Preview Ready (${parsed.length})`)
   }
 
-  const delay = (ms)=> new Promise(res=>setTimeout(res,ms))
-
-  async function handleUpload(){
+  // =============================
+  // UPLOAD BATCH
+  // =============================
+  async function uploadBatch(){
 
     setUploading(true)
-    setStatus('Uploading...')
-    setProgress(0)
-
     const collegeId = await getAdminCollege()
 
-    let uploaded = []
+    const batch = batches[currentBatch]
 
-    for(let i=0;i<rows.length;i++){
+    let success = 0
 
-      const r = rows[i]
+    for(let i=0;i<batch.length;i++){
 
-const payload = {
-  exam_category: r.exam_category,
-  subject: r.subject,
-  chapter: r.chapter,
-  subtopic: r.subtopic,
-  difficulty: r.difficulty,
+      const r = batch[i]
+      if(r.rejected) continue
 
-  // ✅ IMPORTANT FIX
-  question: r.question_html,  
+      const payload = {
+        exam_category:r.exam_category,
+        subject:r.subject,
+        chapter:r.chapter,
+        subtopic:r.subtopic,
+        difficulty:r.difficulty,
 
-  option_a: r.option_a,
-  option_b: r.option_b,
-  option_c: r.option_c,
-  option_d: r.option_d,
+        question:r.question_html,
+        option_a:r.option_a,
+        option_b:r.option_b,
+        option_c:r.option_c,
+        option_d:r.option_d,
 
-  correct_answer: r.correct_answer?.trim().toUpperCase(),
-  explanation: r.explanation,
+        correct_answer:r.correct_answer,
+        explanation:r.explanation,
 
-  college_id: collegeId
-}
+        college_id:collegeId
+      }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('question_bank')
         .insert([payload])
-        .select()
 
-      if(error){
-        console.error('INSERT ERROR:', error)
-        continue
-      }
+      if(!error) success++
 
-      if(data){
-        uploaded.push(data[0])
-      }
-
-      setProgress(Math.round(((i+1)/rows.length)*100))
-      setStatus(`Uploading ${i+1}/${rows.length}`)
-
-      await delay(5)
+      setProgress(Math.round(((i+1)/batch.length)*100))
     }
 
     setUploading(false)
-    setStatus(`Upload Completed (${uploaded.length})`)
 
-    setStats({
-      total: rows.length,
-      uploaded: uploaded.length,
-      skipped: rows.length - uploaded.length
-    })
+    if(currentBatch+1 < batches.length){
+      setCurrentBatch(currentBatch+1)
+    }else{
+      showToast(`Completed (${success})`)
+    }
   }
 
-  function handleChange(i,field,value){
-    const updated = [...rows]
-    updated[i][field] = value
-    setRows(updated)
+  // =============================
+  // EDIT
+  // =============================
+  function updateField(i,field,value){
+    const copy=[...batches]
+    copy[currentBatch][i][field]=value
+    copy[currentBatch][i].edited=true
+    setBatches(copy)
   }
 
-  return(
+  function toggleReject(i){
+    const copy=[...batches]
+    copy[currentBatch][i].rejected = !copy[currentBatch][i].rejected
+    setBatches(copy)
+  }
+
+  const batch = batches[currentBatch] || []
+
+  return (
     <div style={{padding:20}}>
 
-      <h2>Word Upload</h2>
+      <h2>Word Upload (Batch Mode)</h2>
 
       <input type="file" onChange={e=>setFile(e.target.files[0])}/>
 
-      <div style={{marginTop:10}}>
-        <div style={{width:'100%',background:'#ddd',height:10}}>
-          <div style={{width:`${progress}%`,background:'blue',height:10}}/>
+      <button onClick={handlePreview}>Start</button>
+
+      {errors.length>0 && (
+        <div style={{color:'red'}}>
+          {errors.map((e,i)=><div key={i}>{e}</div>)}
         </div>
-        <div>{status}</div>
-      </div>
+      )}
 
-      {!isPreview && <button onClick={handlePreview}>Preview</button>}
-
-      {isPreview && (
+      {batch.length>0 && (
         <>
-          <button onClick={handleUpload}>
-            {uploading ? 'Uploading...' : 'Upload'}
-          </button>
+          <h3>Batch {currentBatch+1} / {batches.length}</h3>
 
-          {stats && (
-            <div style={{marginTop:10,background:'#ecfdf5',padding:10}}>
-              Total: {stats.total}<br/>
-              Uploaded: {stats.uploaded}<br/>
-              Skipped: {stats.skipped}
-            </div>
-          )}
-
-          {rows.map((r,i)=>(
-            <div key={i} style={{border:'1px solid #ccc',marginTop:10,padding:10}}>
+          {batch.map((r,i)=>(
+            <div key={i} style={{border:'1px solid #ccc',marginBottom:10,padding:10}}>
 
               <b>Q{i+1}</b>
 
-              {/* ✅ SHOW IMAGE + TEXT */}
-              <div
-                dangerouslySetInnerHTML={{ __html: r.question_html }}
-                style={{ marginBottom: 10 }}
-              />
+              <div dangerouslySetInnerHTML={{ __html: r.question_html }} />
 
-              {/* ✅ EDIT OPTIONS */}
               {['option_a','option_b','option_c','option_d'].map(op=>(
                 <input
                   key={op}
                   value={r[op]}
-                  onChange={e=>handleChange(i,op,e.target.value)}
+                  onChange={e=>updateField(i,op,e.target.value)}
                 />
               ))}
 
-              {/* ✅ EDIT ANSWER */}
               <input
                 value={r.correct_answer}
-                onChange={e=>handleChange(i,'correct_answer',e.target.value)}
+                onChange={e=>updateField(i,'correct_answer',e.target.value)}
               />
+
+              <textarea
+                value={r.explanation}
+                onChange={e=>updateField(i,'explanation',e.target.value)}
+              />
+
+              <br/>
+
+              <button onClick={()=>toggleReject(i)}>
+                {r.rejected ? 'Undo Reject' : 'Reject'}
+              </button>
 
             </div>
           ))}
+
+          <button onClick={uploadBatch}>
+            {uploading ? 'Uploading...' : 'Upload Batch'}
+          </button>
         </>
+      )}
+
+      {toast && (
+        <div style={{
+          position:'fixed',
+          bottom:20,
+          right:20,
+          background: toast.type==='error'?'red':'green',
+          color:'#fff',
+          padding:10
+        }}>
+          {toast.msg}
+        </div>
       )}
 
     </div>
