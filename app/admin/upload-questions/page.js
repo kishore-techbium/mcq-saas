@@ -62,14 +62,14 @@ export default function UploadQuestionsPage() {
           <div style={styles.templateBox}>
             <button 
               style={styles.templateBtn}
-              onClick={()=>window.open('/templates/question_template.xlsx')}
+              onClick={()=>window.open('/api/download-template')}
             >
               📊 Download Excel Template
             </button>
 
             <button 
               style={styles.templateBtn}
-              onClick={()=>window.open('/templates/word_question_template.docx')}
+              onClick={()=>window.open('/api/download-word-template')}
             >
               📄 Download Word Template
             </button>
