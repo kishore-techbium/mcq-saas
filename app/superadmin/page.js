@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 
 export default function Dashboard() {
 const [authorized, setAuthorized] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
     colleges: 0,
     students: 0,
@@ -14,7 +15,7 @@ const [authorized, setAuthorized] = useState(false)
 useEffect(() => {
   checkAccess()
 }, [])
-  async function checkAccess() {
+async function checkAccess() {
   const { data: auth } = await supabase.auth.getUser()
 
   if (!auth.user) {
@@ -35,8 +36,9 @@ useEffect(() => {
 
   setAuthorized(true)
 
-  // ✅ only load stats after authorization
-  loadStats()
+  await loadStats()
+
+  setLoading(false)   // ✅ important
 }
   async function loadStats() {
 
@@ -54,7 +56,7 @@ useEffect(() => {
 
     setStats({ colleges, students, exams })
   }
-if (!authorized) {
+if (loading) {
   return <p style={{ padding: 40 }}>Checking access...</p>
 }
   return (
