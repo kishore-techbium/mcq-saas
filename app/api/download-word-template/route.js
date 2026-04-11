@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { supabase } from '../../../lib/supabase'
+import { supabaseServer } from '../../../lib/supabase-server'
 import {
   Document,
   Packer,
