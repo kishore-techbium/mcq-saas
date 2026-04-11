@@ -1,5 +1,4 @@
 export const dynamic = 'force-dynamic'
-import { NextResponse } from 'next/server'
 import ExcelJS from 'exceljs'
 import { supabase } from '../../../lib/supabase'
 
@@ -112,7 +111,7 @@ export async function GET() {
     // ============================
     const buffer = await workbook.xlsx.writeBuffer()
 
-    return new NextResponse(buffer, {
+    return new Response(buffer, {
       headers: {
         'Content-Type':
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -123,6 +122,6 @@ export async function GET() {
 
   } catch (err) {
     console.error(err)
-    return NextResponse.json({ error: 'Failed to generate template' }, { status: 500 })
+    return Response.json({ error: 'Failed to generate template' }, { status: 500 })
   }
 }
