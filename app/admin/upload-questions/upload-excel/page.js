@@ -1,256 +1,293 @@
 'use client'
 
 import { supabase } from '../../../../lib/supabase'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import * as XLSX from 'xlsx'
+import JSZip from 'jszip'
 import { getAdminCollege } from '../../../../lib/getAdminCollege'
 
-const REQUIRED_COLUMNS = [
-  'exam_category','subject','chapter','subtopic','difficulty','question',
-  'option_a','option_b','option_c','option_d','correct_answer'
-]
+const BATCH_SIZE = 25
 
-const MAX_FILE_SIZE = 20 * 1024 * 1024
-
-export default function UploadExcelPage() {
+export default function UploadExcelPage(){
 
   const router = useRouter()
 
-  const [file, setFile] = useState(null)
-  const [previewRows, setPreviewRows] = useState([])
-  const [isPreview, setIsPreview] = useState(false)
-  const [selectedExam, setSelectedExam] = useState('')
-  const [exams, setExams] = useState([])
+  const [file,setFile] = useState(null)
+  const [zipFile,setZipFile] = useState(null)
 
-  const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 25
+  const [allRows,setAllRows] = useState([])
+  const [batches,setBatches] = useState([])
+  const [currentBatch,setCurrentBatch] = useState(0)
 
-  const [errors, setErrors] = useState([])
-  const [progress, setProgress] = useState(0)
-  const [uploading, setUploading] = useState(false)
-  const [toast, setToast] = useState(null)
+  const [imageMap,setImageMap] = useState({})
+  const [errors,setErrors] = useState([])
+  const [uploading,setUploading] = useState(false)
 
-  useEffect(() => { loadExams() }, [])
+  const [toast,setToast] = useState(null)
 
-  async function loadExams() {
-    const collegeId = await getAdminCollege()
-    const { data } = await supabase
-      .from('exams')
-      .select('*')
-      .eq('college_id', collegeId)
-
-    setExams(data || [])
-  }
-
-  function showToast(message, type='success') {
-    setToast({ message, type })
+  function showToast(msg,type='success'){
+    setToast({msg,type})
     setTimeout(()=>setToast(null),3000)
   }
 
-  function validateRow(row,index){
-    const errs=[]
+  // =============================
+  // ZIP PROCESS
+  // =============================
+  async function processZip(zipFile){
+    if(!zipFile) return {}
 
-    REQUIRED_COLUMNS.forEach(col=>{
-      if(row[col] === undefined || row[col] === null || String(row[col]).trim()===''){
-        errs.push(`Row ${index+2}: Missing ${col}`)
+    const zip = await JSZip.loadAsync(zipFile)
+    const map = {}
+
+    for(const f in zip.files){
+      const file = zip.files[f]
+      if(!file.dir){
+        map[file.name] = await file.async('blob')
+      }
+    }
+
+    return map
+  }
+
+  // =============================
+  // MASTER VALIDATION
+  // =============================
+  async function validateMaster(rows){
+
+    const { data } = await supabase
+      .from('subjects_master')
+      .select('*')
+
+    const errors = []
+
+    rows.forEach((r,i)=>{
+      const ok = data.some(m =>
+        m.exam_category === r.exam_category &&
+        m.subject === r.subject &&
+        m.chapter === r.chapter &&
+        m.subtopic === r.subtopic
+      )
+
+      if(!ok){
+        errors.push(`Row ${i+2}: Invalid mapping → ${r.exam_category} | ${r.subject} | ${r.chapter} | ${r.subtopic}`)
       }
     })
 
-    if(row.difficulty && !['Easy','Medium','Hard'].includes(row.difficulty)){
-      errs.push(`Row ${index+2}: Invalid difficulty`)
-    }
-
-    if(row.correct_answer && !['A','B','C','D'].includes(row.correct_answer)){
-      errs.push(`Row ${index+2}: Invalid answer`)
-    }
-
-    return errs
+    return errors
   }
 
+  // =============================
+  // PREVIEW
+  // =============================
   async function handlePreview(){
-    if(!file) return showToast('Select file','error')
-    if(file.size>MAX_FILE_SIZE) return showToast('File too large','error')
 
-    try{
-      const buffer=await file.arrayBuffer()
-      const wb=XLSX.read(buffer)
-      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]])
+    if(!file) return showToast('Select Excel','error')
 
-      if(!rows.length) return showToast('Empty file','error')
+    const buffer = await file.arrayBuffer()
+    const wb = XLSX.read(buffer)
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]])
 
-      const headers=Object.keys(rows[0])
-      const missing=REQUIRED_COLUMNS.filter(c=>!headers.includes(c))
-      if(missing.length){
-        setErrors(missing.map(m=>`Missing ${m}`))
-        return showToast('Missing columns','error')
-      }
+    // MASTER VALIDATION (STRICT)
+    const masterErrors = await validateMaster(rows)
 
-      let allErrors=[]
-      rows.forEach((r,i)=>allErrors.push(...validateRow(r,i)))
-
-      if(allErrors.length){
-        setErrors(allErrors)
-        return showToast('Validation failed','error')
-      }
-
-      setPreviewRows(rows.slice(0,100))
-      setIsPreview(true)
-      setCurrentPage(1)
-
-    }catch{
-      showToast('Invalid file','error')
+    if(masterErrors.length){
+      setErrors(masterErrors.slice(0,20))
+      return showToast('Master validation failed','error')
     }
+
+    const zipMap = await processZip(zipFile)
+    setImageMap(zipMap)
+
+    // Add extra fields
+    const enriched = rows.map(r=>({
+      ...r,
+      rejected:false,
+      rejection_reason:'',
+      edited:false
+    }))
+
+    setAllRows(enriched)
+
+    const temp=[]
+    for(let i=0;i<enriched.length;i+=BATCH_SIZE){
+      temp.push(enriched.slice(i,i+BATCH_SIZE))
+    }
+
+    setBatches(temp)
+    setCurrentBatch(0)
   }
 
-  async function handleUpload(){
+  // =============================
+  // IMAGE UPLOAD
+  // =============================
+  async function uploadImage(blob,name){
+    const fileName = `question_images/${Date.now()}_${name}`
 
-    if(!previewRows.length) return
+    await supabase.storage
+      .from('question-images')
+      .upload(fileName, blob)
 
-    const collegeId=await getAdminCollege()
+    const { data } = supabase.storage
+      .from('question-images')
+      .getPublicUrl(fileName)
+
+    return data.publicUrl
+  }
+
+  // =============================
+  // UPLOAD BATCH
+  // =============================
+  async function uploadBatch(){
 
     setUploading(true)
-    setProgress(40)
 
-    try{
+    const collegeId = await getAdminCollege()
+    const batch = batches[currentBatch]
 
-      const payload=previewRows.map(r=>({...r,college_id:collegeId}))
+    for(let i=0;i<batch.length;i++){
 
-      const {data:inserted,error}=await supabase
-        .from('question_bank')
-        .insert(payload)
-        .select()
+      const r = batch[i]
+      if(r.rejected) continue
 
-      if(error) throw error
+      let q = r.question || ''
+      let e = r.explanation || ''
 
-      if(selectedExam){
-        await supabase.from('exam_questions').insert(
-          inserted.map(q=>({exam_id:selectedExam,question_id:q.id}))
-        )
+      if(r.image_name && imageMap[r.image_name]){
+        const url = await uploadImage(imageMap[r.image_name],r.image_name)
+        q += `<br><img src="${url}" />`
       }
 
-      setProgress(100)
-      showToast('Uploaded successfully')
+      if(r.explanation_image_name && imageMap[r.explanation_image_name]){
+        const url = await uploadImage(imageMap[r.explanation_image_name],r.explanation_image_name)
+        e += `<br><img src="${url}" />`
+      }
 
-      setTimeout(()=>router.push('/admin'),1000)
-
-    }catch{
-      showToast('Upload failed','error')
+      await supabase.from('question_bank').insert([{
+        ...r,
+        question:q,
+        explanation:e,
+        college_id:collegeId
+      }])
     }
 
     setUploading(false)
+
+    if(currentBatch+1 < batches.length){
+      setCurrentBatch(currentBatch+1)
+    }else{
+      showToast('All batches uploaded')
+      router.push('/admin')
+    }
   }
 
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-  const paginatedRows = previewRows.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  // =============================
+  // EDIT
+  // =============================
+  function updateField(i,field,value){
+    const copy=[...batches]
+    copy[currentBatch][i][field]=value
+    copy[currentBatch][i].edited=true
+    setBatches(copy)
+  }
+
+  // =============================
+  // REJECT
+  // =============================
+  function toggleReject(i){
+    const copy=[...batches]
+    copy[currentBatch][i].rejected = !copy[currentBatch][i].rejected
+    setBatches(copy)
+  }
+
+  const batch = batches[currentBatch] || []
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
+    <div style={{padding:20}}>
 
-        <h1 style={styles.heading}>📊 Upload Questions via Excel</h1>
+      <h2>Excel Upload (Batch Mode)</h2>
 
-        <div style={styles.section}>
-          <input 
-            type="file" 
-            accept=".xlsx,.xls"
-            onChange={e=>setFile(e.target.files[0])}
-          />
+      <input type="file" onChange={e=>setFile(e.target.files[0])}/>
+      <br/><br/>
+      <input type="file" onChange={e=>setZipFile(e.target.files[0])}/>
+      <br/><br/>
+
+      <button onClick={handlePreview}>Start</button>
+
+      {errors.length>0 && (
+        <div style={{color:'red'}}>
+          {errors.map((e,i)=><div key={i}>{e}</div>)}
         </div>
+      )}
 
-        <div style={styles.section}>
-          <select onChange={e=>setSelectedExam(e.target.value)}>
-            <option value="">Select Exam (Optional)</option>
-            {exams.map(e=>(
-              <option key={e.id} value={e.id}>{e.title}</option>
-            ))}
-          </select>
-        </div>
+      {batch.length>0 && (
+        <>
+          <h3>Batch {currentBatch+1} / {batches.length}</h3>
 
-        {!isPreview && (
-          <button style={styles.previewBtn} onClick={handlePreview}>
-            Preview
-          </button>
-        )}
+          {batch.map((r,i)=>(
+            <div key={i} style={{border:'1px solid #ccc',marginBottom:10,padding:10}}>
 
-        {isPreview && (
-          <button style={styles.uploadBtn} onClick={handleUpload}>
-            {uploading ? `Uploading ${progress}%` : 'Upload Questions'}
-          </button>
-        )}
+              <b>Q{i+1}</b>
 
-        {isPreview && previewRows.length>0 && (
-          <div style={styles.previewBox}>
-            <h3>Preview ({previewRows.length})</h3>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th>#</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Ans</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedRows.map((r,i)=>(
-                  <tr key={i}>
-                    <td>{startIndex + i + 1}</td>
-                    <td>{r.question}</td>
-                    <td>{r.option_a}</td>
-                    <td>{r.option_b}</td>
-                    <td>{r.option_c}</td>
-                    <td>{r.option_d}</td>
-                    <td>{r.correct_answer}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              <textarea
+                value={r.question}
+                onChange={e=>updateField(i,'question',e.target.value)}
+              />
 
-            <div style={{marginTop:10}}>
-              {Array.from({length: Math.ceil(previewRows.length / ITEMS_PER_PAGE)}).map((_,i)=>(
-                <button
-                  key={i}
-                  onClick={()=>setCurrentPage(i+1)}
-                  style={{
-                    marginRight:5,
-                    background: currentPage===i+1 ? '#2563eb' : '#ddd',
-                    color: currentPage===i+1 ? '#fff' : '#000'
-                  }}
-                >
-                  {i+1}
-                </button>
+              {r.image_name && imageMap[r.image_name] && (
+                <img src={URL.createObjectURL(imageMap[r.image_name])} width={120}/>
+              )}
+
+              {['option_a','option_b','option_c','option_d'].map(op=>(
+                <input
+                  key={op}
+                  value={r[op]}
+                  onChange={e=>updateField(i,op,e.target.value)}
+                />
               ))}
+
+              <input
+                value={r.correct_answer}
+                onChange={e=>updateField(i,'correct_answer',e.target.value)}
+              />
+
+              <textarea
+                value={r.explanation}
+                onChange={e=>updateField(i,'explanation',e.target.value)}
+              />
+
+              {r.explanation_image_name && imageMap[r.explanation_image_name] && (
+                <img src={URL.createObjectURL(imageMap[r.explanation_image_name])} width={120}/>
+              )}
+
+              <br/>
+
+              <button onClick={()=>toggleReject(i)}>
+                {r.rejected ? 'Undo Reject' : 'Reject'}
+              </button>
+
             </div>
+          ))}
 
-          </div>
-        )}
+          <button onClick={uploadBatch}>
+            {uploading ? 'Uploading...' : 'Upload Batch'}
+          </button>
+        </>
+      )}
 
-        {errors.length>0 && (
-          <div style={styles.errorBox}>
-            {errors.slice(0,5).map((e,i)=><div key={i}>{e}</div>)}
-          </div>
-        )}
+      {toast && (
+        <div style={{
+          position:'fixed',
+          bottom:20,
+          right:20,
+          background: toast.type==='error'?'red':'green',
+          color:'#fff',
+          padding:10
+        }}>
+          {toast.msg}
+        </div>
+      )}
 
-        {toast && (
-          <div style={{
-            ...styles.toast,
-            background: toast.type==='error'?'#dc2626':'#16a34a'
-          }}>
-            {toast.message}
-          </div>
-        )}
-
-      </div>
     </div>
   )
-}
-
-const styles = {
-  page:{padding:30,display:'flex',justifyContent:'center'},
-  card:{maxWidth:900,width:'100%',background:'#fff',padding:20},
-  heading:{fontSize:22},
-  section:{marginBottom:15},
-  previewBtn:{background:'#2563eb',color:'#fff',padding:10},
-  uploadBtn:{background:'#16a34a',color:'#fff',padding:10},
-  previewBox:{marginTop:20},
-  table:{width:'100%',borderCollapse:'collapse'},
-  errorBox:{background:'#fee2e2',marginTop:10},
-  toast:{position:'fixed',bottom:20,right:20,color:'#fff',padding:10}
 }
