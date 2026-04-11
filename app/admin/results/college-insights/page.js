@@ -68,19 +68,17 @@ export default function CollegeInsights() {
       .select('total_attempts, total_score_sum')
       .eq('college_id', college_id)
 
-    let totalAttempts = 0
-    let totalScore = 0
-
-    overall?.forEach(r => {
-      totalAttempts += r.total_attempts || 0
-      totalScore += r.total_score_sum || 0
-    })
-
-const totalExams = overall?.length || 0
-
-const avgScore = totalExams
-  ? (totalScore / totalExams).toFixed(1)
+   const avgScore = overall?.length
+  ? (
+      overall.reduce((sum, s) => sum + (s.avg_score || 0), 0) /
+      overall.length
+    ).toFixed(1)
   : 0
+
+let totalAttempts = 0
+overall?.forEach(r => {
+  totalAttempts += r.total_attempts || 0
+})
     setStats({ totalStudents, totalAttempts, avgScore })
 
     // =========================
