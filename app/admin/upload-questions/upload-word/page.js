@@ -137,10 +137,6 @@ export default function UploadWordPage(){
   // =============================
   async function uploadBatch(){
 
-    if(!selectedExam){
-      return showToast('Please select exam','error')
-    }
-
     setUploading(true)
 
     const collegeId = await getAdminCollege()
