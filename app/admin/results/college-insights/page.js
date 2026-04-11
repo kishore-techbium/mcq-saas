@@ -76,10 +76,11 @@ export default function CollegeInsights() {
       totalScore += r.total_score_sum || 0
     })
 
-    const avgScore = totalAttempts
-      ? (totalScore / totalAttempts).toFixed(2)
-      : 0
+const totalExams = overall?.length || 0
 
+const avgScore = totalExams
+  ? (totalScore / totalExams).toFixed(1)
+  : 0
     setStats({ totalStudents, totalAttempts, avgScore })
 
     // =========================
@@ -190,20 +191,20 @@ export default function CollegeInsights() {
       {/* TOP CARDS */}
       <div style={styles.cards}>
         <Card title="Students" value={stats.totalStudents} />
-        <Card title="Attempts" value={stats.totalAttempts} />
-        <Card title="Avg Score" value={stats.avgScore} />
+        <Card title="Exams Taken" value={stats.totalAttempts} />
+        <Card title="Avg Score" value={stats.avgScore + '%'} />
       </div>
 
       {/* TOP PERFORMERS */}
       <Section title="🏆 Top Performers">
         {renderTable(
           ['Name', 'Avg', 'Attempts', 'Best'],
-          topStudents.map(s => [
-            s.name,
-            s.avg_score,
-            s.total_attempts,
-            s.best_score
-          ])
+topStudents.map(s => [
+  s.name,
+  (s.avg_score || 0).toFixed(1) + '%',
+  s.total_attempts,
+  Math.round(s.best_score)
+])
         )}
       </Section>
 
@@ -211,7 +212,9 @@ export default function CollegeInsights() {
       <Section title="📉 Weak Subjects (Click to Drill Down)">
         {renderTable(
           ['Subject', 'Accuracy', 'Attempts'],
-          subjects.slice(0, 5).map(s => [
+          subjects
+  .filter(s => s.accuracy < 0.5)
+  .slice(0, 5).map(s => [
             <span
               style={styles.link}
               onClick={() => setSelectedSubject(s.subject)}
@@ -228,7 +231,9 @@ export default function CollegeInsights() {
       <Section title="📈 Strong Subjects">
         {renderTable(
           ['Subject', 'Accuracy', 'Attempts'],
-          subjects.slice(-5).reverse().map(s => [
+          subjects
+  .filter(s => s.accuracy >= 0.7)
+  .slice(0, 5).reverse().map(s => [
             s.subject,
             (s.accuracy * 100).toFixed(1) + '%',
             s.attempts
