@@ -247,12 +247,12 @@ if (imageErrors.length) {
         batchUploaded++
 
         // ✅ NEW: MAP TO EXAM
-        if(data && data.length > 0){
-          await supabase.from('exam_questions').insert([{
-            exam_id: selectedExam,
-            question_id: data[0].id
-          }])
-        }
+      if(selectedExam && data && data.length > 0){
+  await supabase.from('exam_questions').insert([{
+    exam_id: selectedExam,
+    question_id: data[0].id
+  }])
+}
       }
     }
 
