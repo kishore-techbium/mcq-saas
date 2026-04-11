@@ -77,8 +77,8 @@ export default function UploadWordPage(){
         return match ? match[1]?.trim() : ''
       }
 const getQuestionHTML = ()=>{
-  const match = block.match(/Q:\s*([\s\S]*?)A\./i)
-  return match ? match[1].trim() : ''
+  const match = block.match(/Q:\s*([\s\S]*?)(A\.|Option A)/i)
+  return match ? match[1].trim() : block
 }
       const getOption = (letter)=>{
         const match = block.match(new RegExp(`${letter}\\.\\s*([^<]*)`,'i'))
@@ -99,7 +99,7 @@ const getQuestionHTML = ()=>{
         option_c:getOption('C'),
         option_d:getOption('D'),
 
-        correct_answer:get('Answer'),
+        correct_answer: get('Answer')?.trim().toUpperCase(),
         explanation:get('Explanation'),
 
         rejected:false,
