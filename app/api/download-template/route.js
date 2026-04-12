@@ -59,16 +59,10 @@ const { data, error } = await supabaseServer
     masterSheet.getCell('C1').value = 'chapter'
     masterSheet.getCell('D1').value = 'subtopic'
 
-    data.forEach((d, i) => {
-  masterSheet.getCell(`A${i + 2}`).value = d.exam_category
-  masterSheet.getCell(`B${i + 2}`).value = d.subject
-  masterSheet.getCell(`C${i + 2}`).value = d.chapter
-  masterSheet.getCell(`D${i + 2}`).value = d.subtopic
-})
-  //  examCategories.forEach((v, i) => masterSheet.getCell(`A${i + 2}`).value = v)
-   // subjects.forEach((v, i) => masterSheet.getCell(`B${i + 2}`).value = v)
-    //chapters.forEach((v, i) => masterSheet.getCell(`C${i + 2}`).value = v)
-    //subtopics.forEach((v, i) => masterSheet.getCell(`D${i + 2}`).value = v)
+    examCategories.forEach((v, i) => masterSheet.getCell(`A${i + 2}`).value = v)
+    subjects.forEach((v, i) => masterSheet.getCell(`B${i + 2}`).value = v)
+    chapters.forEach((v, i) => masterSheet.getCell(`C${i + 2}`).value = v)
+    subtopics.forEach((v, i) => masterSheet.getCell(`D${i + 2}`).value = v)
 
     // Hide master sheet
     masterSheet.state = 'hidden'
