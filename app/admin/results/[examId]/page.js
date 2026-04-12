@@ -54,16 +54,18 @@ export default function ExamAnalyticsPage() {
       .select('*')
       .eq('id', examId)
       .single()
+const { data: examStats } = await supabase
+  .from('student_exam_stats')
+  .select('*')
+  .eq('exam_id', examId)
 
+const submittedLocal = examStats || []
     // Sessions
     const { data: sessionData } = await supabase
       .from('exam_sessions')
       .select('*')
       .eq('exam_id', examId)
-const sessionsLocal = sessionData || []
-const submittedLocal = sessionsLocal.filter(
-  s => s.submitted !== false
-)
+
     console.log('sessionsLocal:', sessionsLocal)
 console.log('submittedLocal:', submittedLocal)
     // Students
@@ -157,9 +159,9 @@ chapterArray.sort((a, b) => a.accuracy - b.accuracy)
 setWeakChapters(chapterArray.slice(0, Math.ceil(chapterArray.length / 2)))
 
 const avgScore =
-submitted.length > 0
+submittedLocal.length > 0
   ? (
-      submitted.reduce((total, s) => {
+      submittedLocal.reduce((total, s) => {
         return total + (s.avg_score || 0)
       }, 0) / submitted.length
     ).toFixed(1)
@@ -391,8 +393,7 @@ const percent = Math.max(0, ((s.score || 0) / maxScore) * 100)
       }, 0) / submitted.length
     ).toFixed(1)
   : 0
-    ).toFixed(1)
-  : 0}
+     }
             </div>
             <div style={kpiLabel}>Average Score</div>
           </div>
