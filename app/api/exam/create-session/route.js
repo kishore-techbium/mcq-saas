@@ -23,7 +23,7 @@ export async function POST(req) {
       .insert({
         student_id: studentId,
         exam_id: examId,
-        college_id: student?.college_id,
+        college_id: student.college_id,
         attempt_number: 1,
         submitted: false,
         score: 0,
