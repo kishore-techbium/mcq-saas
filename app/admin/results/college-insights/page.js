@@ -188,7 +188,7 @@ overall?.forEach(r => {
       <div style={styles.cards}>
         <Card title="Students" value={stats.totalStudents} />
         <Card title="Exams Taken" value={stats.totalAttempts} />
-        <Card title="Avg Score" value={stats.avgScore + '%'} />
+        <Card title="Average Score" value={avgScore + '%'} />
       </div>
 
       {/* TOP PERFORMERS */}
