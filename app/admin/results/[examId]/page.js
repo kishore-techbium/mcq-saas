@@ -174,7 +174,21 @@ else setDifficulty('Easy')
 
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
-  const submitted = sessions.filter(s => s.submitted !== false)
+  const bestPerStudent = {}
+
+sessions
+  .filter(s => s.submitted !== false)
+  .forEach(s => {
+    if (!bestPerStudent[s.student_id]) {
+      bestPerStudent[s.student_id] = s
+    } else {
+      if ((s.score || 0) > (bestPerStudent[s.student_id].score || 0)) {
+        bestPerStudent[s.student_id] = s
+      }
+    }
+  })
+
+const submitted = Object.values(bestPerStudent)
 
   // =========================
   // PROCTOR FLAG COUNT
