@@ -157,14 +157,13 @@ chapterArray.sort((a, b) => a.accuracy - b.accuracy)
 setWeakChapters(chapterArray.slice(0, Math.ceil(chapterArray.length / 2)))
 
 const avgScore =
-  submittedLocal.length > 0
-    ? submittedLocal.reduce((total, s) => {
-        const totalQ = exam?.total_questions || 1
-const maxScore = totalQ * (exam?.correct_marks || 4)
-
-const percent = Math.max(0, ((s.score || 0) / maxScore) * 100)
-  return total + Math.max(0, ((s.score || 0) / maxScore) * 100)
-      }, 0) / submittedLocal.length
+submitted.length > 0
+  ? (
+      submitted.reduce((total, s) => {
+        return total + (s.avg_score || 0)
+      }, 0) / submitted.length
+    ).toFixed(1)
+  : 0
     : 0
 
 if (avgScore < 10) setDifficulty('Hard')
@@ -176,21 +175,11 @@ else setDifficulty('Easy')
 
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
-  const bestPerStudent = {}
-
-sessions
-  .filter(s => s.submitted !== false)
-  .forEach(s => {
-    if (!bestPerStudent[s.student_id]) {
-      bestPerStudent[s.student_id] = s
-    } else {
-      if ((s.score || 0) > (bestPerStudent[s.student_id].score || 0)) {
-        bestPerStudent[s.student_id] = s
-      }
-    }
-  })
-
-const submitted = Object.values(bestPerStudent)
+const { data: examStats } = await supabase
+  .from('student_exam_stats')
+  .select('*')
+  .eq('exam_id', examId)
+const submitted = examStats || []
 
   // =========================
   // PROCTOR FLAG COUNT
@@ -203,6 +192,7 @@ const submitted = Object.values(bestPerStudent)
   // LEADERBOARD
   // =========================
   const leaderboard = Object.values(
+    
     submitted.reduce((acc, s) => {
       if (!acc[s.student_id]) {
         acc[s.student_id] = {
@@ -394,14 +384,13 @@ const percent = Math.max(0, ((s.score || 0) / maxScore) * 100)
           <div style={kpiCard}>
             <div style={kpiNumber}>
               {submitted.length > 0
+  ? (submitted.length > 0
   ? (
       submitted.reduce((total, s) => {
-        const totalQ = Object.keys(s.answers || {}).length || 1
-        const maxScore = totalQ * (exam?.correct_marks || 4)
-
-        const percent = Math.max(0, ((s.score || 0) / maxScore) * 100)
-        return total + percent
+        return total + (s.avg_score || 0)
       }, 0) / submitted.length
+    ).toFixed(1)
+  : 0
     ).toFixed(1)
   : 0}
             </div>
