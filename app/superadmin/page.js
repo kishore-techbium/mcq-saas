@@ -26,7 +26,7 @@ async function checkAccess() {
   const { data: user } = await supabase
     .from('students')
     .select('role')
-    .eq('id', auth.user.id)
+    .eq('user_id', auth.user.id)
     .maybeSingle()
 
   if (!user || user.role !== 'superadmin') {
