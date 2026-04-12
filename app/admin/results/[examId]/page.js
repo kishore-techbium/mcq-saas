@@ -41,7 +41,7 @@ export default function ExamAnalyticsPage() {
   const [strongAreas, setStrongAreas] = useState([])
   const [difficulty, setDifficulty] = useState('')
 const [submitted, setSubmitted] = useState([])
-
+const [moderateAreas, setModerateAreas] = useState([])
   function getPerformanceLabel(score) {
   if (score < 40) return '🔴 Low'
   if (score < 70) return '🟡 Moderate'
@@ -131,11 +131,33 @@ subjectArray.sort((a, b) => a.accuracy - b.accuracy)
 console.log('studentIds:', studentIds)
 console.log('subjectStats:', subjectStats)
 
+const weak = []
+const strong = []
 
-const total = subjectArray.length
-const weakCount = Math.floor(total / 2)
-setWeakSubjects(subjectArray.slice(0, weakCount))
-setStrongAreas(subjectArray.slice(weakCount).reverse())
+subjectArray.forEach(s => {
+  if (s.accuracy < 40) {
+    weak.push(s)
+  } else if (s.accuracy >= 70) {
+    strong.push(s)
+  }
+})
+
+setWeakSubjects(weak)
+setStrongAreas(strong)
+
+const weak = []
+const moderate = []
+const strong = []
+
+subjectArray.forEach(s => {
+  if (s.accuracy < 40) weak.push(s)
+  else if (s.accuracy < 70) moderate.push(s)
+  else strong.push(s)
+})
+
+setWeakSubjects(weak)
+setModerateAreas(moderate)
+setStrongAreas(strong)
 // CHAPTER STATS 
   const { data: subtopicStats } = await supabase
   .from('student_subtopic_stats')
@@ -563,7 +585,13 @@ datasets: [
         {c.chapter} → {c.accuracy.toFixed(1)}% ({getPerformanceLabel(c.accuracy)})
       </p>
     ))}
-
+<h4 style={{ marginTop: 20 }}>🟡 Moderate Areas</h4>
+{moderateAreas.length === 0 && <p>-</p>}
+{moderateAreas.map((s, i) => (
+  <p key={i}>
+    {s.subject} → {s.accuracy.toFixed(1)}% ({getPerformanceLabel(s.accuracy)})
+  </p>
+))}
     <h4 style={{ marginTop: 20 }}>🟢 Strong Areas</h4>
     {strongAreas.length === 0 && <p>-</p>}
     {strongAreas.map((s, i) => (
