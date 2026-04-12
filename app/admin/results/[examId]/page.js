@@ -128,23 +128,6 @@ const subjectArray = Object.entries(subjectAgg).map(([k, v]) => ({
 
 subjectArray.sort((a, b) => a.accuracy - b.accuracy)
 
-console.log('studentIds:', studentIds)
-console.log('subjectStats:', subjectStats)
-
-const weak = []
-const strong = []
-
-subjectArray.forEach(s => {
-  if (s.accuracy < 40) {
-    weak.push(s)
-  } else if (s.accuracy >= 70) {
-    strong.push(s)
-  }
-})
-
-setWeakSubjects(weak)
-setStrongAreas(strong)
-
 const weak = []
 const moderate = []
 const strong = []
@@ -184,7 +167,13 @@ const chapterArray = Object.entries(chapterAgg).map(([k, v]) => ({
 
 chapterArray.sort((a, b) => a.accuracy - b.accuracy)
 
-setWeakChapters(chapterArray.slice(0, Math.ceil(chapterArray.length / 2)))
+const weakChap = []
+
+chapterArray.forEach(c => {
+  if (c.accuracy < 40) weakChap.push(c)
+})
+
+setWeakChapters(weakChap)
 
 const avgScore =
 submittedLocal.length > 0
