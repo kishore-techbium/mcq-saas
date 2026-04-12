@@ -159,9 +159,11 @@ setWeakChapters(chapterArray.slice(0, Math.ceil(chapterArray.length / 2)))
 const avgScore =
   submittedLocal.length > 0
     ? submittedLocal.reduce((total, s) => {
-        const totalQ = Object.keys(s.answers || {}).length || 1
-        const maxScore = totalQ * (exam?.correct_marks || 4)
-        return total + Math.max(0, ((s.score || 0) / maxScore) * 100)
+        const totalQ = exam?.total_questions || 1
+const maxScore = totalQ * (exam?.correct_marks || 4)
+
+const percent = Math.max(0, ((s.score || 0) / maxScore) * 100)
+  return total + Math.max(0, ((s.score || 0) / maxScore) * 100)
       }, 0) / submittedLocal.length
     : 0
 
@@ -231,8 +233,9 @@ const submitted = Object.values(bestPerStudent)
   const buckets = { '0-25': 0, '26-50': 0, '51-75': 0, '76-100': 0 }
 
   submitted.forEach(s => {
-    const totalQ = Object.keys(s.answers || {}).length || 1
+  const totalQ = exam?.total_questions || 1
 const maxScore = totalQ * (exam?.correct_marks || 4)
+
 const percent = Math.max(0, ((s.score || 0) / maxScore) * 100)
     if (percent <= 25) buckets['0-25']++
     else if (percent <= 50) buckets['26-50']++
@@ -255,8 +258,10 @@ const percent = Math.max(0, ((s.score || 0) / maxScore) * 100)
     datasets: [
       {
         data: submitted.map(s => {
-  const totalQ = Object.keys(s.answers || {}).length || 1
-  const maxScore = totalQ * (exam?.correct_marks || 4)
+const totalQ = exam?.total_questions || 1
+const maxScore = totalQ * (exam?.correct_marks || 4)
+
+const percent = Math.max(0, ((s.score || 0) / maxScore) * 100)
   return Math.max(0, ((s.score || 0) / maxScore) * 100)
 }),
         borderColor: '#10b981',
