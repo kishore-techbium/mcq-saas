@@ -163,10 +163,9 @@ submittedLocal.length > 0
   ? (
       submittedLocal.reduce((total, s) => {
         return total + (s.avg_score || 0)
-      }, 0) / submitted.length
+      }, 0) / submittedLocal.length
     ).toFixed(1)
   : 0
-    : 0
 
 if (avgScore < 10) setDifficulty('Hard')
 else if (avgScore < 25) setDifficulty('Medium')
