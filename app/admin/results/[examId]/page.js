@@ -246,7 +246,7 @@ submitted.forEach(s => {
     labels: Object.keys(buckets),
    datasets: [
   {
-    label: 'Number of Students',
+    label: 'Students in Score Range',
     data: Object.values(buckets),
     backgroundColor: '#3b82f6'
   }
@@ -520,8 +520,10 @@ datasets: [
         >
       
           <div style={chartCard}>
-          <p style={{ color: '#6b7280', fontSize: 13 }}>
-  Shows how many students fall into each score range.
+          
+  <p style={{ color: '#6b7280', fontSize: 13 }}>
+  Shows how many students fall into each score range. Total Students: {submitted.length}
+
 </p>
             <h3>Score Distribution</h3>
             <Bar data={distributionData} height={150} />
