@@ -100,7 +100,11 @@ export default function UploadExcelPage(){
       )
 
       if(!ok){
-        errs.push(`Row ${i+2}: Invalid mapping`)
+        errs.push({
+  row: i + 2,
+  message: 'Invalid mapping',
+  data: r
+})
       }
     })
 
@@ -134,7 +138,11 @@ const imageErrors = []
 
 rows.forEach((r, i) => {
   if (r.image_name && !zipMap[r.image_name]) {
-    imageErrors.push(`Row ${i+2}: Missing image ${r.image_name}`)
+    imageErrors.push({
+  row: i + 2,
+  message: `Missing image ${r.image_name}`,
+  data: r
+})
   }
 
   if (r.explanation_image_name && !zipMap[r.explanation_image_name]) {
@@ -327,7 +335,14 @@ if (imageErrors.length) {
 
       {errors.length>0 && (
         <div style={errorBox}>
-          {errors.map((e,i)=><div key={i}>{e}</div>)}
+          {errors.map((e,i)=>(
+  <div key={i} style={{marginBottom:10}}>
+    <b>Row {e.row}</b> - {e.message}
+    <div style={{fontSize:12,color:'#555'}}>
+      {e.data.subject} | {e.data.chapter} | {e.data.subtopic}
+    </div>
+  </div>
+))}
         </div>
       )}
 
