@@ -192,13 +192,13 @@ else setDifficulty('Easy')
       if (!acc[s.student_id]) {
         acc[s.student_id] = {
           student_id: s.student_id,
-          best: 0,
+          best: s.avg_score || 0,
           attempts: s.total_exams || 0,
           rejected: false
         }
       }
 
-      acc[s.student_id].attempts++
+      
      acc[s.student_id].best = Math.max(
   acc[s.student_id].best,
   s.avg_score || 0
@@ -221,7 +221,7 @@ else setDifficulty('Easy')
   const totalQ = exam?.total_questions || 1
 const maxScore = totalQ * (exam?.correct_marks || 4)
 
-const percent = Math.max(0, s.avg_score || 0 * 100)
+const percent = Math.max(0, s.avg_score || 0)
     if (percent <= 25) buckets['0-25']++
     else if (percent <= 50) buckets['26-50']++
     else if (percent <= 75) buckets['51-75']++
@@ -246,8 +246,7 @@ const percent = Math.max(0, s.avg_score || 0 * 100)
 const totalQ = exam?.total_questions || 1
 const maxScore = totalQ * (exam?.correct_marks || 4)
 
-const percent = Math.max(0, return s.avg_score || 0 * 100)
-  return Math.max(0, return s.avg_score || 0 * 100)
+data: submitted.map(s => Math.max(0, s.avg_score || 0))
 }),
         borderColor: '#10b981',
         fill: false
