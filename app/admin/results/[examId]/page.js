@@ -217,17 +217,14 @@ else setDifficulty('Easy')
   // =========================
   const buckets = { '0-25': 0, '26-50': 0, '51-75': 0, '76-100': 0 }
 
-  submitted.forEach(s => {
-  const totalQ = exam?.total_questions || 1
-const maxScore = totalQ * (exam?.correct_marks || 4)
+submitted.forEach(s => {
+  const percent = Math.max(0, s.avg_score || 0)
 
-const percent = Math.max(0, s.avg_score || 0)
-    if (percent <= 25) buckets['0-25']++
-    else if (percent <= 50) buckets['26-50']++
-    else if (percent <= 75) buckets['51-75']++
-    else buckets['76-100']++
-  })
-
+  if (percent <= 25) buckets['0-25']++
+  else if (percent <= 50) buckets['26-50']++
+  else if (percent <= 75) buckets['51-75']++
+  else buckets['76-100']++
+})
   const distributionData = {
     labels: Object.keys(buckets),
     datasets: [
@@ -238,21 +235,16 @@ const percent = Math.max(0, s.avg_score || 0)
     ]
   }
 
-  const trendData = {
-    labels: submitted.map((_, i) => `A${i + 1}`),
-    datasets: [
-      {
-        data: submitted.map(s => {
-const totalQ = exam?.total_questions || 1
-const maxScore = totalQ * (exam?.correct_marks || 4)
-
-data: submitted.map(s => Math.max(0, s.avg_score || 0))
-}),
-        borderColor: '#10b981',
-        fill: false
-      }
-    ]
-  }
+const trendData = {
+  labels: submitted.map((_, i) => `A${i + 1}`),
+  datasets: [
+    {
+      data: submitted.map(s => Math.max(0, s.avg_score || 0)),
+      borderColor: '#10b981',
+      fill: false
+    }
+  ]
+}
 
   function exportExcel() {
     const data = leaderboard.map((l, i) => ({
