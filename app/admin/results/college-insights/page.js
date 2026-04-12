@@ -67,8 +67,8 @@ const { data: overall } = await supabase
   .from('student_overall_stats')
   .select('*')
   
-  const avgScore =
-  overall && overall.length > 0
+const avgScore =
+  Array.isArray(overall) && overall.length > 0
     ? Number(overall[0]?.avg_score || 0).toFixed(1)
     : '0.0'
 
