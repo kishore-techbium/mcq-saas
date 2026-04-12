@@ -368,13 +368,16 @@ const percent = (s.score / maxScore) * 100
           <div style={kpiCard}>
             <div style={kpiNumber}>
               {submitted.length > 0
-                ? (
-                    submitted.reduce(
-                      (a, b) => a + (b.score || 0),
-                      0
-                    ) / submitted.length
-                  ).toFixed(1)
-                : 0}
+  ? (
+      submitted.reduce((total, s) => {
+        const totalQ = Object.keys(s.answers || {}).length || 1
+        const maxScore = totalQ * (exam.correct_marks || 4)
+
+        const percent = (s.score / maxScore) * 100
+        return total + percent
+      }, 0) / submitted.length
+    ).toFixed(1)
+  : 0}
             </div>
             <div style={kpiLabel}>Average Score</div>
           </div>
