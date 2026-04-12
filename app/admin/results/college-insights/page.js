@@ -66,7 +66,7 @@ export default function CollegeInsights() {
 const { data: overall } = await supabase
   .from('student_overall_stats')
   .select('*')
-  .eq('college_id', collegeId)
+  
   
 
 const avgScore =
