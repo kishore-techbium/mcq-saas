@@ -219,7 +219,7 @@ else setDifficulty('Easy')
   submitted.forEach(s => {
     const totalQ = Object.keys(s.answers || {}).length || 1
 const maxScore = totalQ * (exam?.correct_marks || 4)
-const percent = Math.max(0, (s.score / maxScore) * 100)
+const percent = Math.max(0, ((s.score || 0) / maxScore) * 100)
     if (percent <= 25) buckets['0-25']++
     else if (percent <= 50) buckets['26-50']++
     else if (percent <= 75) buckets['51-75']++
@@ -243,7 +243,7 @@ const percent = Math.max(0, (s.score / maxScore) * 100)
         data: submitted.map(s => {
   const totalQ = Object.keys(s.answers || {}).length || 1
   const maxScore = totalQ * (exam?.correct_marks || 4)
-  return ((s.score || 0) / maxScore) * 100
+  return Math.max(0, ((s.score || 0) / maxScore) * 100)
 }),
         borderColor: '#10b981',
         fill: false
@@ -380,7 +380,7 @@ const percent = Math.max(0, (s.score / maxScore) * 100)
         const totalQ = Object.keys(s.answers || {}).length || 1
         const maxScore = totalQ * (exam?.correct_marks || 4)
 
-        const percent = Math.max(0, (s.score / maxScore) * 100)
+        const percent = Math.max(0, ((s.score || 0) / maxScore) * 100)
         return total + percent
       }, 0) / submitted.length
     ).toFixed(1)
