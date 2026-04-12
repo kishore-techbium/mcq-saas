@@ -69,8 +69,8 @@ export default function CollegeInsights() {
       .eq('college_id', college_id)
 
 const avgScore =
-  overall && overall.length > 0
-    ? Number(overall[0].avg_score || 0).toFixed(1)
+  overall && overall.avg_score
+    ? Number(overall.avg_score).toFixed(1)
     : '0.0'
 
 let totalAttempts = 0
