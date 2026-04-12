@@ -63,10 +63,11 @@ export default function CollegeInsights() {
       .eq('college_id', college_id)
       .eq('role', 'student')
 
-    const { data: overall } = await supabase
-      .from('student_overall_stats')
-      .select('total_attempts, total_score_sum')
-      .eq('college_id', college_id)
+const { data: overall } = await supabase
+  .from('student_overall_stats')
+  .select('*')
+  .eq('college_id', collegeId)
+  .maybeSingle()
 
 const avgScore =
   overall && overall.avg_score
