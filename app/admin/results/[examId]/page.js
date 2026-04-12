@@ -193,7 +193,7 @@ else setDifficulty('Easy')
         acc[s.student_id] = {
           student_id: s.student_id,
           best: s.avg_score || 0,
-          attempts: s.total_exams || 0,
+          attempts: sessions.filter(sess => sess.student_id === s.student_id).length,
           rejected: false
         }
       }
@@ -451,7 +451,7 @@ const trendData = {
                         ?.email
                     }
                   </td>
-                  <td style={td}>{l.best}</td>
+                  <td style={td}>{l.best.toFixed(1)}</td>
                   <td style={td}>{l.attempts}</td>
                   <td style={td}>
                     {l.rejected ? (
