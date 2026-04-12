@@ -89,6 +89,7 @@ const submittedLocal = examStats || []
       }
     })
 
+    setSubmitted(submittedLocal)
     setExam(examData)
     setSessions(sessionData || [])
     setStudentsMap(studentMap)
