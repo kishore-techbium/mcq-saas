@@ -68,12 +68,10 @@ export default function CollegeInsights() {
       .select('total_attempts, total_score_sum')
       .eq('college_id', college_id)
 
-   const avgScore = overall?.length
-  ? (
-      overall.reduce((sum, s) => sum + (s.avg_score || 0), 0) /
-      overall.length
-    ).toFixed(1)
-  : 0
+const avgScore =
+  overall && overall.length > 0
+    ? Number(overall[0].avg_score || 0).toFixed(1)
+    : '0.0'
 
 let totalAttempts = 0
 overall?.forEach(r => {
@@ -299,10 +297,10 @@ function renderTable(headers, rows) {
       <thead>
         <tr>
           {headers.map((h, i) => (
-            <th
+           <th
   key={i}
   style={{
-    textAlign: 'left',
+    textAlign: i === 0 ? 'left' : 'right',  // 🔥 FIX
     padding: '10px',
     fontSize: 13,
     color: '#64748b'
