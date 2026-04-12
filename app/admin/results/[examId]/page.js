@@ -160,7 +160,7 @@ const avgScore =
   submittedLocal.length > 0
     ? submittedLocal.reduce((total, s) => {
         const totalQ = Object.keys(s.answers || {}).length || 1
-        const maxScore = totalQ * (exam.correct_marks || 4)
+        const maxScore = totalQ * (exam?.correct_marks || 4)
         return total + ((s.score || 0) / maxScore) * 100
       }, 0) / submittedLocal.length
     : 0
@@ -218,7 +218,7 @@ else setDifficulty('Easy')
 
   submitted.forEach(s => {
     const totalQ = Object.keys(s.answers || {}).length || 1
-const maxScore = totalQ * (exam.correct_marks || 4)
+const maxScore = totalQ * (exam?.correct_marks || 4)
 const percent = (s.score / maxScore) * 100
     if (percent <= 25) buckets['0-25']++
     else if (percent <= 50) buckets['26-50']++
@@ -242,7 +242,7 @@ const percent = (s.score / maxScore) * 100
       {
         data: submitted.map(s => {
   const totalQ = Object.keys(s.answers || {}).length || 1
-  const maxScore = totalQ * (exam.correct_marks || 4)
+  const maxScore = totalQ * (exam?.correct_marks || 4)
   return ((s.score || 0) / maxScore) * 100
 }),
         borderColor: '#10b981',
