@@ -161,7 +161,7 @@ const avgScore =
     ? submittedLocal.reduce((total, s) => {
         const totalQ = Object.keys(s.answers || {}).length || 1
         const maxScore = totalQ * (exam?.correct_marks || 4)
-        return total + ((s.score || 0) / maxScore) * 100
+        return total + Math.max(0, ((s.score || 0) / maxScore) * 100)
       }, 0) / submittedLocal.length
     : 0
 
@@ -378,7 +378,7 @@ const percent = Math.max(0, (s.score / maxScore) * 100)
   ? (
       submitted.reduce((total, s) => {
         const totalQ = Object.keys(s.answers || {}).length || 1
-        const maxScore = totalQ * (exam.correct_marks || 4)
+        const maxScore = totalQ * (exam?.correct_marks || 4)
 
         const percent = Math.max(0, (s.score / maxScore) * 100)
         return total + percent
