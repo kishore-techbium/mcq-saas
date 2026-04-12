@@ -67,12 +67,11 @@ const { data: overall } = await supabase
   .from('student_overall_stats')
   .select('*')
   
-  
-
-const avgScore =
-  overall && overall.avg_score
-    ? Number(overall.avg_score).toFixed(1)
+  const avgScore =
+  overall && overall.length > 0
+    ? Number(overall[0]?.avg_score || 0).toFixed(1)
     : '0.0'
+
 
 let totalAttempts = 0
 overall?.forEach(r => {
