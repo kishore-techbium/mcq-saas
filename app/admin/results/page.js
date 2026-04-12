@@ -77,9 +77,9 @@ async function loadResults() {
       ...exam,
       students: s ? s.students : 0,
       attempts: s ? s.attempts : 0,
-      reattempts: '-', // optional (can add later)
+      reattempts: s ? (s.attempts - 1) : 0,
       avg_score: s
-        ? (s.avgSum / s.students).toFixed(2)
+        ? (s.avgSum / s.students).toFixed(1)
         : '-',
       max_score: s ? s.max : '-',
       min_score: s ? s.min : '-',
