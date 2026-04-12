@@ -156,10 +156,13 @@ chapterArray.sort((a, b) => a.accuracy - b.accuracy)
 
 setWeakChapters(chapterArray.slice(0, Math.ceil(chapterArray.length / 2)))
 
-// DIFFICULTY CALCULATION
 const avgScore =
   submittedLocal.length > 0
-    ? submittedLocal.reduce((a, b) => a + (b.score || 0), 0) / submittedLocal.length
+    ? submittedLocal.reduce((total, s) => {
+        const totalQ = Object.keys(s.answers || {}).length || 1
+        const maxScore = totalQ * (exam.correct_marks || 4)
+        return total + ((s.score || 0) / maxScore) * 100
+      }, 0) / submittedLocal.length
     : 0
 
 if (avgScore < 10) setDifficulty('Hard')
@@ -171,7 +174,7 @@ else setDifficulty('Easy')
 
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
-  const submitted = sessions.filter(s => s.submitted)
+  const submitted = sessions.filter(s => s.submitted !== false)
 
   // =========================
   // PROCTOR FLAG COUNT
@@ -237,7 +240,11 @@ const percent = (s.score / maxScore) * 100
     labels: submitted.map((_, i) => `A${i + 1}`),
     datasets: [
       {
-        data: submitted.map(s => s.score),
+        data: submitted.map(s => {
+  const totalQ = Object.keys(s.answers || {}).length || 1
+  const maxScore = totalQ * (exam.correct_marks || 4)
+  return ((s.score || 0) / maxScore) * 100
+}),
         borderColor: '#10b981',
         fill: false
       }
