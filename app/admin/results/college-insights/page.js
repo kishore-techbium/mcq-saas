@@ -69,7 +69,10 @@ const { data: overall } = await supabase
   
 const computedAvg =
   Array.isArray(overall) && overall.length > 0
-    ? Number(overall[0]?.avg_score || 0).toFixed(1)
+    ? (
+        overall.reduce((sum, s) => sum + (s.avg_score || 0), 0) /
+        overall.length
+      ).toFixed(1)
     : '0.0'
 
 setAvgScore(computedAvg)
