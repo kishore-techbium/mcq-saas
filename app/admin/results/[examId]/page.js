@@ -40,7 +40,7 @@ export default function ExamAnalyticsPage() {
   const [weakChapters, setWeakChapters] = useState([])
   const [strongAreas, setStrongAreas] = useState([])
   const [difficulty, setDifficulty] = useState('')
-
+const [submitted, setSubmitted] = useState([])
   useEffect(() => {
     if (examId) fetchAll()
   }, [examId])
@@ -66,8 +66,7 @@ const submittedLocal = examStats || []
       .select('*')
       .eq('exam_id', examId)
 
-    console.log('sessionsLocal:', sessionsLocal)
-console.log('submittedLocal:', submittedLocal)
+
     // Students
     const studentIds = [
   ...new Set(
@@ -175,12 +174,6 @@ else setDifficulty('Easy')
   }
 
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
-
-const { data: examStats } = await supabase
-  .from('student_exam_stats')
-  .select('*')
-  .eq('exam_id', examId)
-const submitted = examStats || []
 
   // =========================
   // PROCTOR FLAG COUNT
@@ -385,14 +378,12 @@ const percent = Math.max(0, ((s.score || 0) / maxScore) * 100)
           <div style={kpiCard}>
             <div style={kpiNumber}>
               {submitted.length > 0
-  ? (submitted.length > 0
   ? (
       submitted.reduce((total, s) => {
         return total + (s.avg_score || 0)
       }, 0) / submitted.length
     ).toFixed(1)
-  : 0
-     }
+  : 0}
             </div>
             <div style={kpiLabel}>Average Score</div>
           </div>
