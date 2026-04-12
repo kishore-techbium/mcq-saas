@@ -67,7 +67,7 @@ const { data: overall } = await supabase
   .from('student_overall_stats')
   .select('*')
   .eq('college_id', collegeId)
-  .maybeSingle()
+  
 
 const avgScore =
   overall && overall.avg_score
