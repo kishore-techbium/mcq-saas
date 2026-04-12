@@ -95,10 +95,7 @@ function downloadPDF() {
 
   html2pdf().set(opt).from(element).save()
 }
-  const subjectTotal = chartData.reduce((sum, c) => sum + c.accuracy, 0)
-const subjectAvg =
-  chartData.length > 0 ? (subjectTotal / chartData.length).toFixed(1) : 0
-    
+ 
   
   return (
   <div style={styles.page} id="analysis-report">
@@ -137,6 +134,11 @@ Student: {student ? `${student.first_name} ${student.last_name}` : '-'}
                 : 0
           })
         )
+
+         const subjectTotal = chartData.reduce((sum, c) => sum + c.accuracy, 0)
+const subjectAvg =
+  chartData.length > 0 ? (subjectTotal / chartData.length).toFixed(1) : 0
+    
 
         const weakest = [...chartData].sort(
           (a, b) => a.accuracy - b.accuracy
