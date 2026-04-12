@@ -97,7 +97,11 @@ const submittedLocal = examStats || []
 // 🔥 PERFORMANCE INTELLIGENCE
 // =========================
 
-
+function getPerformanceLabel(score) {
+  if (score < 40) return '🔴 Low'
+  if (score < 70) return '🟡 Moderate'
+  return '🟢 Strong'
+}
 // SUBJECT STATS
 const { data: subjectStats } = await supabase
   .from('student_subject_stats')
@@ -127,7 +131,7 @@ console.log('subjectStats:', subjectStats)
 
 
 const total = subjectArray.length
-const weakCount = Math.ceil(total / 2)
+const weakCount = Math.floor(total / 2)
 setWeakSubjects(subjectArray.slice(0, weakCount))
 setStrongAreas(subjectArray.slice(weakCount).reverse())
 // CHAPTER STATS 
@@ -523,14 +527,22 @@ const trendData = {
     }}
   >
     <h2>🧠 Performance Intelligence</h2>
-
-    <p><strong>Exam Difficulty:</strong> {difficulty}</p>
+<p style={{ color: '#6b7280', marginTop: 10 }}>
+  This section shows where students are performing well and where they need improvement.
+  Accuracy % represents how correctly students answered questions in each subject or chapter.
+</p>
+    <p>
+  <strong>Exam Difficulty:</strong> {difficulty} 
+  <span style={{ color: '#6b7280', marginLeft: 6 }}>
+    (Based on overall student performance)
+  </span>
+</p>
 
     <h4 style={{ marginTop: 20 }}>🔴 Weak Subjects</h4>
     {weakSubjects.length === 0 && <p>-</p>}
     {weakSubjects.map((s, i) => (
       <p key={i}>
-        {s.subject} → {s.accuracy.toFixed(1)}%
+        {s.subject} → {s.accuracy.toFixed(1)}% ({getPerformanceLabel(s.accuracy)})
       </p>
     ))}
 
@@ -538,7 +550,7 @@ const trendData = {
     {weakChapters.length === 0 && <p>-</p>}
     {weakChapters.map((c, i) => (
       <p key={i}>
-        {c.chapter} → {c.accuracy.toFixed(1)}%
+        {c.chapter} → {c.accuracy.toFixed(1)}% ({getPerformanceLabel(c.accuracy)})
       </p>
     ))}
 
@@ -546,7 +558,7 @@ const trendData = {
     {strongAreas.length === 0 && <p>-</p>}
     {strongAreas.map((s, i) => (
       <p key={i}>
-        {s.subject} → {s.accuracy.toFixed(1)}%
+        {s.subject} → {s.accuracy.toFixed(1)}% ({getPerformanceLabel(s.accuracy)})
       </p>
     ))}
   </div>
