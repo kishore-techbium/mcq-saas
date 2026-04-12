@@ -61,8 +61,8 @@ setCollegeName(student?.college_name || '')
       }
     }
 
-    grouped[row.subject][row.chapter].totalAccuracy += row.accuracy
-    grouped[row.subject][row.chapter].count += 1
+  grouped[row.subject][row.chapter].totalAccuracy += row.accuracy * (row.attempts || 1)
+grouped[row.subject][row.chapter].count += (row.attempts || 1)
     grouped[row.subject][row.chapter].subtopics.push(row)
   })
 
@@ -95,8 +95,12 @@ function downloadPDF() {
 
   html2pdf().set(opt).from(element).save()
 }
+  const subjectTotal = chartData.reduce((sum, c) => sum + c.accuracy, 0)
+const subjectAvg =
+  chartData.length > 0 ? (subjectTotal / chartData.length).toFixed(1) : 0
+    
   
-    return (
+  return (
   <div style={styles.page} id="analysis-report">
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
   
@@ -184,7 +188,9 @@ Student: {student ? `${student.first_name} ${student.last_name}` : '-'}
                 ? 'Hide Subtopics ▲'
                 : 'View Subtopics ▼'}
             </button>
-
+<div style={{ marginBottom: 10, fontSize: 14 }}>
+  <strong>Average Accuracy:</strong> {subjectAvg}%
+</div>
             {expanded[subject] &&
               Object.entries(chapters).map(
                 ([chapter, value]) => (
