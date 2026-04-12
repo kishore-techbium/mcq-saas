@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 
 export default function CollegeInsights() {
   const [loading, setLoading] = useState(true)
-
+const [avgScore, setAvgScore] = useState('0.0')
   const [stats, setStats] = useState({})
   const [topStudents, setTopStudents] = useState([])
   const [subjects, setSubjects] = useState([])
@@ -67,11 +67,12 @@ const { data: overall } = await supabase
   .from('student_overall_stats')
   .select('*')
   
-const avgScore =
+const computedAvg =
   Array.isArray(overall) && overall.length > 0
     ? Number(overall[0]?.avg_score || 0).toFixed(1)
     : '0.0'
 
+setAvgScore(computedAvg)
 
 let totalAttempts = 0
 overall?.forEach(r => {
