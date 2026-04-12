@@ -231,23 +231,25 @@ submitted.forEach(s => {
 })
   const distributionData = {
     labels: Object.keys(buckets),
-    datasets: [
-      {
-        data: Object.values(buckets),
-        backgroundColor: '#3b82f6'
-      }
-    ]
+   datasets: [
+  {
+    label: 'Number of Students',
+    data: Object.values(buckets),
+    backgroundColor: '#3b82f6'
+  }
+]
   }
 
 const trendData = {
-  labels: submitted.map((_, i) => `A${i + 1}`),
-  datasets: [
-    {
-      data: submitted.map(s => Math.max(0, s.avg_score || 0)),
-      borderColor: '#10b981',
-      fill: false
-    }
-  ]
+  labels: submitted.map((_, i) => `Attempt ${i + 1}`),
+datasets: [
+  {
+    label: 'Average Score (%)',
+    data: submitted.map(s => Math.max(0, s.avg_score || 0)),
+    borderColor: '#10b981',
+    fill: false
+  }
+]
 }
 
   function exportExcel() {
@@ -505,12 +507,18 @@ const trendData = {
         >
       
           <div style={chartCard}>
-            <h4>Score Distribution</h4>
+          <p style={{ color: '#6b7280', fontSize: 13 }}>
+  Shows how many students fall into each score range.
+</p>
+            <h3>Score Distribution</h3>
             <Bar data={distributionData} height={150} />
           </div>
 
           <div style={chartCard}>
-            <h4>Score Trend</h4>
+    <p style={{ color: '#6b7280', fontSize: 13 }}>
+  Shows how student performance is changing across attempts.
+</p>        
+    <h3>Score Trend</h3>
             <Line data={trendData} height={150} />
           </div>
         </div>
