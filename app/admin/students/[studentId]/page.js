@@ -132,21 +132,37 @@ export default function StudentDetailsPage() {
   const totalAttempts = sessions.length
   const totalExams = Object.keys(grouped).length
 
-  const averageScore =
-    totalAttempts > 0
-      ? (
-          sessions.reduce((sum, s) => sum + (s.score || 0), 0) /
-          totalAttempts
-        ).toFixed(2)
-      : 0
+const averageScore =
+  totalAttempts > 0
+    ? (
+        sessions.reduce((total, s) => {
+          const totalQ = Object.keys(s.answers || {}).length || 1
+          const maxScore = totalQ * 4
+          return total + ((s.score || 0) / maxScore) * 100
+        }, 0) / totalAttempts
+      ).toFixed(1)
+    : 0
 
-  const bestScore =
-    totalAttempts > 0
-      ? Math.max(...sessions.map((s) => s.score || 0))
-      : 0
+const bestScore =
+  sessions.length > 0
+    ? Math.max(
+        ...sessions.map(s => {
+          const totalQ = Object.keys(s.answers || {}).length || 1
+          const maxScore = totalQ * 4
+          return ((s.score || 0) / maxScore) * 100
+        })
+      ).toFixed(1)
+    : 0
 
-  const latestScore =
-    sessions.length > 0 ? sessions[0]?.score || 0 : 0
+const latestScore =
+  sessions.length > 0
+    ? (() => {
+        const s = sessions[0]
+        const totalQ = Object.keys(s.answers || {}).length || 1
+        const maxScore = totalQ * 4
+        return (((s.score || 0) / maxScore) * 100).toFixed(1)
+      })()
+    : 0
 
   return (
     <div style={styles.page}>
@@ -221,7 +237,13 @@ export default function StudentDetailsPage() {
                   {attempts.map((a) => (
                     <tr key={a.id}>
                       <td style={styles.td}>{a.attempt_number}</td>
-                      <td style={styles.td}>{a.score}</td>
+                      <td style={styles.td}>
+  {(() => {
+    const totalQ = Object.keys(a.answers || {}).length || 1
+    const maxScore = totalQ * 4
+    return (((a.score || 0) / maxScore) * 100).toFixed(1) + '%'
+  })()}
+</td>
                       <td style={styles.td}>
                         {new Date(a.created_at).toLocaleString()}
                       </td>
