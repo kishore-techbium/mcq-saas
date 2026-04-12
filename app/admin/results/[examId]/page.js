@@ -41,6 +41,12 @@ export default function ExamAnalyticsPage() {
   const [strongAreas, setStrongAreas] = useState([])
   const [difficulty, setDifficulty] = useState('')
 const [submitted, setSubmitted] = useState([])
+
+  function getPerformanceLabel(score) {
+  if (score < 40) return '🔴 Low'
+  if (score < 70) return '🟡 Moderate'
+  return '🟢 Strong'
+}
   useEffect(() => {
     if (examId) fetchAll()
   }, [examId])
@@ -97,11 +103,7 @@ const submittedLocal = examStats || []
 // 🔥 PERFORMANCE INTELLIGENCE
 // =========================
 
-function getPerformanceLabel(score) {
-  if (score < 40) return '🔴 Low'
-  if (score < 70) return '🟡 Moderate'
-  return '🟢 Strong'
-}
+
 // SUBJECT STATS
 const { data: subjectStats } = await supabase
   .from('student_subject_stats')
