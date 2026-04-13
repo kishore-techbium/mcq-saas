@@ -32,7 +32,6 @@ export default function ExamAnalyticsPage() {
   const { examId } = useParams()
 
   const [exam, setExam] = useState(null)
-  const [sessions, setSessions] = useState([])
   const [studentsMap, setStudentsMap] = useState({})
   const [activeTab, setActiveTab] = useState('overview')
   const [loading, setLoading] = useState(true)
@@ -66,13 +65,7 @@ const { data: examStats } = await supabase
   .eq('exam_id', examId)
 
 const submittedLocal = examStats || []
-    // Sessions
-    const { data: sessionData } = await supabase
-      .from('exam_sessions')
-      .select('*')
-      .eq('exam_id', examId)
-
-
+  
     // Students
     const studentIds = [
   ...new Set(
@@ -97,7 +90,7 @@ const submittedLocal = examStats || []
 
     setSubmitted(submittedLocal)
     setExam(examData)
-    setSessions(sessionData || [])
+    
     setStudentsMap(studentMap)
 // =========================
 // 🔥 PERFORMANCE INTELLIGENCE
@@ -117,8 +110,8 @@ subjectStats?.forEach(s => {
   if (!subjectAgg[s.subject]) {
     subjectAgg[s.subject] = { total: 0, count: 0 }
   }
-  subjectAgg[s.subject].total += s.accuracy
-  subjectAgg[s.subject].count++
+subjectAgg[s.subject].total += (s.accuracy || 0) * (s.attempts || 0)
+subjectAgg[s.subject].count += s.attempts || 0
 })
 
 const subjectArray = Object.entries(subjectAgg).map(([k, v]) => ({
@@ -156,8 +149,8 @@ subtopicStats?.forEach(s => {
   if (!chapterAgg[s.chapter]) {
     chapterAgg[s.chapter] = { total: 0, count: 0 }
   }
-  chapterAgg[s.chapter].total += s.accuracy
-  chapterAgg[s.chapter].count++
+chapterAgg[s.chapter].total += (s.accuracy || 0) * (s.attempts || 0)
+chapterAgg[s.chapter].count += s.attempts || 0
 })
 
 const chapterArray = Object.entries(chapterAgg).map(([k, v]) => ({
@@ -175,14 +168,16 @@ chapterArray.forEach(c => {
 
 setWeakChapters(weakChap)
 
+let totalScore = 0
+let totalAttempts = 0
+
+submittedLocal.forEach(s => {
+  totalScore += (s.avg_score || 0) * (s.attempts || 0)
+  totalAttempts += s.attempts || 0
+})
+
 const avgScore =
-submittedLocal.length > 0
-  ? (
-      submittedLocal.reduce((total, s) => {
-        return total + (s.avg_score || 0)
-      }, 0) / submittedLocal.length
-    ).toFixed(1)
-  : 0
+  totalAttempts > 0 ? totalScore / totalAttempts : 0
 
 if (avgScore < 10) setDifficulty('Hard')
 else if (avgScore < 25) setDifficulty('Medium')
@@ -210,7 +205,7 @@ else setDifficulty('Easy')
         acc[s.student_id] = {
           student_id: s.student_id,
           best: s.avg_score || 0,
-          attempts: sessions.filter(sess => sess.student_id === s.student_id).length,
+          attempts: s.attempts || 0,
           rejected: false
         }
       }
@@ -254,7 +249,7 @@ submitted.forEach(s => {
   }
 
 const trendData = {
-  labels: submitted.map((_, i) => `Attempt ${i + 1}`),
+  labels: submitted.map(s => studentsMap[s.student_id]?.name || 'Student'),
 datasets: [
   {
     label: 'Average Score (%)',
@@ -377,24 +372,34 @@ datasets: [
           }}
         >
           <div style={kpiCard}>
-            <div style={kpiNumber}>{sessions.length}</div>
+            <div style={kpiNumber}>{submitted.reduce((sum, s) => sum + (s.attempts || 0), 0)}</div>
             <div style={kpiLabel}>Total Attempts</div>
           </div>
 
           <div style={kpiCard}>
-            <div style={kpiNumber}>{submitted.length}</div>
+            <div style={kpiNumber}>{submitted.reduce((sum, s) => sum + (s.attempts || 0), 0)}</div>
             <div style={kpiLabel}>Submitted</div>
           </div>
 
           <div style={kpiCard}>
             <div style={kpiNumber}>
-              {submitted.length > 0
-  ? (
-      submitted.reduce((total, s) => {
-        return total + (s.avg_score || 0)
-      }, 0) / submitted.length
-    ).toFixed(1)
-  : 0}
+              {
+  submitted.length > 0
+    ? (() => {
+        let totalScore = 0
+        let totalAttempts = 0
+
+        submitted.forEach(s => {
+          totalScore += (s.avg_score || 0) * (s.attempts || 0)
+          totalAttempts += s.attempts || 0
+        })
+
+        return totalAttempts > 0
+          ? (totalScore / totalAttempts).toFixed(1)
+          : 0
+      })()
+    : 0
+}
             </div>
             <div style={kpiLabel}>Average Score</div>
           </div>
