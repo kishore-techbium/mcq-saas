@@ -28,16 +28,16 @@ async function fetchStudents() {
   // ✅ FETCH DIRECTLY FROM student_overall_stats
 const { data: sessions } = await supabase
   .from('student_overall_stats')
-  .select('student_id')
+  .select('student_id, total_attempts')
   //.eq('submitted', true)
   .in('student_id', studentData.map(s => s.id))
   // ✅ BUILD ATTEMPT MAP
   const attemptMap = {}
 
-  sessions?.forEach(s => {
-    const key = String(s.student_id)
-    attemptMap[key] = (attemptMap[key] || 0) + 1
-  })
+sessions?.forEach(s => {
+  const key = String(s.student_id)
+  attemptMap[key] = s.total_attempts || 0
+})
 
   // ✅ MERGE
   const merged = (studentData || []).map(s => ({
