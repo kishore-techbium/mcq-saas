@@ -14,6 +14,7 @@ export default function StudentDetailsPage() {
   const [grouped, setGrouped] = useState({})
   const [loading, setLoading] = useState(true)
   const [insights, setInsights] = useState([])
+  const [overallStats, setOverallStats] = useState(null)
 
   useEffect(() => {
     if (studentId) fetchData()
@@ -21,6 +22,14 @@ export default function StudentDetailsPage() {
 
   async function fetchData() {
     setLoading(true)
+const { data: overall } = await supabase
+  .from('student_overall_stats')
+  .select('*')
+  .eq('student_id', studentId)
+  .single()
+
+  setOverallStats(overall)
+
 
     const { data: studentData } = await supabase
       .from('students')
@@ -129,20 +138,11 @@ export default function StudentDetailsPage() {
 
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
-  const totalAttempts = sessions.length
-  const totalExams = Object.keys(grouped).length
-
-const averageScore =
-  totalAttempts > 0
-    ? (
-        sessions.reduce((total, s) => {
-          const totalQ = Object.keys(s.answers || {}).length || 1
-          const maxScore = totalQ * 4
-          return total + ((s.score || 0) / maxScore) * 100
-        }, 0) / totalAttempts
-      ).toFixed(1)
-    : 0
-
+  const totalAttempts = overallStats?.total_attempts || 0
+const totalExams = overallStats?.total_exams || 0
+const averageScore = overallStats?.avg_score?.toFixed(1) || 0
+const bestScore = overallStats?.best_score || 0
+const latestScore = overallStats?.last_score || 0
 
 const bestPerExamAvg = (() => {
   if (!sessions.length) return 0
@@ -167,26 +167,6 @@ const bestPerExamAvg = (() => {
     ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)
     : 0
 })()
-const bestScore =
-  sessions.length > 0
-    ? Math.max(
-        ...sessions.map(s => {
-          const totalQ = Object.keys(s.answers || {}).length || 1
-          const maxScore = totalQ * 4
-          return ((s.score || 0) / maxScore) * 100
-        })
-      ).toFixed(1)
-    : 0
-
-const latestScore =
-  sessions.length > 0
-    ? (() => {
-        const s = sessions[0]
-        const totalQ = Object.keys(s.answers || {}).length || 1
-        const maxScore = totalQ * 4
-        return (((s.score || 0) / maxScore) * 100).toFixed(1)
-      })()
-    : 0
 
   return (
     <div style={styles.page}>
