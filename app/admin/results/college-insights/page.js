@@ -67,21 +67,21 @@ const { data: overall } = await supabase
   .from('student_overall_stats')
   .select('*')
   
+let totalScore = 0
+let totalAttempts = 0
+
+overall?.forEach(s => {
+  totalScore += (s.avg_score || 0) * (s.total_attempts || 0)
+  totalAttempts += s.total_attempts || 0
+})
+
 const computedAvg =
-  Array.isArray(overall) && overall.length > 0
-    ? (
-        overall.reduce((sum, s) => sum + (s.avg_score || 0), 0) /
-        overall.length
-      ).toFixed(1)
+  totalAttempts > 0
+    ? (totalScore / totalAttempts).toFixed(1)
     : '0.0'
 
 setAvgScore(computedAvg)
-
-let totalAttempts = 0
-overall?.forEach(r => {
-  totalAttempts += r.total_attempts || 0
-})
-    setStats({ totalStudents, totalAttempts, avgScore })
+    setStats({ totalStudents, totalAttempts })
 
     // =========================
     // TOP PERFORMERS
@@ -121,21 +121,21 @@ overall?.forEach(r => {
     const subjectMap = {}
 
     subjectStats?.forEach(s => {
-      if (!subjectMap[s.subject]) {
-        subjectMap[s.subject] = { attempts: 0, correct: 0 }
-      }
+  if (!subjectMap[s.subject]) {
+    subjectMap[s.subject] = { correct: 0, total_questions: 0 }
+  }
 
-      subjectMap[s.subject].attempts += s.attempts || 0
-      subjectMap[s.subject].correct += s.correct || 0
-    })
+  subjectMap[s.subject].correct += s.correct || 0
+  subjectMap[s.subject].total_questions += s.total_questions || 0
+})
 
     const subjectArray = Object.keys(subjectMap).map(sub => ({
       subject: sub,
       accuracy:
-        subjectMap[sub].attempts > 0
-          ? subjectMap[sub].correct / subjectMap[sub].attempts
-          : 0,
-      attempts: subjectMap[sub].attempts
+  subjectMap[sub].total_questions > 0
+    ? subjectMap[sub].correct / subjectMap[sub].total_questions
+    : 0,
+      attempts: subjectMap[sub].total_questions
     }))
 
     subjectArray.sort((a, b) => a.accuracy - b.accuracy)
@@ -163,15 +163,14 @@ overall?.forEach(r => {
           correct: 0
         }
       }
-
-      subMap[key].attempts += s.attempts || 0
       subMap[key].correct += s.correct || 0
+subMap[key].total_questions += s.total_questions || 0
     })
 
     const subArray = Object.values(subMap).map(s => ({
       ...s,
-      accuracy:
-        s.attempts > 0 ? s.correct / s.attempts : 0
+     accuracy:
+  s.total_questions > 0 ? s.correct / s.total_questions : 0
     }))
 
     subArray.sort((a, b) => a.accuracy - b.accuracy)
