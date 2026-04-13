@@ -25,11 +25,11 @@ async function fetchStudents() {
   // const res = await fetch(...)
   // const attemptMap = await res.json()
 
-  // ✅ FETCH DIRECTLY FROM exam_sessions
+  // ✅ FETCH DIRECTLY FROM student_overall_stats
 const { data: sessions } = await supabase
-  .from('exam_sessions')
+  .from('student_overall_stats')
   .select('student_id')
-  .eq('submitted', true)
+  //.eq('submitted', true)
   .in('student_id', studentData.map(s => s.id))
   // ✅ BUILD ATTEMPT MAP
   const attemptMap = {}
