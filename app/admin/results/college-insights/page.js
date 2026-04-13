@@ -156,12 +156,13 @@ setAvgScore(computedAvg)
       const key = s.subject + '|' + s.subtopic
 
       if (!subMap[key]) {
-        subMap[key] = {
-          subject: s.subject,
-          subtopic: s.subtopic,
-          attempts: 0,
-          correct: 0
-        }
+       subMap[key] = {
+  subject: s.subject,
+  subtopic: s.subtopic,
+  attempts: 0,
+  correct: 0,
+  total_questions: 0
+}
       }
       subMap[key].correct += s.correct || 0
 subMap[key].total_questions += s.total_questions || 0
