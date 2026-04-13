@@ -143,6 +143,30 @@ const averageScore =
       ).toFixed(1)
     : 0
 
+
+const bestPerExamAvg = (() => {
+  if (!sessions.length) return 0
+
+  const examMap = {}
+
+  sessions.forEach(s => {
+    const totalQ = Object.keys(s.answers || {}).length || 1
+    const maxScore = totalQ * 4
+    const percent = ((s.score || 0) / maxScore) * 100
+
+    if (!examMap[s.exam_title]) {
+      examMap[s.exam_title] = percent
+    } else {
+      examMap[s.exam_title] = Math.max(examMap[s.exam_title], percent)
+    }
+  })
+
+  const values = Object.values(examMap)
+
+  return values.length
+    ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)
+    : 0
+})()
 const bestScore =
   sessions.length > 0
     ? Math.max(
@@ -170,11 +194,12 @@ const latestScore =
 
       <div style={styles.analyticsBox}>
         <div>
-          <strong>Attempts:</strong> {totalAttempts} |
+          <strong>Attempts(including repeated exams):</strong> {totalAttempts} |
           <strong> Exams:</strong> {totalExams} |
-          <strong> Avg:</strong> {averageScore} |
-          <strong> Best:</strong> {bestScore} |
-          <strong> Latest:</strong> {latestScore}
+          <strong> Average of all attempts:</strong> {averageScore} |
+          <strong> Average of best score per exam):</strong> {bestPerExamAvg} |
+          <strong> Best score:</strong> {bestScore} |
+          <strong> Latest score:</strong> {latestScore}
         </div>
 
         {/* 🔥 AI INSIGHTS */}
