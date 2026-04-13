@@ -197,7 +197,7 @@ const latestScore =
           <strong>Attempts(including repeated exams):</strong> {totalAttempts} |
           <strong> Exams:</strong> {totalExams} |
           <strong> Average of all attempts:</strong> {averageScore} |
-          <strong> Average of best score per exam):</strong> {bestPerExamAvg} |
+          <strong> Average of best score per exam:</strong> {bestPerExamAvg} |
           <strong> Best score:</strong> {bestScore} |
           <strong> Latest score:</strong> {latestScore}
         </div>
