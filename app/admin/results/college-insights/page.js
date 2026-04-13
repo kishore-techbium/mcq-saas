@@ -115,7 +115,7 @@ setAvgScore(computedAvg)
     // =========================
     const { data: subjectStats } = await supabase
       .from('student_subject_stats')
-      .select('subject, attempts, correct')
+      .select('subject, attempts, correct, total_questions')
       .eq('college_id', college_id)
 
     const subjectMap = {}
@@ -147,7 +147,7 @@ setAvgScore(computedAvg)
     // =========================
     const { data: subtopicStats } = await supabase
       .from('student_subtopic_stats')
-      .select('subject, subtopic, attempts, correct')
+      .select('subject, subtopic, attempts, correct, total_questions')
       .eq('college_id', college_id)
 
     const subMap = {}
