@@ -128,7 +128,7 @@ setAvgScore(computedAvg)
 
   subjectMap[s.subject].correct += s.correct || 0
   subjectMap[s.subject].total_questions += s.total_questions || 0
-  subjectMap[key].attempts += s.attempts || 0
+  
 })
 
     const subjectArray = Object.keys(subjectMap).map(sub => ({
