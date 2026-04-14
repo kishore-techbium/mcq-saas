@@ -1,16 +1,16 @@
 'use client'
 
 import { supabase } from '../../../../lib/supabase'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 export default function CollegeInsights() {
   const [loading, setLoading] = useState(true)
-const [avgScore, setAvgScore] = useState('0.0')
+  const [avgScore, setAvgScore] = useState('0.0')
   const [stats, setStats] = useState({})
   const [topStudents, setTopStudents] = useState([])
   const [subjects, setSubjects] = useState([])
   const [subtopics, setSubtopics] = useState([])
-
+  const subtopicsRef = useRef(null)
   const [selectedSubject, setSelectedSubject] = useState(null)
   const [adminName, setAdminName] = useState('')
 
@@ -91,7 +91,7 @@ setAvgScore(computedAvg)
       .from('student_overall_stats')
       .select('student_id, avg_score, best_score, total_attempts')
       .eq('college_id', college_id)
-      .gte('total_attempts', 2)
+      .gte('total_attempts', 5)
       .order('avg_score', { ascending: false })
       .limit(10)
 
@@ -182,7 +182,16 @@ setAvgScore(computedAvg)
 
     setSubtopics(subArray)
   }
+function handleSubjectClick(subject) {
+  setSelectedSubject(subject)
 
+  setTimeout(() => {
+    subtopicsRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    })
+  }, 100)
+}
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
   return (
@@ -213,18 +222,18 @@ topStudents.map(s => [
       </Section>
 
       {/* SUBJECTS */}
-      <Section title="📉 Weak Subjects (Click to Drill Down)">
+      <Section title="📉 Weak Subjects">
         {renderTable(
-          ['Subject', 'Accuracy', 'Attempts'],
-          subjects
-  .filter(s => s.accuracy < 0.6)
-  .slice(0, 5).map(s => [
+                    ['Subject', 'Accuracy', 'Attempts'],
+                    subjects
+            .filter(s => s.accuracy < 0.5)
+            .slice(0, 5).map(s => [
             <span
-              style={styles.link}
-              onClick={() => setSelectedSubject(s.subject)}
-            >
-              {s.subject}
-            </span>,
+            style={styles.link}
+            onClick={() => handleSubjectClick(s.subject)}
+          >
+            {s.subject}
+          </span>,
             (s.accuracy * 100).toFixed(1) + '%',
             s.attempts
           ])
@@ -236,7 +245,7 @@ topStudents.map(s => [
         {renderTable(
           ['Subject', 'Accuracy', 'Attempts'],
           subjects
-  .filter(s => s.accuracy >= 0.6)
+  .filter(s => s.accuracy >= 0.7)
   .slice(0, 5).reverse().map(s => [
             s.subject,
             (s.accuracy * 100).toFixed(1) + '%',
@@ -246,11 +255,12 @@ topStudents.map(s => [
       </Section>
 
       {/* SUBTOPICS */}
-      <Section
-        title={`🔬 Weak Subtopics ${
-          selectedSubject ? `- ${selectedSubject}` : ''
-        }`}
-      >
+<div ref={subtopicsRef}>
+  <Section
+    title={`🔬 Weak Subtopics ${
+      selectedSubject ? `- ${selectedSubject}` : ''
+    }`}
+  >
         {selectedSubject && (
           <button
             onClick={() => setSelectedSubject(null)}
@@ -276,6 +286,7 @@ topStudents.map(s => [
         )}
       </Section>
     </div>
+     </div>
   )
 }
 
