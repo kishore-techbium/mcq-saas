@@ -91,7 +91,7 @@ setAvgScore(computedAvg)
       .from('student_overall_stats')
       .select('student_id, avg_score, best_score, total_attempts')
       .eq('college_id', college_id)
-      .gte('total_attempts', 5)
+      .gte('total_attempts', 2)
       .order('avg_score', { ascending: false })
       .limit(10)
 
@@ -217,7 +217,7 @@ topStudents.map(s => [
         {renderTable(
           ['Subject', 'Accuracy', 'Attempts'],
           subjects
-  .filter(s => s.accuracy < 0.5)
+  .filter(s => s.accuracy < 0.6)
   .slice(0, 5).map(s => [
             <span
               style={styles.link}
@@ -236,7 +236,7 @@ topStudents.map(s => [
         {renderTable(
           ['Subject', 'Accuracy', 'Attempts'],
           subjects
-  .filter(s => s.accuracy >= 0.7)
+  .filter(s => s.accuracy >= 0.6)
   .slice(0, 5).reverse().map(s => [
             s.subject,
             (s.accuracy * 100).toFixed(1) + '%',
