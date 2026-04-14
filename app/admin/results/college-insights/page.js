@@ -66,7 +66,8 @@ const [avgScore, setAvgScore] = useState('0.0')
 const { data: overall } = await supabase
   .from('student_overall_stats')
   .select('*')
-  
+  .eq('college_id', college_id)
+    
 let totalScore = 0
 let totalAttempts = 0
 
@@ -127,7 +128,7 @@ setAvgScore(computedAvg)
 
   subjectMap[s.subject].correct += s.correct || 0
   subjectMap[s.subject].total_questions += s.total_questions || 0
-  subMap[key].attempts += s.attempts || 0
+  subjectMap[key].attempts += s.attempts || 0
 })
 
     const subjectArray = Object.keys(subjectMap).map(sub => ({
@@ -168,6 +169,7 @@ setAvgScore(computedAvg)
       subMap[key].correct += s.correct || 0
       subMap[key].attempts += s.attempts || 0
       subMap[key].total_questions += s.total_questions || 0
+      
     })
 
     const subArray = Object.values(subMap).map(s => ({
