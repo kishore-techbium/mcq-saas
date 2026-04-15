@@ -66,12 +66,23 @@ sessions?.forEach(s => {
   return (
     <div style={styles.page}>
       <div style={styles.header}>
-        <h1 style={styles.heading}>👨‍🎓 Registered Students</h1>
+  <h1 style={styles.heading}>👨‍🎓 Registered Students</h1>
 
-        <button style={styles.exportBtn} onClick={exportToExcel}>
-          ⬇ Download Excel
-        </button>
-      </div>
+  <div style={{ display: 'flex', gap: 10 }}>
+    <button
+      style={styles.createBtn}
+      onClick={() =>
+        (window.location.href = '/admin/students/create')
+      }
+    >
+      ➕ Create Student Login
+    </button>
+
+    <button style={styles.exportBtn} onClick={exportToExcel}>
+      ⬇ Download Excel
+    </button>
+  </div>
+</div>
 
       {loading && <p>Loading students...</p>}
 
