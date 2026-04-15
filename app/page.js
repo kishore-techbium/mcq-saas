@@ -56,20 +56,22 @@ async function loginWithCredentials() {
     .select('*')
     .eq('login_id', userId)
     .eq('password', password)
-    .maybeSingle()
 
-  if (error || !data) {
+  console.log("LOGIN DATA:", data)
+  console.log("LOGIN ERROR:", error)
+
+  if (!data || data.length === 0) {
     setError('Invalid User ID or Password')
     return
   }
 
-  // ✅ Store session manually (optional but useful)
-  localStorage.setItem('student', JSON.stringify(data))
+  const user = data[0]
 
-  // ✅ Redirect (same flow as Google)
+  localStorage.setItem('student', JSON.stringify(user))
+
   router.push('/select-category')   // change if your route is different
 }
-
+  
 
   return (
     <div style={styles.page}>
