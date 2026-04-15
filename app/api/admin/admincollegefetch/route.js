@@ -7,19 +7,37 @@ const supabase = createClient(
 
 export async function GET(req) {
   try {
-    // ⚠️ For now: get first admin (simple version)
-    const { data: admin, error } = await supabase
-      .from('admins')
+    const { searchParams } = new URL(req.url)
+    const adminId = searchParams.get('adminId')
+
+    if (!adminId) {
+      return Response.json(
+        { error: 'adminId required' },
+        { status: 400 }
+      )
+    }
+
+    const { data, error } = await supabase
+      .from('students')
       .select('*')
-      .limit(1)
-      .single()
+      .eq('id', adminId)
+      .eq('role', 'admin')
+      .maybeSingle()
 
     if (error) throw error
 
-    return Response.json(admin)
+    if (!data) {
+      return Response.json(
+        { error: 'Admin not found' },
+        { status: 404 }
+      )
+    }
+
+    return Response.json(data)
 
   } catch (err) {
-    console.error(err)
+    console.error('ADMIN FETCH ERROR:', err)
+
     return Response.json(
       { error: err.message },
       { status: 500 }
