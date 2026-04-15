@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { randomUUID } from 'crypto'
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -7,26 +8,46 @@ const supabase = createClient(
 
 export async function POST(req) {
   try {
-    const { email, password, first_name, last_name } = await req.json()
+    const body = await req.json()
 
-    // 1️⃣ Create auth user
-    const { data: authUser, error: authError } =
-      await supabase.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true
-      })
+    const {
+      email,
+      first_name,
+      last_name,
+      login_id,
+      password,
+      exam_preference,
+      phone,
+      address,
+      adminCollegeId,
+      adminCollegeName
+    } = body
 
-    if (authError) throw authError
+    // 🔥 VALIDATION
+    if (!email || !first_name || !last_name || !login_id || !password || !exam_preference) {
+      return Response.json({ error: 'Missing required fields' }, { status: 400 })
+    }
 
-    // 2️⃣ Insert into students table
+    // 🔥 GENERATE ID
+    const id = randomUUID()
+
+    // 🔥 INSERT
     const { error } = await supabase
       .from('students')
       .insert({
-        id: authUser.user.id,
+        id,
+        user_id: id,
         email,
         first_name,
-        last_name
+        last_name,
+        login_id,
+        password,
+        exam_preference,
+        role: 'student',
+        college_id: adminCollegeId,
+        college_name: adminCollegeName,
+        phone: phone || null,
+        address: address || null
       })
 
     if (error) throw error
