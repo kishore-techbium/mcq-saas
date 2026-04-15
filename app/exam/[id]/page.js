@@ -96,11 +96,14 @@ if (examData && examData.camera_required && isMobile) {
     setAnswers(saved.answers || {})
     setCurrentIndex(saved.currentIndex || 0)
     setVisited(new Set(saved.visited || []))
-    setTimeLeft(saved.timeLeft ?? examData.duration_minutes * 60)
+    setTimeLeft(
+                  saved.timeLeft ?? ((examData?.duration_minutes || 30) * 60)
+                )
     setSubmitted(saved.submitted || false)
     setTimeSpent(saved.timeSpent || {})
 
-
+console.log("API DATA:", data)
+console.log("QUESTIONS:", data.questions)
 
 // check if session already has order
 const savedSession = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
