@@ -16,9 +16,25 @@ const [form, setForm] = useState({
 const [admin, setAdmin] = useState(null)
 
 useEffect(() => {
-  const user = JSON.parse(localStorage.getItem('user'))
-  setAdmin(user)
+  fetchAdmin()
 }, [])
+
+async function fetchAdmin() {
+  try {
+    const res = await fetch('/api/admin/me')
+    const data = await res.json()
+
+    if (!res.ok) {
+      alert('Failed to load admin info')
+      return
+    }
+
+    setAdmin(data)
+  } catch (err) {
+    console.error(err)
+    alert('Error loading admin')
+  }
+}
   
 
 async function handleSubmit(e) {
