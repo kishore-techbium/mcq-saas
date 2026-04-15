@@ -21,7 +21,7 @@ useEffect(() => {
 
 async function fetchAdmin() {
   try {
-    const res = await fetch('/api/admin/me')
+    const res = await fetch('/api/admin/admincollegefetch')
     const data = await res.json()
 
     if (!res.ok) {
