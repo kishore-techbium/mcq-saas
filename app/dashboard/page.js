@@ -149,16 +149,16 @@ const exams = await res.json()
       return
     }
 
-    const examIds = exams.map(e => e.id)
-    const questionCountMap = {}
+  
+const examIds = exams.map(e => e.id)
 
-    const res = await fetch('/api/exams/question-count', {
+const res2 = await fetch('/api/exam/question-count', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ examIds })
 })
 
-const questionCountMap = await res.json()
+const questionCountMap = await res2.json()
 
     const { data: attempts } = await supabase
       .from('exam_sessions')
