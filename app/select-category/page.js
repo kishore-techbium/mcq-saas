@@ -19,28 +19,38 @@ async function checkUser() {
 setCalled(true)
     const { data } = await supabase.auth.getUser()
 
-    if (!data.user) {
-      window.location.href = '/'
-      return
-    }
+// ✅ 1. Check Google login
+if (data?.user) {
 
-    const email = data.user.email
+  const email = data.user.email
 
-    const { data: student } = await supabase
-      .from('students')
-      .select('exam_preference, first_name') // ✅ added first_name only
-      .eq('email', email)
-      .maybeSingle()
+  const { data: student } = await supabase
+    .from('students')
+    .select('exam_preference, first_name')
+    .eq('email', email)
+    .maybeSingle()
 
-    if (student?.exam_preference) {
-      setExamPref(student.exam_preference)
-    }
+  if (student?.exam_preference) {
+    setExamPref(student.exam_preference)
+  }
 
-    setStudentName(student?.first_name || 'Student') // ✅ NEW
-// TEMP DISABLED
-// if (student?.id) {
-//   loadAnalytics(student.id)
-// }
+  setStudentName(student?.first_name || 'Student')
+  return
+}
+
+// ✅ 2. Check Manual login
+const localUser = localStorage.getItem('student')
+
+if (localUser) {
+  const student = JSON.parse(localUser)
+
+  setExamPref(student.exam_preference)
+  setStudentName(student.first_name || 'Student')
+  return
+}
+
+// ❌ Not logged in
+window.location.href = '/'
   }
 
   function go(cat) {
@@ -48,9 +58,10 @@ setCalled(true)
   }
 
   async function logout() {
-    await supabase.auth.signOut()
-    window.location.href = '/'
-  }
+  await supabase.auth.signOut()
+  localStorage.removeItem('student')
+  window.location.href = '/'
+}
 async function loadAnalytics(studentId) {
 
   // 1. get sessions
