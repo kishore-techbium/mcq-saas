@@ -120,9 +120,9 @@ async function loginWithCredentials() {
     <li>Get personalized academic insights</li>
   </ul>
 </div>
-        <p style={styles.note}>
-          Secure login using your Google account
-        </p>
+       // <p style={styles.note}>
+        //  Secure login using your Google account
+       // </p>
       </div>
     </div>
   )
