@@ -15,16 +15,8 @@ export default function ExamReview() {
     init()
   }, [])
 
- async function init() {
+async function init() {
   try {
-    const currentUser = await getCurrentUser(supabase)
-
-if (!currentUser) {
-  alert("Not logged in")
-  window.location.href = '/'
-  return
-}
-
     const params = new URLSearchParams(window.location.search)
     const sessionId = params.get('sessionId')
 
@@ -33,94 +25,22 @@ if (!currentUser) {
       return
     }
 
-    // 🔥 POLLING LOOP (KEY FIX)
-   let sess = null
+    const res = await fetch('/api/exam/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId })
+    })
 
-for (let i = 0; i < 10; i++) {
+    const data = await res.json()
 
-  const { data } = await supabase
-    .from('exam_sessions')
-    .select('*')
-    .eq('id', sessionId)
-    .single()
-
-  console.log("Polling attempt:", i, data?.processing_status)
-
-  if (data?.processing_status === 'completed') {
-    sess = data
-    break
-  }
-
-  // wait 1 sec
-  await new Promise(res => setTimeout(res, 1000))
-}
-
-    if (!sess) {
-      alert("Result is still processing. Please try again.")
+    if (!res.ok || !data || data.error) {
+      alert("Failed to load review")
       return
     }
 
-    setSession(sess)
-
-    // ✅ continue your existing logic BELOW (unchanged)
-
-    if (sess.exam_id) {
-      const { data: examData } =
-        await supabase
-          .from('exams')
-          .select('*')
-          .eq('id', sess.exam_id)
-          .single()
-
-      setExam(examData)
-    }
-
-    let answers = sess.answers || {}
-
-    if (typeof answers === 'string') {
-      try {
-        answers = JSON.parse(answers)
-      } catch {}
-    }
-
-    const answerQuestionIds =
-      Object.keys(answers).filter(k => k !== '__meta')
-
-    if (sess.exam_id) {
-      const { data: mappings } =
-        await supabase
-          .from('exam_questions')
-          .select('question_id')
-          .eq('exam_id', sess.exam_id)
-
-      const ids = mappings?.map(m => m.question_id) || []
-
-      if (ids.length > 0) {
-        const { data: qs } =
-          await supabase
-            .from('question_bank')
-            .select('*')
-            .in('id', ids)
-
-        setQuestions(qs || [])
-      }
-
-    } else {
-      if (answerQuestionIds.length > 0) {
-        const { data: qs } =
-          await supabase
-            .from('question_bank')
-            .select('*')
-            .in('id', answerQuestionIds)
-
-        const ordered =
-          answerQuestionIds
-            .map(id => qs?.find(q => q.id === id))
-            .filter(Boolean)
-
-        setQuestions(ordered)
-      }
-    }
+    setSession(data.session)
+    setExam(data.exam)
+    setQuestions(data.questions)
 
     setLoading(false)
 
