@@ -112,11 +112,13 @@ async function init() {
   }
 
   async function loadAdminExams(studentId, cat) {
-    const { data: exams } = await (await fromWithCollege('exams'))
-      .select('*')
-      .eq('is_active', true)
-      .eq('exam_category', cat)
-      .order('created_at', { ascending: false })
+   const { data: exams } = await supabase
+  .from('exams')
+  .select('*')
+  .eq('college_id', user.college_id)
+  .eq('is_active', true)
+  .eq('exam_category', cat)
+  .order('created_at', { ascending: false })
 console.log("COLLEGE ID:", collegeId)
     if (!exams || exams.length === 0) {
       setAvailableExams([])
