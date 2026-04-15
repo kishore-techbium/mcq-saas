@@ -34,7 +34,7 @@ export async function POST(req) {
 
     if (error) throw error
 
-    return Response.json({ sessionId: data.id })
+    return Response.json({ id: data.id })
 
   } catch (err) {
     console.error(err)
