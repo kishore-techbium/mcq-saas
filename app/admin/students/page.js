@@ -91,8 +91,6 @@ sessions?.forEach(s => {
     ⬆ Upload Excel
   </button>
 
-</div>
-
     <button style={styles.exportBtn} onClick={exportToExcel}>
       ⬇ Download Excel
     </button>
