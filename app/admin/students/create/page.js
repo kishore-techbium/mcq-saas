@@ -1,212 +1,58 @@
 'use client'
 
-import { supabase } from '../../../../lib/supabase'
-import { useEffect, useState } from 'react'
-import * as XLSX from 'xlsx'
-import { getStudentsWithCollege } from '../../../../lib/db'
+import { useState } from 'react'
 
-export default function StudentListPage() {
-  const [students, setStudents] = useState([])
-  const [loading, setLoading] = useState(true)
+export default function CreateStudent() {
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    first_name: '',
+    last_name: ''
+  })
 
-  useEffect(() => {
-    fetchStudents()
-  }, [])
+  async function handleSubmit(e) {
+    e.preventDefault()
 
-async function fetchStudents() {
-  setLoading(true)
+    const res = await fetch('/api/admin/create-student', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form)
+    })
 
-  // 1️⃣ Fetch students
-  const studentData = await getStudentsWithCollege()
+    const data = await res.json()
 
-  const collegeId = studentData[0]?.college_id
-
-  // ❌ REMOVE API CALL
-  // const res = await fetch(...)
-  // const attemptMap = await res.json()
-
-  // ✅ FETCH DIRECTLY FROM student_overall_stats
-const { data: sessions } = await supabase
-  .from('student_overall_stats')
-  .select('student_id, total_attempts')
-  //.eq('submitted', true)
-  .in('student_id', studentData.map(s => s.id))
-  // ✅ BUILD ATTEMPT MAP
-  const attemptMap = {}
-
-sessions?.forEach(s => {
-  const key = String(s.student_id)
-  attemptMap[key] = s.total_attempts || 0
-})
-
-  // ✅ MERGE
-  const merged = (studentData || []).map(s => ({
-    ...s,
-    attempt_count: attemptMap[String(s.id)] || 0
-  }))
-
-  setStudents(merged)
-  setLoading(false)
-}
-  /* ================= EXPORT TO EXCEL ================= */
-
-  function exportToExcel() {
-    if (students.length === 0) {
-      alert('No student data to export')
+    if (!res.ok) {
+      alert(data.error || 'Failed')
       return
     }
 
-    const worksheet = XLSX.utils.json_to_sheet(students)
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Students')
-
-    XLSX.writeFile(workbook, 'Students_List.xlsx')
+    alert('Student created successfully')
+    window.location.href = '/admin/students'
   }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.header}>
-        <h1 style={styles.heading}>👨‍🎓 Registered Students</h1>
+    <div style={{ padding: 40 }}>
+      <h1>Create Student Login</h1>
 
-        <button style={styles.exportBtn} onClick={exportToExcel}>
-          ⬇ Download Excel
-        </button>
-      </div>
+      <form onSubmit={handleSubmit}>
+        <input placeholder="First Name"
+          onChange={e => setForm({ ...form, first_name: e.target.value })}
+        /><br/><br/>
 
-      {loading && <p>Loading students...</p>}
+        <input placeholder="Last Name"
+          onChange={e => setForm({ ...form, last_name: e.target.value })}
+        /><br/><br/>
 
-      {!loading && students.length === 0 && (
-        <p>No students registered yet.</p>
-      )}
+        <input placeholder="Email"
+          onChange={e => setForm({ ...form, email: e.target.value })}
+        /><br/><br/>
 
-      {!loading && students.length > 0 && (
-        <div style={styles.tableWrapper}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>First Name</th>
-                <th style={styles.th}>Last Name</th>
-                <th style={styles.th}>Email</th>
-                <th style={styles.th}>Phone</th>
-                <th style={styles.th}>College</th>
-                <th style={styles.th}>Study Year</th>
-                <th style={styles.th}>Address</th>
-                <th style={styles.th}>Created At</th>
-                <th style={styles.th}>Attempts</th>
-                <th style={styles.th}>Actions</th>
-              </tr>
-            </thead>
+        <input type="password" placeholder="Password"
+          onChange={e => setForm({ ...form, password: e.target.value })}
+        /><br/><br/>
 
-            <tbody>
-              {students.map((student) => (
-                <tr key={student.id}>
-                  <td style={styles.td}>
-                    {student.first_name || '-'}
-                  </td>
-                  <td style={styles.td}>
-                    {student.last_name || '-'}
-                  </td>
-                  <td style={styles.td}>{student.email}</td>
-                  <td style={styles.td}>{student.phone || '-'}</td>
-                  <td style={styles.td}>
-                    {student.college_name || '-'}
-                  </td>
-                  <td style={styles.td}>
-                    {student.study_year || '-'}
-                  </td>
-                  <td style={styles.td}>
-                    {student.address || '-'}
-                  </td>
-                  <td style={styles.td}>
-                    {new Date(student.created_at).toLocaleString()}
-                  </td>
-                  <td style={styles.td}>
-  {student.attempt_count}
-</td>
-                  <td style={styles.td}>
-                    <button
-                      style={styles.viewBtn}
-                      onClick={() =>
-                        (window.location.href = `/admin/students/${student.id}`)
-                      }
-                    >
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        <button type="submit">Create</button>
+      </form>
     </div>
   )
-}
-
-/* ================= STYLES ================= */
-
-const styles = {
-  page: {
-    padding: 40,
-    minHeight: '100vh',
-    background: 'linear-gradient(135deg,#f8fafc,#eef2ff)',
-    fontFamily: 'system-ui, sans-serif'
-  },
-
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20
-  },
-
-  heading: {
-    fontSize: 28
-  },
-
-  exportBtn: {
-    padding: '10px 18px',
-    background: '#16a34a',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 8,
-    fontWeight: 600,
-    cursor: 'pointer'
-  },
-
-  tableWrapper: {
-    overflowX: 'auto',
-    background: '#fff',
-    borderRadius: 12,
-    boxShadow: '0 10px 25px rgba(0,0,0,0.08)'
-  },
-
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse'
-  },
-
-  th: {
-    background: '#f1f5f9',
-    padding: 12,
-    textAlign: 'left',
-    fontSize: 14,
-    borderBottom: '1px solid #e5e7eb'
-  },
-
-  td: {
-    padding: 12,
-    fontSize: 14,
-    borderBottom: '1px solid #e5e7eb'
-  },
-
-  viewBtn: {
-    padding: '6px 12px',
-    background: '#2563eb',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6,
-    cursor: 'pointer',
-    fontSize: 13
-  }
 }
