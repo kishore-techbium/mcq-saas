@@ -100,14 +100,6 @@ if (examData && examData.camera_required && isMobile) {
     setTimeSpent(saved.timeSpent || {})
 
 
-if (error) {
-  console.error('Error loading exam questions:', error)
-  alert('Unable to load exam.')
-  window.location.href = '/dashboard'
-  return
-}
-
-let finalQuestions = qs || []
 
 // check if session already has order
 const savedSession = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
