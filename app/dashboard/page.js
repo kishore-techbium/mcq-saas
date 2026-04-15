@@ -117,7 +117,7 @@ async function init() {
       .eq('is_active', true)
       .eq('exam_category', cat)
       .order('created_at', { ascending: false })
-
+console.log("COLLEGE ID:", collegeId)
     if (!exams || exams.length === 0) {
       setAvailableExams([])
       setCompletedExams([])
