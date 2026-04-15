@@ -25,17 +25,19 @@ if (!currentUser) {
   window.location.href = '/'
   return
 }
-    const { data: examData } = await supabase
-      .from('exams')
-      .select('*')
-      .eq('id', examId)
-      .maybeSingle()
+   const res = await fetch('/api/exam/get', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ examId })
+})
 
-    if (!examData) {
-      alert('Exam not found')
-      window.location.href = '/dashboard'
-      return
-    }
+const examData = await res.json()
+
+if (!examData || examData.error) {
+  alert('Exam not found')
+  window.location.href = '/dashboard'
+  return
+}
 
     setExam(examData)
 
