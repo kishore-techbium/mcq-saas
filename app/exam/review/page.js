@@ -1,6 +1,7 @@
 'use client'
 
 import { supabase } from '../../../lib/supabase'
+import { getCurrentUser } from '../../../lib/auth'
 import { useEffect, useState } from 'react'
 
 export default function ExamReview() {
@@ -16,13 +17,13 @@ export default function ExamReview() {
 
  async function init() {
   try {
-    const { data: { session: authSession } } =
-      await supabase.auth.getSession()
+    const currentUser = await getCurrentUser(supabase)
 
-    if (!authSession?.user) {
-      alert("Not logged in")
-      return
-    }
+if (!currentUser) {
+  alert("Not logged in")
+  window.location.href = '/'
+  return
+}
 
     const params = new URLSearchParams(window.location.search)
     const sessionId = params.get('sessionId')
