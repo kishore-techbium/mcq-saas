@@ -129,9 +129,9 @@ if (currentUser.type === 'manual') {
     window.location.href = `/exam/${examId}?sessionId=${session.id}`
   }
 
-  if (loading) {
-    return <p style={{ padding: 40 }}>Loading instructions…</p>
-  }
+if (loading || !exam) {
+  return <p style={{ padding: 40 }}>Loading instructions…</p>
+}
 
   return (
     <div style={styles.page}>
