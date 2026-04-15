@@ -23,20 +23,41 @@ export async function POST(req) {
       adminCollegeName
     } = body
 
-    // 🔥 VALIDATION
+    /* ================= VALIDATION ================= */
+
     if (!email || !first_name || !last_name || !login_id || !password || !exam_preference) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 })
+      return Response.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      )
     }
 
-    // 🔥 GENERATE ID
+    /* ================= CHECK DUPLICATE LOGIN ID ================= */
+
+    const { data: existingUser } = await supabase
+      .from('students')
+      .select('id')
+      .eq('login_id', login_id)
+      .single()
+
+    if (existingUser) {
+      return Response.json(
+        { error: 'Username already exists' },
+        { status: 400 }
+      )
+    }
+
+    /* ================= GENERATE ID ================= */
+
     const id = randomUUID()
 
-    // 🔥 INSERT
+    /* ================= INSERT STUDENT ================= */
+
     const { error } = await supabase
       .from('students')
       .insert({
-        id,
-        user_id: id,
+        id: id,
+        user_id: id, // same as id
         email,
         first_name,
         last_name,
@@ -52,10 +73,19 @@ export async function POST(req) {
 
     if (error) throw error
 
-    return Response.json({ success: true })
+    /* ================= SUCCESS ================= */
+
+    return Response.json({
+      success: true,
+      student_id: id
+    })
 
   } catch (err) {
-    console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+    console.error('CREATE STUDENT ERROR:', err)
+
+    return Response.json(
+      { error: err.message },
+      { status: 500 }
+    )
   }
 }
