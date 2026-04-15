@@ -83,6 +83,7 @@ if (!res.ok || !data || data.error) {
 }
 
 const examData = data.exam
+    setExam(examData)
 let finalQuestions = data.questions || []
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
 
