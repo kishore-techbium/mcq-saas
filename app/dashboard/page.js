@@ -98,13 +98,12 @@ if (currentUser.type === 'manual') {
   setCategory(cat)
   setView(v)
 
-  await refreshData(userData.id, cat)
-
+  await refreshData(userData.id, cat, userData)
   setLoading(false)
 }
-  async function refreshData(studentId, cat) {
+  async function refreshData(studentId, cat, userData) {
 await Promise.all([
-  loadAdminExams(studentId, cat, user),
+  loadAdminExams(studentId, cat, userData),
       loadPracticeTests(studentId)
     ])
   }
@@ -140,7 +139,7 @@ await Promise.all([
     .eq('is_active', true)
     .eq('exam_category', cat)
     .order('created_at', { ascending: false })
-console.log("COLLEGE ID:", user?.college_id)
+
     if (!exams || exams.length === 0) {
       setAvailableExams([])
       setCompletedExams([])
