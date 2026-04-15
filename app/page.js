@@ -54,7 +54,7 @@ async function loginWithCredentials() {
   const { data, error } = await supabase
     .from('students')
     .select('*')
-    .eq('user_id', userId)
+    .eq('login_id', userId)
     .eq('password', password)
     .single()
 
@@ -91,7 +91,7 @@ async function loginWithCredentials() {
 {/* User ID Login */}
 <input
   type="text"
-  placeholder="User ID"
+  placeholder="Username"
   value={userId}
   onChange={(e) => setUserId(e.target.value)}
   style={styles.input}
