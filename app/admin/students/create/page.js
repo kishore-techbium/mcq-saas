@@ -14,6 +14,14 @@ const [form, setForm] = useState({
   address: ''
 })
 
+const [admin, setAdmin] = useState(null)
+
+useEffect(() => {
+  const user = JSON.parse(localStorage.getItem('user'))
+  setAdmin(user)
+}, [])
+  
+
   async function handleSubmit(e) {
     e.preventDefault()
 
