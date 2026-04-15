@@ -152,15 +152,13 @@ const exams = await res.json()
     const examIds = exams.map(e => e.id)
     const questionCountMap = {}
 
-    const { data: mappings } = await supabase
-      .from('exam_questions')
-      .select('exam_id')
-      .in('exam_id', examIds)
+    const res = await fetch('/api/exams/question-count', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ examIds })
+})
 
-    ;(mappings || []).forEach(m => {
-      questionCountMap[m.exam_id] =
-        (questionCountMap[m.exam_id] || 0) + 1
-    })
+const questionCountMap = await res.json()
 
     const { data: attempts } = await supabase
       .from('exam_sessions')
