@@ -90,8 +90,8 @@ async function init() {
   setLoading(false)
 }
   async function refreshData(studentId, cat) {
-    await Promise.all([
-      loadAdminExams(studentId, cat),
+await Promise.all([
+  loadAdminExams(studentId, cat, user),
       loadPracticeTests(studentId)
     ])
   }
@@ -111,15 +111,23 @@ async function init() {
     }
   }
 
-  async function loadAdminExams(studentId, cat) {
-   const { data: exams } = await supabase
-  .from('exams')
-  .select('*')
-  .eq('college_id', user.college_id)
-  .eq('is_active', true)
-  .eq('exam_category', cat)
-  .order('created_at', { ascending: false })
-console.log("COLLEGE ID:", collegeId)
+ async function loadAdminExams(studentId, cat, userData) {
+
+  if (!userData?.college_id) {
+    console.log("No college_id found")
+    return
+  }
+
+  console.log("COLLEGE ID:", userData.college_id)
+
+  const { data: exams } = await supabase
+    .from('exams')
+    .select('*')
+    .eq('college_id', userData.college_id)
+    .eq('is_active', true)
+    .eq('exam_category', cat)
+    .order('created_at', { ascending: false })
+console.log("COLLEGE ID:", user?.college_id)
     if (!exams || exams.length === 0) {
       setAvailableExams([])
       setCompletedExams([])
