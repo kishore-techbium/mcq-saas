@@ -1,6 +1,7 @@
 'use client'
 
 import { supabase } from '../../../lib/supabase'
+import { getCurrentUser } from '../../../lib/auth'
 import { useEffect, useRef, useState } from 'react'
 
 function shuffleArray(arr) {
@@ -60,11 +61,12 @@ useEffect(() => {
 }, [])
   
   async function init() {
-    const { data: auth } = await supabase.auth.getUser()
-    if (!auth.user) {
-      window.location.href = '/'
-      return
-    }
+   const currentUser = await getCurrentUser(supabase)
+
+if (!currentUser) {
+  window.location.href = '/'
+  return
+}
 
     const { data: examData } = await supabase
       .from('exams')
