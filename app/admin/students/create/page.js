@@ -21,15 +21,23 @@ useEffect(() => {
 
 async function fetchAdmin() {
   try {
-    const res = await fetch('/api/admin/admincollegefetch')
+    const adminId = localStorage.getItem('adminId')
+
+    if (!adminId) {
+      alert('Admin not found. Please login again.')
+      return
+    }
+
+    const res = await fetch(`/api/admin/me?adminId=${adminId}`)
     const data = await res.json()
 
     if (!res.ok) {
-      alert('Failed to load admin info')
+      alert(data.error || 'Failed to load admin')
       return
     }
 
     setAdmin(data)
+
   } catch (err) {
     console.error(err)
     alert('Error loading admin')
