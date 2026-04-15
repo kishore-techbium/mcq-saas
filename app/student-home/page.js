@@ -1,6 +1,7 @@
 'use client'
 
 import { supabase } from '../../lib/supabase'
+import { getCurrentUser } from '../../lib/auth'
 import { useEffect, useState } from 'react'
 
 export default function StudentHome() {
@@ -9,23 +10,27 @@ export default function StudentHome() {
 
   useEffect(() => {
     async function init() {
-      const { data } = await supabase.auth.getUser()
-      if (!data.user) {
-        window.location.href = '/'
-        return
-      }
 
-      const params = new URLSearchParams(window.location.search)
-      const cat = params.get('category')
+  const currentUser = await getCurrentUser(supabase)
 
-      if (!cat) {
-        window.location.href = '/select-category'
-        return
-      }
+  // ❌ Not logged in
+  if (!currentUser) {
+    window.location.href = '/'
+    return
+  }
 
-      setCategory(cat)
-      setLoading(false)
-    }
+  // ✅ Continue normal flow
+  const params = new URLSearchParams(window.location.search)
+  const cat = params.get('category')
+
+  if (!cat) {
+    window.location.href = '/select-category'
+    return
+  }
+
+  setCategory(cat)
+  setLoading(false)
+}
 
     init()
   }, [])
