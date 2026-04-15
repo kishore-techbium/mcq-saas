@@ -1,6 +1,7 @@
 'use client'
 
 import { supabase } from '../../lib/supabase'
+import { getCurrentUser } from '../../lib/auth'
 import { useEffect, useState } from 'react'
 
 export default function SelectCategory() {
@@ -16,42 +17,36 @@ export default function SelectCategory() {
 const [called, setCalled] = useState(false)
 async function checkUser() {
   if (called) return
-setCalled(true)
-    const { data } = await supabase.auth.getUser()
+  setCalled(true)
 
-// ✅ 1. Check Google login
-if (data?.user) {
+  const currentUser = await getCurrentUser(supabase)
 
-  const email = data.user.email
+  // ❌ Not logged in
+  if (!currentUser) {
+    window.location.href = '/'
+    return
+  }
 
-  const { data: student } = await supabase
-    .from('students')
-    .select('exam_preference, first_name')
-    .eq('email', email)
-    .maybeSingle()
+  // ✅ Google login
+  if (currentUser.type === 'google') {
+    const { data: student } = await supabase
+      .from('students')
+      .select('exam_preference, first_name')
+      .eq('email', currentUser.email)
+      .maybeSingle()
 
-  if (student?.exam_preference) {
+    setExamPref(student?.exam_preference)
+    setStudentName(student?.first_name || 'Student')
+  }
+
+  // ✅ Manual login
+  if (currentUser.type === 'manual') {
+    const student = currentUser.user
+
     setExamPref(student.exam_preference)
+    setStudentName(student.first_name || 'Student')
   }
-
-  setStudentName(student?.first_name || 'Student')
-  return
 }
-
-// ✅ 2. Check Manual login
-const localUser = localStorage.getItem('student')
-
-if (localUser) {
-  const student = JSON.parse(localUser)
-
-  setExamPref(student.exam_preference)
-  setStudentName(student.first_name || 'Student')
-  return
-}
-
-// ❌ Not logged in
-window.location.href = '/'
-  }
 
   function go(cat) {
     window.location.href = `/student-home?category=${cat}`
