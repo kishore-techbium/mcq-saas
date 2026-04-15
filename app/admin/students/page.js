@@ -68,15 +68,30 @@ sessions?.forEach(s => {
       <div style={styles.header}>
   <h1 style={styles.heading}>👨‍🎓 Registered Students</h1>
 
-  <div style={{ display: 'flex', gap: 10 }}>
-    <button
-      style={styles.createBtn}
-      onClick={() =>
-        (window.location.href = '/admin/students/create')
-      }
-    >
-      ➕ Create Student Login
-    </button>
+<div style={{ display: 'flex', gap: 10 }}>
+  
+  <button
+    style={styles.createBtn}
+    onClick={() => window.location.href = '/admin/students/create'}
+  >
+    ➕ Create Student
+  </button>
+
+  <button
+    style={styles.templateBtn}
+    onClick={downloadTemplate}
+  >
+    📄 Download Template
+  </button>
+
+  <button
+    style={styles.uploadBtn}
+    onClick={() => window.location.href = '/admin/students/bulk-upload'}
+  >
+    ⬆ Upload Excel
+  </button>
+
+</div>
 
     <button style={styles.exportBtn} onClick={exportToExcel}>
       ⬇ Download Excel
