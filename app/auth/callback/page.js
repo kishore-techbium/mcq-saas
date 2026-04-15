@@ -20,7 +20,7 @@ export default function AuthCallback() {
   async function handleAuth() {
 
     console.log("🔵 CALLBACK START")
-
+localStorage.removeItem('student')
     const { data: userData } = await supabase.auth.getUser()
 
     if (!userData?.user) {
