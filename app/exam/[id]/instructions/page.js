@@ -67,7 +67,7 @@ if (!examData || examData.error) {
 
   function canStartExam() {
     if (!checked) return false
-    if (exam.camera_required && !cameraAllowed) return false
+    if (exam?.camera_required && !cameraAllowed) return false
     return true
   }
 
@@ -162,7 +162,7 @@ if (currentUser.type === 'manual') {
 <li>Total Score = (Correct × 4) − (Wrong × 1)</li>
         </ul>
 
-        {exam.camera_required && (
+        {exam?.camera_required && (
           <div style={styles.cameraBox}>
             <b>📷 Camera Proctoring Enabled</b>
 
