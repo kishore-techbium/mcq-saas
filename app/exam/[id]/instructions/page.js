@@ -41,9 +41,9 @@ if (!examData || examData.error) {
 
     setExam(examData)
 
-    if (examData.camera_required) {
-      await checkCameraPermission()
-    }
+if (examData && examData.camera_required) {
+  await checkCameraPermission()
+}
 
     setLoading(false)
   }
