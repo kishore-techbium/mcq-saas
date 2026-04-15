@@ -1,6 +1,7 @@
 'use client'
 
 import { supabase } from '../../lib/supabase'
+import { getCurrentUser } from '../../lib/auth'
 import { fromWithCollege } from '../../lib/supabaseWithCollege'
 import { useEffect, useState } from 'react'
 
@@ -28,36 +29,58 @@ export default function StudentDashboard() {
     return () => window.removeEventListener('focus', onFocus)
   }, [user, category])
 
-  async function init() {
-    const { data: { session } } = await supabase.auth.getSession()
+async function init() {
 
-    if (!session) {
+  const currentUser = await getCurrentUser(supabase)
+
+  // ❌ Not logged in
+  if (!currentUser) {
+    window.location.href = '/'
+    return
+  }
+
+  let userData = null
+
+  // ✅ Google login
+  if (currentUser.type === 'google') {
+    const email = currentUser.email
+
+    const { data: student } = await supabase
+      .from('students')
+      .select('*')
+      .eq('email', email)
+      .maybeSingle()
+
+    if (!student) {
       window.location.href = '/'
       return
     }
 
-    const user = session.user
-
-    await ensureStudentProfile(user)
-
-    const params = new URLSearchParams(window.location.search)
-    const cat = params.get('category')
-    const v = params.get('view') // ✅ NEW
-
-    if (!cat) {
-      window.location.href = '/select-category'
-      return
-    }
-
-    setUser(user)
-    setCategory(cat)
-    setView(v) // ✅ NEW
-
-    await refreshData(user.id, cat)
-
-    setLoading(false)
+    userData = student
   }
 
+  // ✅ Manual login
+  if (currentUser.type === 'manual') {
+    userData = currentUser.user
+  }
+
+  const params = new URLSearchParams(window.location.search)
+  const cat = params.get('category')
+  const v = params.get('view')
+
+  if (!cat) {
+    window.location.href = '/select-category'
+    return
+  }
+
+  setUser(userData)
+  setCategory(cat)
+  setView(v)
+
+  await refreshData(userData.id, cat)
+
+  setLoading(false)
+}
   async function refreshData(studentId, cat) {
     await Promise.all([
       loadAdminExams(studentId, cat),
@@ -192,7 +215,9 @@ export default function StudentDashboard() {
 
   async function logout() {
     await supabase.auth.signOut()
+    localStorage.removeItem('student')
     window.location.href = '/'
+    
   }
 
   if (loading) return <p style={{ padding: 30 }}>Loading dashboard…</p>
