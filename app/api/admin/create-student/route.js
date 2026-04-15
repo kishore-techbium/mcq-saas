@@ -10,7 +10,7 @@ export async function POST(req) {
   try {
     const body = await req.json()
 
-    const {
+    let {
       email,
       first_name,
       last_name,
@@ -23,6 +23,13 @@ export async function POST(req) {
       adminCollegeName
     } = body
 
+    /* ================= CLEAN INPUT ================= */
+
+    email = email?.trim()
+    login_id = login_id?.trim()
+    first_name = first_name?.trim()
+    last_name = last_name?.trim()
+
     /* ================= VALIDATION ================= */
 
     if (!email || !first_name || !last_name || !login_id || !password || !exam_preference) {
@@ -32,13 +39,22 @@ export async function POST(req) {
       )
     }
 
-    /* ================= CHECK DUPLICATE LOGIN ID ================= */
+    if (!adminCollegeId || !adminCollegeName) {
+      return Response.json(
+        { error: 'Admin college info missing' },
+        { status: 400 }
+      )
+    }
 
-    const { data: existingUser } = await supabase
+    /* ================= CHECK DUPLICATE USERNAME ================= */
+
+    const { data: existingUser, error: checkError } = await supabase
       .from('students')
       .select('id')
       .eq('login_id', login_id)
-      .single()
+      .maybeSingle()
+
+    if (checkError) throw checkError
 
     if (existingUser) {
       return Response.json(
@@ -57,7 +73,7 @@ export async function POST(req) {
       .from('students')
       .insert({
         id: id,
-        user_id: id, // same as id
+        user_id: id, // always same
         email,
         first_name,
         last_name,
