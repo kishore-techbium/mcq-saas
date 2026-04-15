@@ -2,7 +2,7 @@
 
 import { supabase } from '../../lib/supabase'
 import { getCurrentUser } from '../../lib/auth'
-import { fromWithCollege } from '../../lib/supabaseWithCollege'
+//import { fromWithCollege } from '../../lib/supabaseWithCollege'
 import { useEffect, useState } from 'react'
 
 export default function StudentDashboard() {
@@ -26,7 +26,7 @@ useEffect(() => {
   if (!user || !category) return
 
   const onFocus = () => {
-    refreshData(user.id, category)
+    refreshData(user.id, category, user)
   }
 
   window.addEventListener('focus', onFocus)
@@ -83,7 +83,7 @@ if (currentUser.type === 'manual') {
 
   userData = student
 }
-  console.log("LOCAL USER:", currentUser.user)
+  
 
   const params = new URLSearchParams(window.location.search)
   const cat = params.get('category')
