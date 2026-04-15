@@ -1,6 +1,7 @@
 'use client'
 
 import { supabase } from '../../../../lib/supabase'
+import { getCurrentUser } from '../../../../lib/auth'
 import { useEffect, useState } from 'react'
 
 export default function ExamInstructions({ params }) {
@@ -18,12 +19,12 @@ export default function ExamInstructions({ params }) {
   }, [])
 
   async function init() {
-    const { data: auth } = await supabase.auth.getUser()
-    if (!auth.user) {
-      window.location.href = '/'
-      return
-    }
+const currentUser = await getCurrentUser(supabase)
 
+if (!currentUser) {
+  window.location.href = '/'
+  return
+}
     const { data: examData } = await supabase
       .from('exams')
       .select('*')
@@ -70,9 +71,26 @@ export default function ExamInstructions({ params }) {
 
   /* ================= START EXAM (RESTORED) ================= */
 
-  async function startExam() {
-    const { data: auth } = await supabase.auth.getUser()
-    const studentId = auth.user.id
+  async function startExam()
+  {const currentUser = await getCurrentUser(supabase)
+
+if (!currentUser) {
+  window.location.href = '/'
+  return
+}
+
+let studentId = null
+
+// ✅ Google login
+if (currentUser.type === 'google') {
+  const { data } = await supabase.auth.getUser()
+  studentId = data.user.id
+}
+
+// ✅ Manual login
+if (currentUser.type === 'manual') {
+  studentId = currentUser.user.id
+}
 
     /* Find last attempt */
     const { data: attempts } = await supabase
