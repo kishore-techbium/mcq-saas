@@ -83,14 +83,14 @@ useEffect(() => {
           placeholder="Username"
           onChange={e => setForm({ ...form, login_id: e.target.value })}
         />
-        
+        <br/><br/>
         <input
           type="password"
           placeholder="Password"
           onChange={e => setForm({ ...form, password: e.target.value })}
         />
             
-       
+       <br/><br/>
        
         <button type="submit">Create</button>
       </form>
