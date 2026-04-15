@@ -68,9 +68,22 @@ async function init() {
   }
 
   // ✅ Manual login
-  if (currentUser.type === 'manual') {
-    userData = currentUser.user
+if (currentUser.type === 'manual') {
+
+  const { data: student } = await supabase
+    .from('students')
+    .select('*')
+    .eq('id', currentUser.user.id)
+    .maybeSingle()
+
+  if (!student) {
+    window.location.href = '/'
+    return
   }
+
+  userData = student
+}
+  console.log("LOCAL USER:", currentUser.user)
 
   const params = new URLSearchParams(window.location.search)
   const cat = params.get('category')
