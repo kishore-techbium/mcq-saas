@@ -1,9 +1,9 @@
 'use client'
 
-import { supabase } from '../../../lib/supabase'
+import { supabase } from '../../../../lib/supabase'
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
-import { getStudentsWithCollege } from '../../../lib/db'
+import { getStudentsWithCollege } from '../../../../lib/db'
 
 export default function StudentListPage() {
   const [students, setStudents] = useState([])
