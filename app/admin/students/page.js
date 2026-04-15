@@ -29,7 +29,7 @@ async function fetchStudents() {
 const { data: sessions } = await supabase
   .from('student_overall_stats')
   .select('student_id, total_attempts')
-  //.eq('submitted', true)
+.eq('college_id', collegeId)
   .in('student_id', studentData.map(s => s.id))
   // ✅ BUILD ATTEMPT MAP
   const attemptMap = {}
