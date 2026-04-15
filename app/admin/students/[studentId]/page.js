@@ -150,7 +150,8 @@ const bestPerExamAvg = (() => {
   const examMap = {}
 
   sessions.forEach(s => {
-    const totalQ = Object.keys(s.answers || {}).length || 1
+    const totalQ =
+  Object.keys(s.answers || {}).filter(k => k !== '__meta').length || 1
     const maxScore = totalQ * 4
     const percent = ((s.score || 0) / maxScore) * 100
 
@@ -244,7 +245,8 @@ const bestPerExamAvg = (() => {
                       <td style={styles.td}>{a.attempt_number}</td>
                       <td style={styles.td}>
   {(() => {
-    const totalQ = Object.keys(a.answers || {}).length || 1
+    const totalQ =
+  Object.keys(a.answers || {}).filter(k => k !== '__meta').length || 1
     const maxScore = totalQ * 4
     return (((a.score || 0) / maxScore) * 100).toFixed(1) + '%'
   })()}
