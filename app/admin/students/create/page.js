@@ -3,12 +3,16 @@
 import { useState } from 'react'
 
 export default function CreateStudent() {
-  const [form, setForm] = useState({
-    email: '',
-    password: '',
-    first_name: '',
-    last_name: ''
-  })
+const [form, setForm] = useState({
+  email: '',
+  first_name: '',
+  last_name: '',
+  login_id: '',
+  password: '',
+  exam_preference: 'JEE',
+  phone: '',
+  address: ''
+})
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -46,11 +50,38 @@ export default function CreateStudent() {
         <input placeholder="Email"
           onChange={e => setForm({ ...form, email: e.target.value })}
         /><br/><br/>
+        <label>
+  <input
+    type="radio"
+    name="exam"
+    value="JEE"
+    checked={form.exam_preference === 'JEE'}
+    onChange={e => setForm({ ...form, exam_preference: e.target.value })}
+  />
+  JEE
+</label>
 
-        <input type="password" placeholder="Password"
+<label>
+  <input
+    type="radio"
+    name="exam"
+    value="NEET"
+    checked={form.exam_preference === 'NEET'}
+    onChange={e => setForm({ ...form, exam_preference: e.target.value })}
+  />
+  NEET
+</label>    
+        <input
+          placeholder="Username"
+          onChange={e => setForm({ ...form, login_id: e.target.value })}
+        />
+        
+        <input
+          type="password"
+          placeholder="Password"
           onChange={e => setForm({ ...form, password: e.target.value })}
-        /><br/><br/>
-
+        />
+            
         <button type="submit">Create</button>
       </form>
     </div>
