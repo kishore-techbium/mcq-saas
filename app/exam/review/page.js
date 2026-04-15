@@ -122,13 +122,16 @@ const accuracy =
       {questions.map((q, index) => {
 
 const your = answersObj[q.id]
-const time = timeSpentMap[q.id] || 0        
+const time = timeSpentMap[q.id] ?? 0       
 const correct = q.correct_answer
 let timeLabel = ''
 let insight = ''
 let timeColor = '#333'
-console.log("SESSION ANSWERS:", session.answers)
-if (time > 30 && your !== correct) {
+
+if (!timeSpentMap[q.id]) {
+  insight = '⏭ Not visited'
+  timeColor = '#6b7280'
+} else if (time > 30 && your !== correct) {
   insight = '❌ Weak concept'
   timeColor = '#dc2626'
 } else if (time > 30 && your === correct) {
@@ -153,15 +156,15 @@ if (time > 30 && your !== correct) {
   Q{index + 1}.
   <div dangerouslySetInnerHTML={{ __html: q.question }} />
     {/* ⏱ TIME INFO */}
-{time > 0 && (
-  <div style={{
-    marginTop: 6,
-    fontSize: 13,
-    color: timeColor,
-    fontWeight: 500
-  }}>
-    ⏱ {time} sec {insight}
-  </div>
+{(
+ <div style={{
+  marginTop: 6,
+  fontSize: 13,
+  color: timeColor,
+  fontWeight: 500
+}}>
+  ⏱ {time} sec {insight}
+</div>
 )}
 </div>
 
