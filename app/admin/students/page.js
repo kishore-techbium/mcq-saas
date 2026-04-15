@@ -219,5 +219,14 @@ const styles = {
     borderRadius: 6,
     cursor: 'pointer',
     fontSize: 13
-  }
+  },
+  createBtn: {
+  padding: '10px 18px',
+  background: '#2563eb',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 8,
+  fontWeight: 600,
+  cursor: 'pointer'
+}
 }
