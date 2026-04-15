@@ -8,6 +8,9 @@ export default function StudentLogin() {
 
   const router = useRouter()
   const [checking, setChecking] = useState(true)
+const [userId, setUserId] = useState('')
+const [password, setPassword] = useState('')
+const [error, setError] = useState('')
 
   useEffect(() => {
     checkUser()
@@ -44,6 +47,30 @@ async function checkUser() {
     )
   }
 
+async function loginWithCredentials() {
+
+  setError('')
+
+  const { data, error } = await supabase
+    .from('students')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('password', password)
+    .single()
+
+  if (error || !data) {
+    setError('Invalid User ID or Password')
+    return
+  }
+
+  // ✅ Store session manually (optional but useful)
+  localStorage.setItem('student', JSON.stringify(data))
+
+  // ✅ Redirect (same flow as Google)
+  router.push('/select-category')   // change if your route is different
+}
+
+
   return (
     <div style={styles.page}>
       <div style={styles.card}>
@@ -52,10 +79,47 @@ async function checkUser() {
           Sign in to continue to exams
         </p>
 
-        <button onClick={loginWithGoogle} style={styles.googleBtn}>
-          Continue with Google
-        </button>
+{/* Google Login */}
+<button onClick={loginWithGoogle} style={styles.googleBtn}>
+  Continue with Google
+</button>
 
+<div style={{ margin: '20px 0', fontSize: 12, color: '#999' }}>
+  OR
+</div>
+
+{/* User ID Login */}
+<input
+  type="text"
+  placeholder="User ID"
+  value={userId}
+  onChange={(e) => setUserId(e.target.value)}
+  style={styles.input}
+/>
+
+<input
+  type="password"
+  placeholder="Password"
+  value={password}
+  onChange={(e) => setPassword(e.target.value)}
+  style={styles.input}
+/>
+
+<button onClick={loginWithCredentials} style={styles.loginBtn}>
+  Login
+</button>
+
+{error && (
+  <p style={{ color: 'red', marginTop: 10 }}>{error}</p>
+)}
+<div style={{ marginTop: 25, textAlign: 'left' }}>
+  <ul style={{ fontSize: 13, color: '#555', paddingLeft: 18 }}>
+    <li>Track your performance across all exams</li>
+    <li>Identify weak subjects and improve</li>
+    <li>Analyze accuracy and attempt behavior</li>
+    <li>Get personalized academic insights</li>
+  </ul>
+</div>
         <p style={styles.note}>
           Secure login using your Google account
         </p>
@@ -64,7 +128,9 @@ async function checkUser() {
   )
 }
 
+
 const styles = {
+ 
   page: {
     height: '100vh',
     display: 'flex',
@@ -80,6 +146,7 @@ const styles = {
     borderRadius: 16,
     boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
     textAlign: 'center'
+    
   },
   googleBtn: {
     width: '100%',
@@ -96,5 +163,24 @@ const styles = {
     marginTop: 20,
     fontSize: 12,
     color: '#777'
-  }
+  },
+  input: {
+  width: '100%',
+  padding: '12px',
+  marginBottom: '12px',
+  borderRadius: 8,
+  border: '1px solid #ddd',
+  fontSize: 14
+},
+loginBtn: {
+  width: '100%',
+  padding: '14px',
+  background: '#16a34a',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 10,
+  fontSize: 16,
+  fontWeight: 600,
+  cursor: 'pointer'
+}
 }
