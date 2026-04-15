@@ -68,16 +68,25 @@ if (!currentUser) {
   return
 }
 
-    const { data: examData } = await supabase
-      .from('exams')
-      .select('*')
-      .eq('id', examId)
-      .maybeSingle()
+  const res = await fetch('/api/exam/full', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ examId })
+})
 
-    setExam(examData)
+const data = await res.json()
+
+if (!res.ok || !data || data.error) {
+  alert('Unable to load exam')
+  window.location.href = '/dashboard'
+  return
+}
+
+const examData = data.exam
+let finalQuestions = data.questions || []
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
 
-if (examData.camera_required && isMobile) {
+if (examData && examData.camera_required && isMobile) {
   alert('Proctored exams must be taken on a desktop or laptop.')
   window.location.href = '/dashboard'
   return
@@ -90,10 +99,6 @@ if (examData.camera_required && isMobile) {
     setSubmitted(saved.submitted || false)
     setTimeSpent(saved.timeSpent || {})
 
-    const { data: qs, error } = await supabase.rpc(
-  'get_exam_questions',
-  { p_exam_id: examId }
-)
 
 if (error) {
   console.error('Error loading exam questions:', error)
