@@ -94,36 +94,23 @@ if (currentUser.type === 'manual') {
   studentId = currentUser.user.id
 }
 
-    /* Find last attempt */
-    const { data: attempts } = await supabase
-      .from('exam_sessions')
-      .select('attempt_number')
-      .eq('student_id', studentId)
-      .eq('exam_id', examId)
-      .order('attempt_number', { ascending: false })
-      .limit(1)
+  const res = await fetch('/api/exam/create-session', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    studentId,
+    examId
+  })
+})
 
-    const nextAttempt =
-      attempts && attempts.length > 0
-        ? (attempts[0].attempt_number || 1) + 1
-        : 1
+const session = await res.json()
 
-    /* Create NEW session */
-    const { data: session, error } = await supabase
-      .from('exam_sessions')
-      .insert({
-        student_id: studentId,
-        exam_id: examId,
-        attempt_number: nextAttempt,
-        submitted: false
-      })
-      .select()
-      .single()
+if (!res.ok || !session || session.error) {
+  alert('Failed to start exam. Please try again.')
+  return
+}
 
-    if (error || !session) {
-      alert('Failed to start exam. Please try again.')
-      return
-    }
+window.location.href = `/exam/${examId}?sessionId=${session.id}`
 
     /* Redirect with sessionId */
     window.location.href = `/exam/${examId}?sessionId=${session.id}`
