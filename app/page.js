@@ -51,11 +51,11 @@ async function loginWithCredentials() {
 
   setError('')
 
-  const { data, error } = await supabase
-    .from('students')
-    .select('*')
-    .eq('login_id', userId)
-    .eq('password', password)
+const { data, error } = await supabase
+  .from('students')
+  .select('*')
+  .eq('login_id', userId.trim())
+  .eq('password', password.trim())
 
   console.log("LOGIN DATA:", data)
   console.log("LOGIN ERROR:", error)
