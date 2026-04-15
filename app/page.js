@@ -56,7 +56,7 @@ async function loginWithCredentials() {
     .select('*')
     .eq('login_id', userId)
     .eq('password', password)
-    .single()
+    .maybeSingle()
 
   if (error || !data) {
     setError('Invalid User ID or Password')
