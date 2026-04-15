@@ -1,6 +1,7 @@
 'use client'
 
 import { supabase } from '../../../lib/supabase'
+import { getCurrentUser } from '../../../lib/auth'
 import { useEffect, useState } from 'react'
 
 export default function CreateTest() {
@@ -18,14 +19,24 @@ export default function CreateTest() {
   }, [])
 
   async function init() {
-    const { data: auth } = await supabase.auth.getUser()
+   const currentUser = await getCurrentUser(supabase)
 
-    if (!auth.user) {
-      window.location.href = '/'
-      return
-    }
+if (!currentUser) {
+  window.location.href = '/'
+  return
+}
 
-    const email = auth.user.email
+let email = null
+
+// ✅ Google login
+if (currentUser.type === 'google') {
+  email = currentUser.email
+}
+
+// ✅ Manual login
+if (currentUser.type === 'manual') {
+  email = currentUser.user.email
+}
 
     // 🔥 GET STUDENT PREFERENCE
     const { data: student } = await supabase
