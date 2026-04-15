@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-
+import { supabase } from '../../../lib/supabase'
 export default function CreateStudent() {
 const [form, setForm] = useState({
   email: '',
@@ -21,29 +21,38 @@ useEffect(() => {
 
 async function fetchAdmin() {
   try {
-    const adminId = localStorage.getItem('adminId')
+    const { data } = await supabase.auth.getUser()
 
-    if (!adminId) {
-      alert('Admin not found. Please login again.')
+    if (!data?.user) {
+      alert('Not logged in')
       return
     }
 
-    const res = await fetch(`/api/admin/me?adminId=${adminId}`)
-    const data = await res.json()
+    const email = data.user.email
 
-    if (!res.ok) {
-      alert(data.error || 'Failed to load admin')
+    const { data: user, error } = await supabase
+      .from('students')
+      .select('*')
+      .eq('email', email)
+      .single()
+
+    if (error || !user) {
+      alert('Admin not found')
       return
     }
 
-    setAdmin(data)
+    if (user.role !== 'admin') {
+      alert('Access denied')
+      return
+    }
+
+    setAdmin(user)
 
   } catch (err) {
     console.error(err)
     alert('Error loading admin')
   }
 }
-  
 
 async function handleSubmit(e) {
   e.preventDefault()
