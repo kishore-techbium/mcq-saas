@@ -132,14 +132,17 @@ await Promise.all([
 
   console.log("COLLEGE ID:", userData.college_id)
 
-  const { data: exams } = await supabase
-    .from('exams')
-    .select('*')
-    .eq('college_id', userData.college_id)
-    .eq('is_active', true)
-    .eq('exam_category', cat)
-    .order('created_at', { ascending: false })
-console.log("EXAMS RESULT:", exams)
+const res = await fetch('/api/exams/list', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    collegeId: userData.college_id,
+    category: cat
+  })
+})
+
+const exams = await res.json()
+ 
     if (!exams || exams.length === 0) {
       setAvailableExams([])
       setCompletedExams([])
