@@ -16,21 +16,29 @@ export default function StudentDashboard() {
 
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    init()
+// ✅ Run init ONLY once
+useEffect(() => {
+  init()
+}, [])
 
-    const onFocus = () => {
-      if (user && category) {
-        refreshData(user.id, category)
-      }
-    }
+// ✅ Handle focus separately
+useEffect(() => {
+  if (!user || !category) return
 
-    window.addEventListener('focus', onFocus)
-    return () => window.removeEventListener('focus', onFocus)
-  }, [user, category])
+  const onFocus = () => {
+    refreshData(user.id, category)
+  }
+
+  window.addEventListener('focus', onFocus)
+  return () => window.removeEventListener('focus', onFocus)
+
+}, [user?.id, category])
+  
+const [initDone, setInitDone] = useState(false)
 
 async function init() {
-
+  if (initDone) return
+  setInitDone(true)
   const currentUser = await getCurrentUser(supabase)
 
   // ❌ Not logged in
@@ -193,6 +201,7 @@ async function init() {
       .eq('student_id', studentId)
       .is('exam_id', null)
       .order('created_at', { ascending: false })
+      .limit(50)
 
     const filtered = (data || []).filter(
       s => s.answers?.__meta?.type === 'CUSTOM_TEST'
