@@ -46,18 +46,7 @@ useEffect(() => {
       <h1>Create Student Login</h1>
 
       <form onSubmit={handleSubmit}>
-        <input placeholder="First Name"
-          onChange={e => setForm({ ...form, first_name: e.target.value })}
-        /><br/><br/>
-
-        <input placeholder="Last Name"
-          onChange={e => setForm({ ...form, last_name: e.target.value })}
-        /><br/><br/>
-
-        <input placeholder="Email"
-          onChange={e => setForm({ ...form, email: e.target.value })}
-        /><br/><br/>
-        <label>
+    <label>
   <input
     type="radio"
     name="exam"
@@ -77,8 +66,20 @@ useEffect(() => {
     onChange={e => setForm({ ...form, exam_preference: e.target.value })}
   />
   NEET
-</label>    
-        <input
+</label>   
+    <br/><br/>
+        <input placeholder="First Name"
+          onChange={e => setForm({ ...form, first_name: e.target.value })}
+        /><br/><br/>
+
+        <input placeholder="Last Name"
+          onChange={e => setForm({ ...form, last_name: e.target.value })}
+        /><br/><br/>
+
+        <input placeholder="Email"
+          onChange={e => setForm({ ...form, email: e.target.value })}
+        /><br/><br/>
+         <input
           placeholder="Username"
           onChange={e => setForm({ ...form, login_id: e.target.value })}
         />
@@ -89,6 +90,8 @@ useEffect(() => {
           onChange={e => setForm({ ...form, password: e.target.value })}
         />
             
+       
+       
         <button type="submit">Create</button>
       </form>
     </div>
