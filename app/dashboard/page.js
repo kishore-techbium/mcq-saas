@@ -132,7 +132,7 @@ await Promise.all([
 
   console.log("COLLEGE ID:", userData.college_id)
 
-const res = await fetch('/api/exams/list', {
+const res = await fetch('/api/exam/list', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
