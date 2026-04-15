@@ -48,6 +48,31 @@ sessions?.forEach(s => {
   setStudents(merged)
   setLoading(false)
 }
+function downloadTemplate() {
+  const headers = [
+    "email",
+    "first_name",
+    "last_name",
+    "login_id",
+    "password",
+    "exam_preference",
+    "phone",
+    "address"
+  ]
+
+  const csv = [
+    headers.join(','),
+    "student1@test.com,John,Doe,student1,1234,JEE,9876543210,Guntur"
+  ].join('\n')
+
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'student_template.csv'
+  a.click()
+}
   /* ================= EXPORT TO EXCEL ================= */
 
   function exportToExcel() {
