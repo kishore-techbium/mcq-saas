@@ -1,6 +1,7 @@
 'use client'
 
 import { supabase } from '../../../lib/supabase'
+import { getCurrentUser } from '../../../lib/auth'
 import { useEffect, useState } from 'react'
 
 const LS_KEY = 'custom_exam_session'
@@ -22,12 +23,12 @@ export default function CustomExam() {
   }, [])
 
   async function init() {
-    const { data: auth } = await supabase.auth.getUser()
-    if (!auth.user) {
-      window.location.href = '/'
-      return
-    }
+   const currentUser = await getCurrentUser(supabase)
 
+if (!currentUser) {
+  window.location.href = '/'
+  return
+}
     const raw = localStorage.getItem('custom_test_config')
     if (!raw) {
       alert('Invalid test configuration')
@@ -146,11 +147,29 @@ setQuestions(qs || [])
       duration: config.duration
     }
 
-    const { data: auth } = await supabase.auth.getUser()
+    const currentUser = await getCurrentUser(supabase)
+
+if (!currentUser) {
+  window.location.href = '/'
+  return
+}
+
+let studentId = null
+
+// ✅ Google login
+if (currentUser.type === 'google') {
+  const { data } = await supabase.auth.getUser()
+  studentId = data.user.id
+}
+
+// ✅ Manual login
+if (currentUser.type === 'manual') {
+  studentId = currentUser.user.id
+}
 
     await supabase.from('exam_sessions').insert({
       exam_id: null,
-      student_id: auth.user.id,
+      student_id: studentId,
       answers: { __meta: meta, ...answers },
       score,
       submitted: true,
