@@ -21,26 +21,36 @@ useEffect(() => {
 }, [])
   
 
-  async function handleSubmit(e) {
-    e.preventDefault()
+async function handleSubmit(e) {
+  e.preventDefault()
 
-    const res = await fetch('/api/admin/create-student', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
-    })
-
-    const data = await res.json()
-
-    if (!res.ok) {
-      alert(data.error || 'Failed')
-      return
-    }
-
-    alert('Student created successfully')
-    window.location.href = '/admin/students'
+  if (!admin) {
+    alert("Admin not loaded. Please refresh.")
+    return
   }
 
+  console.log("ADMIN:", admin) // debug
+
+  const res = await fetch('/api/admin/create-student', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...form,
+      adminCollegeId: admin?.college_id,
+      adminCollegeName: admin?.college_name
+    })
+  })
+
+  const data = await res.json()
+
+  if (!res.ok) {
+    alert(data.error || 'Failed')
+    return
+  }
+
+  alert('Student created successfully')
+  window.location.href = '/admin/students'
+}
   return (
     <div style={{ padding: 40 }}>
       <h1>Create Student Login</h1>
