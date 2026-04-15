@@ -55,10 +55,11 @@ async function init() {
 
   const meta = session.answers?.__meta || {}
   const isPractice = meta.type === 'CUSTOM_TEST'
-const answersObj =
-  typeof session.answers === 'string'
-    ? JSON.parse(session.answers)
-    : session.answers || {}
+  const answersObj =
+    typeof session.answers === 'string'
+      ? JSON.parse(session.answers)
+      : session.answers || {}
+  const timeSpentMap = answersObj.timeSpent || {}
 
 let correct = 0
 let wrong = 0
@@ -120,20 +121,13 @@ const accuracy =
 
       {questions.map((q, index) => {
 
-        const answersObj =
-  typeof session.answers === 'string'
-    ? JSON.parse(session.answers)
-    : session.answers || {}
-
 const your = answersObj[q.id]
-const timeSpent = answersObj.timeSpent || {}
-const time = timeSpent[q.id] || 0
-        
-        const correct = q.correct_answer
+const time = timeSpentMap[q.id] || 0        
+const correct = q.correct_answer
 let timeLabel = ''
 let insight = ''
 let timeColor = '#333'
-
+console.log("SESSION ANSWERS:", session.answers)
 if (time > 30 && your !== correct) {
   insight = '❌ Weak concept'
   timeColor = '#dc2626'
