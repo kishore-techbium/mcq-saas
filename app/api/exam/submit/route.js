@@ -8,9 +8,8 @@ const supabase = createClient(
 export async function POST(req) {
   try {
     const body = await req.json()
-    const { sessionId, answers, timeSpent, questionOrder } = body
-
-    if (!sessionId || !answers) {
+const { sessionId, answers, timeSpent, questionOrder, totalQuestions } = body
+  if (!sessionId || !answers) {
       return Response.json({ error: 'Invalid payload' }, { status: 400 })
     }
 
@@ -41,6 +40,7 @@ const { error } = await supabase
       timeSpent,
       questionOrder
     },
+    total_questions: totalQuestions, // 🔥 ADD THIS
     submitted: true,
     submitted_at: new Date(),
     processing_status: 'queued',
