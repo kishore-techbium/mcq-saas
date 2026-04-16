@@ -258,6 +258,26 @@ const styles = {
     cursor: 'pointer',
     fontSize: 13
   },
+   templateBtn: {
+    padding: '10px 18px',
+    background: '#16a34a',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 8,
+    fontWeight: 600,
+    cursor: 'pointer'
+  },
+
+ uploadBtn: {
+    padding: '10px 18px',
+    background: '#16a34a',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 8,
+    fontWeight: 600,
+    cursor: 'pointer'
+  },
+
   createBtn: {
   padding: '10px 18px',
   background: '#2563eb',
