@@ -135,19 +135,28 @@ Student: {student ? `${student.first_name} ${student.last_name}` : '-'}
           })
         )
 
-         const subjectTotal = chartData.reduce((sum, c) => sum + c.accuracy, 0)
+let weightedTotal = 0
+let totalAttempts = 0
+
+Object.values(chapters).forEach(ch => {
+  weightedTotal += ch.totalAccuracy
+  totalAttempts += ch.count
+})
+
 const subjectAvg =
-  chartData.length > 0 ? (subjectTotal / chartData.length).toFixed(1) : 0
+  totalAttempts > 0
+    ? (weightedTotal / totalAttempts).toFixed(1)
+    : 0
     
+const weakest =
+  chartData.length > 0
+    ? [...chartData].sort((a, b) => a.accuracy - b.accuracy)[0]
+    : null
 
-        const weakest = [...chartData].sort(
-          (a, b) => a.accuracy - b.accuracy
-        )[0]
-
-        const strongest = [...chartData].sort(
-          (a, b) => b.accuracy - a.accuracy
-        )[0]
-
+const strongest =
+  chartData.length > 0
+    ? [...chartData].sort((a, b) => b.accuracy - a.accuracy)[0]
+    : null
         return (
           <div key={subject} style={styles.card}>
             <h2>{subject}</h2>
