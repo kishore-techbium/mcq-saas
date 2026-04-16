@@ -271,7 +271,7 @@ topStudents.map(s => [
         )}
 
         {renderTable(
-          ['Subject', 'Subtopic', 'Accuracy', 'Attempts'],
+          ['Subject', 'Subtopic', 'Accuracy', '"Questions Solved"'],
           (selectedSubject
             ? subtopics.filter(s => s.subject === selectedSubject)
             : subtopics
