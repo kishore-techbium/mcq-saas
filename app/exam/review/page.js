@@ -115,7 +115,7 @@ const accuracy =
   <p>✅ Correct: {correct}</p>
   <p>❌ Wrong: {wrong}</p>
   <p>⏭ Unattempted: {unattempted}</p>
-  <p>🎯 Accuracy: {accuracy}%</p>
+  <p>🎯Attempted Accuracy: {accuracy}%</p>
 
 </div>
 
