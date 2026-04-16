@@ -250,7 +250,7 @@ const bestPerExamAvg = (() => {
 })()}
 </td>
                       <td style={styles.td}>
-                        {new Date(a.created_at).toLocaleString()}
+                        {new Date(a.created_at).toLocaleDateString('en-IN')}
                       </td>
                     </tr>
                   ))}
