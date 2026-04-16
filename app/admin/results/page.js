@@ -113,7 +113,7 @@ async function loadResults() {
       Max: r.max_score,
       
       LastAttempt: r.last_attempt
-        ? new Date(r.last_attempt).toLocaleString()
+        ? new Date(a.created_at).toLocaleDateString('en-IN')
         : '-'
     }))
 
