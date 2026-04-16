@@ -131,21 +131,44 @@ let timeColor = '#333'
 if (!timeSpentMap[q.id]) {
   insight = '⏭ Not visited'
   timeColor = '#6b7280'
-} else if (time > 30 && your !== correct) {
-  insight = '❌ Weak concept'
-  timeColor = '#dc2626'
-} else if (time > 30 && your === correct) {
-  insight = '⚠ Took long'
-  timeColor = '#f97316'
-} else if (time < 10 && your === correct) {
-  insight = '💪 Strong'
-  timeColor = '#16a34a'
-} else if (time < 10 && your !== correct) {
-  insight = '🎯 Guess'
-  timeColor = '#9333ea'
+
+} else if (your === correct) {
+
+  if (time < 5) {
+    insight = '🎯 Likely Guess (Correct)'
+    timeColor = '#9333ea'
+
+  } else if (time >= 5 && time <= 25) {
+    insight = '💪 Strong'
+    timeColor = '#16a34a'
+
+  } else if (time > 25 && time <= 60) {
+    insight = '⚠ Took Long'
+    timeColor = '#f97316'
+
+  } else {
+    insight = '🐢 Very Slow (But Correct)'
+    timeColor = '#b45309'
+  }
+
 } else {
-  insight = '👍 Normal'
-  timeColor = '#ca8a04'
+
+  if (time < 5) {
+    insight = '🎯 Guess (Wrong)'
+    timeColor = '#9333ea'
+
+  } else if (time >= 5 && time <= 25) {
+    insight = '❌ Weak Concept'
+    timeColor = '#dc2626'
+
+  } else if (time > 25 && time <= 60) {
+    insight = '⚠ Confused / Overthinking'
+    timeColor = '#f97316'
+
+  } else {
+    insight = '🚨 Concept Gap (Very Slow)'
+    timeColor = '#7f1d1d'
+  }
 }
         
 
