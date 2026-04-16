@@ -4,6 +4,26 @@ import { supabase } from '../../../lib/supabase'
 import { getCurrentUser } from '../../../lib/auth'
 import { useEffect, useRef, useState } from 'react'
 
+function shuffleBySubject(questions) {
+  const grouped = {}
+
+  // group by subject
+  questions.forEach(q => {
+    if (!grouped[q.subject]) {
+      grouped[q.subject] = []
+    }
+    grouped[q.subject].push(q)
+  })
+
+  // shuffle each subject
+  Object.keys(grouped).forEach(subject => {
+    grouped[subject] = shuffleArray(grouped[subject])
+  })
+
+  // combine subjects in order
+  return Object.values(grouped).flat()
+}
+
 function shuffleArray(arr) {
   return [...arr].sort(() => Math.random() - 0.5)
 }
@@ -109,17 +129,15 @@ console.log("QUESTIONS:", data.questions)
 const savedSession = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
 
 if (savedSession?.questionOrder) {
-  // reorder using saved order
   finalQuestions.sort(
     (a, b) =>
       savedSession.questionOrder.indexOf(a.id) -
       savedSession.questionOrder.indexOf(b.id)
   )
 } else {
-  // first time → shuffle
-  finalQuestions = shuffleArray(finalQuestions)
+  // 🔥 NEW: subject-wise shuffle
+  finalQuestions = shuffleBySubject(finalQuestions)
 
-  // store order in localStorage
   persist({
     questionOrder: finalQuestions.map(q => q.id)
   })
