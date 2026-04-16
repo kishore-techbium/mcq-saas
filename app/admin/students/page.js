@@ -270,7 +270,7 @@ const styles = {
 
  uploadBtn: {
     padding: '10px 18px',
-    background: '#16a34a',
+    background: '#2563eb',
     color: '#fff',
     border: 'none',
     borderRadius: 8,
