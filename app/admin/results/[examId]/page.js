@@ -121,7 +121,7 @@ subjectAgg[s.subject].count += (s.total_questions || 0)
 
 const subjectArray = Object.entries(subjectAgg).map(([k, v]) => ({
   subject: k,
-  accuracy: v.count > 0 ? v.total / v.count : 0
+  accuracy: v.count > 0 ? (v.total / v.count) * 100 : 0
 }))
 
 subjectArray.sort((a, b) => a.accuracy - b.accuracy)
