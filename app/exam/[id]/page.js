@@ -452,6 +452,7 @@ await fetch('/api/exam/submit', {
     answers,
     timeSpent,
     questionOrder: JSON.parse(localStorage.getItem(LS_KEY) || '{}')?.questionOrder,
+    totalQuestions: questions.length, // 🔥 ADD THIS
     score
   })
 })
