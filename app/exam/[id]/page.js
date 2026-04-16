@@ -15,13 +15,15 @@ function shuffleBySubject(questions) {
     grouped[q.subject].push(q)
   })
 
-  // shuffle each subject
+  // shuffle within each subject
   Object.keys(grouped).forEach(subject => {
     grouped[subject] = shuffleArray(grouped[subject])
   })
 
-  // combine subjects in order
-  return Object.values(grouped).flat()
+  // 🔥 FIX: enforce subject order
+  const subjectOrder = ['Botany', 'Zoology', 'Physics', 'Chemistry']
+
+  return subjectOrder.flatMap(sub => grouped[sub] || [])
 }
 
 function shuffleArray(arr) {
@@ -128,7 +130,7 @@ console.log("QUESTIONS:", data.questions)
 // check if session already has order
 const savedSession = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
 
-if (savedSession?.questionOrder) {
+if (savedSession?.questionOrder && savedSession.examId === examId) {
   finalQuestions.sort(
     (a, b) =>
       savedSession.questionOrder.indexOf(a.id) -
@@ -139,7 +141,8 @@ if (savedSession?.questionOrder) {
   finalQuestions = shuffleBySubject(finalQuestions)
 
   persist({
-    questionOrder: finalQuestions.map(q => q.id)
+    questionOrder: finalQuestions.map(q => q.id),
+    examId: examId
   })
 }
 
