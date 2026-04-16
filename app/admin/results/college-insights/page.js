@@ -224,7 +224,7 @@ topStudents.map(s => [
       {/* SUBJECTS */}
       <Section title="📉 Weak Subjects">
         {renderTable(
-                    ['Subject', 'Accuracy', 'Attempts'],
+                    ['Subject', 'Accuracy', '"Questions Solved"'],
                     subjects
             .filter(s => s.accuracy < 0.6)
             .slice(0, 5).map(s => [
