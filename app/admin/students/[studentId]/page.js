@@ -150,11 +150,10 @@ const bestPerExamAvg = (() => {
   const examMap = {}
 
   sessions.forEach(s => {
-    const totalQ =
-  Object.keys(s.answers || {}).filter(k => k !== '__meta').length || 1
+    const totalQ = s.total_questions || 1
     const maxScore = totalQ * 4
     const percent = ((s.score || 0) / maxScore) * 100
-
+    
     if (!examMap[s.exam_title]) {
       examMap[s.exam_title] = percent
     } else {
@@ -244,12 +243,11 @@ const bestPerExamAvg = (() => {
                     <tr key={a.id}>
                       <td style={styles.td}>{a.attempt_number}</td>
                       <td style={styles.td}>
-  {(() => {
-    const totalQ =
-  Object.keys(a.answers || {}).filter(k => k !== '__meta').length || 1
-    const maxScore = totalQ * 4
-    return (((a.score || 0) / maxScore) * 100).toFixed(1) + '%'
-  })()}
+{(() => {
+  const totalQ = a.total_questions || 1
+  const maxScore = totalQ * 4
+  return (((a.score || 0) / maxScore) * 100).toFixed(1) + '%'
+})()}
 </td>
                       <td style={styles.td}>
                         {new Date(a.created_at).toLocaleString()}
