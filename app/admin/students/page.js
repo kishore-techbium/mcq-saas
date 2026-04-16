@@ -167,7 +167,7 @@ function downloadTemplate() {
                     {student.address || '-'}
                   </td>
                   <td style={styles.td}>
-                    {new Date(a.created_at).toLocaleString()}
+                    {new Date(student.created_at).toLocaleDateString('en-IN')}
                   </td>
                   <td style={styles.td}>
   {student.attempt_count}
