@@ -98,25 +98,30 @@ const submittedLocal = examStats || []
 
 
 // SUBJECT STATS
-const { data: subjectStats } = await supabase
-  .from('student_subject_stats')
-  .select('*')
-  .or(
-    studentIds.map(id => `student_id.eq.${id}`).join(',')
-  )
+let subjectStats = []
+
+if (studentIds.length > 0) {
+  const res = await supabase
+    .from('student_subject_stats')
+    .select('*')
+    .or(studentIds.map(id => `student_id.eq.${id}`).join(','))
+  
+  subjectStats = res.data || []
+}
 const subjectAgg = {}
 
 subjectStats?.forEach(s => {
   if (!subjectAgg[s.subject]) {
     subjectAgg[s.subject] = { total: 0, count: 0 }
   }
-subjectAgg[s.subject].total += (s.accuracy || 0) * (s.attempts || 0)
-subjectAgg[s.subject].count += s.attempts || 0
+
+subjectAgg[s.subject].total += (s.correct || 0)
+subjectAgg[s.subject].count += (s.total_questions || 0)
 })
 
 const subjectArray = Object.entries(subjectAgg).map(([k, v]) => ({
   subject: k,
-  accuracy: v.total / v.count
+  accuracy: v.count > 0 ? v.total / v.count : 0
 }))
 
 subjectArray.sort((a, b) => a.accuracy - b.accuracy)
@@ -135,13 +140,18 @@ setWeakSubjects(weak)
 setModerateAreas(moderate)
 setStrongAreas(strong)
 // CHAPTER STATS 
-  const { data: subtopicStats } = await supabase
-  .from('student_subtopic_stats')
-.select('*')
-  .or(
-    studentIds.map(id => `student_id.eq.${id}`).join(',')
-  )
+let subtopicStats = []
+
+if (studentIds.length > 0) {
+  const res = await supabase
+    .from('student_subtopic_stats')
+    .select('*')
+    .or(studentIds.map(id => `student_id.eq.${id}`).join(','))
   
+  subtopicStats = res.data || []
+}
+
+
 console.log('subtopicStats:', subtopicStats)
 const chapterAgg = {}
 
@@ -149,13 +159,13 @@ subtopicStats?.forEach(s => {
   if (!chapterAgg[s.chapter]) {
     chapterAgg[s.chapter] = { total: 0, count: 0 }
   }
-chapterAgg[s.chapter].total += (s.accuracy || 0) * (s.attempts || 0)
-chapterAgg[s.chapter].count += s.attempts || 0
+chapterAgg[s.chapter].total += (s.correct || 0)
+chapterAgg[s.chapter].count += (s.total_questions || 0)
 })
 
 const chapterArray = Object.entries(chapterAgg).map(([k, v]) => ({
   chapter: k,
-  accuracy: v.total / v.count
+  accuracy: v.count > 0 ? v.total / v.count : 0
 }))
 
 chapterArray.sort((a, b) => a.accuracy - b.accuracy)
@@ -179,8 +189,8 @@ submittedLocal.forEach(s => {
 const avgScore =
   totalAttempts > 0 ? totalScore / totalAttempts : 0
 
-if (avgScore < 10) setDifficulty('Hard')
-else if (avgScore < 25) setDifficulty('Medium')
+if (avgScore < 40) setDifficulty('Hard')
+else if (avgScore < 70) setDifficulty('Medium')
 else setDifficulty('Easy')
     
     setLoading(false)
@@ -201,28 +211,43 @@ else setDifficulty('Easy')
   const leaderboard = Object.values(
     
     submitted.reduce((acc, s) => {
-      if (!acc[s.student_id]) {
-        acc[s.student_id] = {
-          student_id: s.student_id,
-          best: s.avg_score || 0,
-          attempts: s.attempts || 0,
-          rejected: false
-        }
-      }
+  const totalQ = s.total_questions || 1
+  const maxScore = totalQ * 4
 
-      
-     acc[s.student_id].best = Math.max(
-  acc[s.student_id].best,
-  s.avg_score || 0
-)
+  const percent =
+    maxScore > 0
+      ? ((s.best_score || 0) / maxScore) * 100
+      : 0
 
-      if (s.proctor_status === 'REJECTED') {
-        acc[s.student_id].rejected = true
-      }
+  if (!acc[s.student_id]) {
+    acc[s.student_id] = {
+      student_id: s.student_id,
+      best: s.best_score || 0,
+      bestPercent: percent,
+      attempts: 0,
+      rejected: false
+    }
+  }
 
-      return acc
-    }, {})
-  ).sort((a, b) => b.best - a.best)
+  acc[s.student_id].best = Math.max(
+    acc[s.student_id].best,
+    s.best_score || 0
+  )
+
+  acc[s.student_id].bestPercent = Math.max(
+    acc[s.student_id].bestPercent,
+    percent
+  )
+
+  acc[s.student_id].attempts += (s.attempts || 0)
+
+  if (s.proctor_status === 'REJECTED') {
+    acc[s.student_id].rejected = true
+  }
+
+  return acc
+}, {})
+  ).sort((a, b) => b.bestPercent - a.bestPercent)
 
   // =========================
   // SCORE DISTRIBUTION
@@ -230,7 +255,12 @@ else setDifficulty('Easy')
   const buckets = { '0-25': 0, '26-50': 0, '51-75': 0, '76-100': 0 }
 
 submitted.forEach(s => {
-  const percent = Math.max(0, s.avg_score || 0)
+  const totalQ = s.total_questions || 1
+const maxScore = totalQ * 4
+
+const percent = maxScore > 0
+  ? ((s.best_score || 0) / maxScore) * 100
+  : 0
 
   if (percent <= 25) buckets['0-25']++
   else if (percent <= 50) buckets['26-50']++
@@ -377,7 +407,7 @@ datasets: [
           </div>
 
           <div style={kpiCard}>
-            <div style={kpiNumber}>{submitted.reduce((sum, s) => sum + (s.attempts || 0), 0)}</div>
+            <div style={kpiNumber}>{submitted.length}</div>
             <div style={kpiLabel}>Submitted</div>
           </div>
 
@@ -475,7 +505,7 @@ datasets: [
                         ?.email
                     }
                   </td>
-                  <td style={td}>{l.best.toFixed(1)}</td>
+                  <td style={td}>{l.bestPercent.toFixed(1)}%</td>
                   <td style={td}>{l.attempts}</td>
                   <td style={td}>
                     {l.rejected ? (
@@ -538,7 +568,8 @@ datasets: [
     <p style={{ color: '#6b7280', fontSize: 13 }}>
   Shows how student performance is changing across attempts.
 </p>        
-    <h3>Score Trend</h3>
+    <h3>Student Performance Comparison</h3>
+    <p>Shows performance of each student in this exam</p>
             <Line data={trendData} height={150} />
           </div>
         </div>
@@ -554,9 +585,9 @@ datasets: [
       boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
     }}
   >
-    <h2>🧠 Performance Intelligence</h2>
+    <h3>🧠 Student Performance Comparison</h3>
 <p style={{ color: '#6b7280', marginTop: 10 }}>
-  This section shows where students are performing well and where they need improvement.
+  Shows performance of each student in this exam compared to their overall performance in all exams.
   Accuracy % represents how correctly students answered questions in each subject or chapter.
 </p>
     <p>
