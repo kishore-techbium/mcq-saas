@@ -224,7 +224,7 @@ topStudents.map(s => [
       {/* SUBJECTS */}
       <Section title="📉 Weak Subjects">
         {renderTable(
-                    ['Subject', 'Accuracy', '"Questions Solved"'],
+                    ['Subject', 'Accuracy', 'Questions Solved'],
                     subjects
             .filter(s => s.accuracy < 0.6)
             .slice(0, 5).map(s => [
@@ -243,7 +243,7 @@ topStudents.map(s => [
       {/* STRONG SUBJECTS */}
       <Section title="📈 Strong Subjects">
         {renderTable(
-          ['Subject', 'Accuracy', 'Attempts'],
+          ['Subject', 'Accuracy', 'Questions solved'],
           subjects
   .filter(s => s.accuracy >= 0.6)
   .slice(0, 5).reverse().map(s => [
@@ -271,7 +271,7 @@ topStudents.map(s => [
         )}
 
         {renderTable(
-          ['Subject', 'Subtopic', 'Accuracy', '"Questions Solved"'],
+          ['Subject', 'Subtopic', 'Accuracy', 'Questions Solved'],
           (selectedSubject
             ? subtopics.filter(s => s.subject === selectedSubject)
             : subtopics
