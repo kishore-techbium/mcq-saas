@@ -7,23 +7,33 @@ import { useEffect, useRef, useState } from 'react'
 function shuffleBySubject(questions) {
   const grouped = {}
 
-  // group by subject
+  // 1️⃣ Group by subject (safe)
   questions.forEach(q => {
-    if (!grouped[q.subject]) {
-      grouped[q.subject] = []
+    const subject = (q.subject || 'Unknown').trim()
+
+    if (!grouped[subject]) {
+      grouped[subject] = []
     }
-    grouped[q.subject].push(q)
+
+    grouped[subject].push(q)
   })
 
-  // shuffle within each subject
+  // 2️⃣ Shuffle within each subject
   Object.keys(grouped).forEach(subject => {
     grouped[subject] = shuffleArray(grouped[subject])
   })
 
-  // 🔥 FIX: enforce subject order
-  const subjectOrder = ['Botany', 'Zoology', 'Physics', 'Chemistry']
+  // 3️⃣ Sort subjects dynamically (ascending)
+  const sortedSubjects = Object.keys(grouped)
+  .filter(s => s !== 'Unknown')
+  .sort((a, b) => a.localeCompare(b))
 
-  return subjectOrder.flatMap(sub => grouped[sub] || [])
+if (grouped['Unknown']) {
+  sortedSubjects.push('Unknown')
+}
+
+  // 4️⃣ Flatten in order
+  return sortedSubjects.flatMap(subject => grouped[subject])
 }
 
 function shuffleArray(arr) {
@@ -114,7 +124,13 @@ if (examData && examData.camera_required && isMobile) {
   window.location.href = '/dashboard'
   return
 }
-    const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
+    let saved = {}
+
+try {
+  saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
+} catch {
+  saved = {}
+}
     setAnswers(saved.answers || {})
     setCurrentIndex(saved.currentIndex || 0)
     setVisited(new Set(saved.visited || []))
@@ -128,9 +144,19 @@ console.log("API DATA:", data)
 console.log("QUESTIONS:", data.questions)
 
 // check if session already has order
-const savedSession = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
+let savedSession = {}
 
-if (savedSession?.questionOrder && savedSession.examId === examId) {
+try {
+  savedSession = JSON.parse(localStorage.getItem(LS_KEY) || '{}')
+} catch {
+  savedSession = {}
+}
+
+if (
+  savedSession?.questionOrder &&
+  savedSession.examId === examId &&
+  savedSession.questionOrder.length === finalQuestions.length
+) {
   finalQuestions.sort(
     (a, b) =>
       savedSession.questionOrder.indexOf(a.id) -
@@ -235,7 +261,8 @@ useEffect(() => {
   }
 
 function goToQuestion(i) {
-  const currentQ = questions[currentIndex]
+  const currentQ = questions?.[currentIndex]
+if (!currentQ) return
 
   if (currentQ) {
     const timeTaken = Math.floor((Date.now() - questionStartTimeRef.current) / 1000)
@@ -397,7 +424,8 @@ function stopProctoring() {
 
   /* ================= SUBMIT (MINIMAL ADD) ================= */
 async function submitExam() {
-const currentQ = questions[currentIndex]
+const currentQ = questions?.[currentIndex]
+if (!currentQ) return
 
 if (currentQ) {
   const timeTaken = Math.floor((Date.now() - questionStartTimeRef.current) / 1000)
@@ -548,8 +576,12 @@ if (submitted) {
 }
 
 
-  const q = questions[currentIndex]
+const q = questions?.[currentIndex]
 
+if (!q) {
+  console.error("❌ Invalid question:", currentIndex, questions)
+  return <div style={{ padding: 40 }}>Loading question...</div>
+}
   return (
     <div style={styles.page}>
       {/* 🎥 Hidden video */}
