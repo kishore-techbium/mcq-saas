@@ -123,6 +123,12 @@ async function handleSubmit(e) {
           onChange={e => setForm({ ...form, email: e.target.value })}
         /><br/><br/>
          <input
+          placeholder="Phone"
+          onChange={e => setForm({ ...form, phone: e.target.value })}
+        />
+        <br/><br/>
+
+         <input
           placeholder="Username"
           onChange={e => setForm({ ...form, login_id: e.target.value })}
         />
