@@ -57,7 +57,8 @@ function downloadTemplate() {
     "password",
     "exam_preference",
     "phone",
-    "address"
+    "address",
+    "study_year"
   ]
 
   const csv = [
