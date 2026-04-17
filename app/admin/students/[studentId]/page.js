@@ -266,10 +266,10 @@ const bestPerExamAvg = (() => {
       {/* 🔐 Integrity Row */}
       <tr>
         <td colSpan="3" style={{ padding: '6px 10px', fontSize: 13, color: '#444' }}>
-          🔐 Tab: {a.tab_switch_count || 0} {getStatus(a.tab_switch_count || 0)} | 
-          Blur: {a.blur_count || 0} {getStatus(a.blur_count || 0)} | 
-          Fullscreen: {a.fullscreen_exit_count || 0} {getStatus(a.fullscreen_exit_count || 0)} | 
-          Copy: {a.copy_attempts || 0} {getStatus(a.copy_attempts || 0)}
+          🔐 Tab switch: {a.tab_switch_count || 0} {getStatus(a.tab_switch_count || 0)} | 
+          Blur screen: {a.blur_count || 0} {getStatus(a.blur_count || 0)} | 
+          Screen exit: {a.fullscreen_exit_count || 0} {getStatus(a.fullscreen_exit_count || 0)} | 
+          Copying: {a.copy_attempts || 0} {getStatus(a.copy_attempts || 0)}
         </td>
       </tr>
     </>
