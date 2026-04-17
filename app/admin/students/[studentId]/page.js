@@ -239,21 +239,42 @@ const bestPerExamAvg = (() => {
                   </tr>
                 </thead>
                 <tbody>
-                  {attempts.map((a) => (
-                    <tr key={a.id}>
-                      <td style={styles.td}>{a.attempt_number}</td>
-                      <td style={styles.td}>
-{(() => {
-  const totalQ = a.total_questions || 1
-  const maxScore = totalQ * 4
-  return (((a.score || 0) / maxScore) * 100).toFixed(1) + '%'
-})()}
-</td>
-                      <td style={styles.td}>
-                        {new Date(a.created_at).toLocaleDateString('en-IN')}
-                      </td>
-                    </tr>
-                  ))}
+                  {attempts.map((a) => {
+
+  const getStatus = (count) => {
+    if (count === 0) return '✅'
+    if (count <= 2) return '⚠️'
+    return '🚨'
+  }
+
+  return (
+    <>
+      <tr key={a.id}>
+        <td style={styles.td}>{a.attempt_number}</td>
+        <td style={styles.td}>
+          {(() => {
+            const totalQ = a.total_questions || 1
+            const maxScore = totalQ * 4
+            return (((a.score || 0) / maxScore) * 100).toFixed(1) + '%'
+          })()}
+        </td>
+        <td style={styles.td}>
+          {new Date(a.created_at).toLocaleDateString('en-IN')}
+        </td>
+      </tr>
+
+      {/* 🔐 Integrity Row */}
+      <tr>
+        <td colSpan="3" style={{ padding: '6px 10px', fontSize: 13, color: '#444' }}>
+          🔐 Tab: {a.tab_switch_count || 0} {getStatus(a.tab_switch_count || 0)} | 
+          Blur: {a.blur_count || 0} {getStatus(a.blur_count || 0)} | 
+          Fullscreen: {a.fullscreen_exit_count || 0} {getStatus(a.fullscreen_exit_count || 0)} | 
+          Copy: {a.copy_attempts || 0} {getStatus(a.copy_attempts || 0)}
+        </td>
+      </tr>
+    </>
+  )
+})}
                 </tbody>
               </table>
             </div>
