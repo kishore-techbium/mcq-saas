@@ -517,7 +517,13 @@ if (currentQ) {
     unattempted,
     accuracy
   })
-
+console.log('Submitting integrity:', {
+  tabSwitchCount,
+  blurCount,
+  fullscreenExitCount,
+  copyCount,
+  fastAnswerCount
+})
 await fetch('/api/exam/submit', {
   method: 'POST',
   headers: {
