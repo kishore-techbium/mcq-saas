@@ -131,7 +131,7 @@ const accuracy =
 </div>
 {/* 🔐 Integrity Section */}
 <div style={styles.metaBox}>
-  <h3>🔐 Exam Integrity</h3>
+  <h3 style={{ marginBottom: 10 }}>🔐 Exam Integrity</h3>
 
   <p>Tab Switches: {tabSwitchCount} {getIntegrityStatus(tabSwitchCount)}</p>
   <p>Focus Loss: {blurCount} {getIntegrityStatus(blurCount)}</p>
