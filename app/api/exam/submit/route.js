@@ -8,7 +8,21 @@ const supabase = createClient(
 export async function POST(req) {
   try {
     const body = await req.json()
-const { sessionId, answers, timeSpent, questionOrder, totalQuestions } = body
+const {
+  sessionId,
+  answers,
+  timeSpent,
+  questionOrder,
+  totalQuestions,
+
+  // 🔐 integrity fields (NEW)
+  tab_switch_count,
+  blur_count,
+  fullscreen_exit_count,
+  copy_attempts,
+  fast_answer_count
+
+} = body
   if (!sessionId || !answers) {
       return Response.json({ error: 'Invalid payload' }, { status: 400 })
     }
@@ -35,17 +49,24 @@ if (userError || !userData || !userData.college_id) {
 const { error } = await supabase
   .from('exam_sessions')
   .update({
-    answers: {
-      ...answers,
-      timeSpent,
-      questionOrder
-    },
-    total_questions: totalQuestions, // 🔥 ADD THIS
-    submitted: true,
-    submitted_at: new Date(),
-    processing_status: 'queued',
-    college_id: userData.college_id
-  })
+  answers: {
+    ...answers,
+    timeSpent,
+    questionOrder
+  },
+  total_questions: totalQuestions,
+  // 🔐 integrity fields (SAFE ADD)
+  tab_switch_count: tab_switch_count || 0,
+  blur_count: blur_count || 0,
+  fullscreen_exit_count: fullscreen_exit_count || 0,
+  copy_attempts: copy_attempts || 0,
+  fast_answer_count: fast_answer_count || 0,
+
+  submitted: true,
+  submitted_at: new Date(),
+  processing_status: 'queued',
+  college_id: userData.college_id
+})
   .eq('id', sessionId)
 
     if (error) throw error
