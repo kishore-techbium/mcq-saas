@@ -64,7 +64,13 @@ export default function ExamPage({ params }) {
   const [submitted, setSubmitted] = useState(false)
   const [review, setReview] = useState(false)
   const [loading, setLoading] = useState(true)
-const [showConfirm, setShowConfirm] = useState(false)  
+  const [showConfirm, setShowConfirm] = useState(false)  
+    // 🔐 Integrity tracking (SAFE - no side effects)
+  const [tabSwitchCount, setTabSwitchCount] = useState(0)
+  const [blurCount, setBlurCount] = useState(0)
+  const [fullscreenExitCount, setFullscreenExitCount] = useState(0)
+  const [copyCount, setCopyCount] = useState(0)
+  const [fastAnswerCount, setFastAnswerCount] = useState(0)
 
   /* 🎥 PROCTORING REFS */
   const videoRef = useRef(null)
@@ -78,6 +84,40 @@ const [showConfirm, setShowConfirm] = useState(false)
     init()
     return () => stopProctoring()
   }, [])
+  // 🔐 Integrity event listeners (SAFE)
+useEffect(() => {
+  const handleVisibility = () => {
+    if (document.hidden) {
+      setTabSwitchCount(prev => prev + 1)
+    }
+  }
+
+  const handleBlur = () => {
+    setBlurCount(prev => prev + 1)
+  }
+
+  const handleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      setFullscreenExitCount(prev => prev + 1)
+    }
+  }
+
+  const handleCopy = () => {
+    setCopyCount(prev => prev + 1)
+  }
+
+  document.addEventListener('visibilitychange', handleVisibility)
+  window.addEventListener('blur', handleBlur)
+  document.addEventListener('fullscreenchange', handleFullscreen)
+  document.addEventListener('copy', handleCopy)
+
+  return () => {
+    document.removeEventListener('visibilitychange', handleVisibility)
+    window.removeEventListener('blur', handleBlur)
+    document.removeEventListener('fullscreenchange', handleFullscreen)
+    document.removeEventListener('copy', handleCopy)
+  }
+}, [])
 useEffect(() => {
   const style = document.createElement('style')
   style.innerHTML = `
@@ -140,9 +180,6 @@ try {
     setSubmitted(saved.submitted || false)
     setTimeSpent(saved.timeSpent || {})
 
-console.log("API DATA:", data)
-console.log("QUESTIONS:", data.questions)
-
 // check if session already has order
 let savedSession = {}
 
@@ -176,10 +213,6 @@ setQuestions(finalQuestions)
 questionStartTimeRef.current = Date.now()    
     setLoading(false)
 
-    /* 🎥 START PROCTORING IF REQUIRED */
-   // if (examData.camera_required && !saved.submitted) {
-   //   startProctoring()
-   // }
   }
 
   /* ================= TIMER (UNCHANGED) ================= */
@@ -266,6 +299,9 @@ if (!currentQ) return
 
   if (currentQ) {
     const timeTaken = Math.floor((Date.now() - questionStartTimeRef.current) / 1000)
+    if (timeTaken < 5) {
+        setFastAnswerCount(prev => prev + 1)
+       }
 
     const updatedTime = {
       ...timeSpent,
