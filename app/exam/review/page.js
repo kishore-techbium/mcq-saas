@@ -60,6 +60,18 @@ async function init() {
       ? JSON.parse(session.answers)
       : session.answers || {}
   const timeSpentMap = answersObj.timeSpent || {}
+// 🔐 Integrity values (SAFE)
+const tabSwitchCount = session.tab_switch_count || 0
+const blurCount = session.blur_count || 0
+const fullscreenExitCount = session.fullscreen_exit_count || 0
+const copyCount = session.copy_attempts || 0
+const fastAnswerCount = session.fast_answer_count || 0
+
+const getIntegrityStatus = (count) => {
+  if (count === 0) return '✅'
+  if (count <= 2) return '⚠️'
+  return '🚨'
+}
 
 let correct = 0
 let wrong = 0
@@ -116,7 +128,22 @@ const accuracy =
   <p>❌ Wrong: {wrong}</p>
   <p>⏭ Unattempted: {unattempted}</p>
   <p>🎯Attempted Accuracy: {accuracy}%</p>
+</div>
+{/* 🔐 Integrity Section */}
+<div style={styles.metaBox}>
+  <h3>🔐 Exam Integrity</h3>
 
+  <p>Tab Switches: {tabSwitchCount} {getIntegrityStatus(tabSwitchCount)}</p>
+  <p>Focus Loss: {blurCount} {getIntegrityStatus(blurCount)}</p>
+  <p>Fullscreen Exit: {fullscreenExitCount} {getIntegrityStatus(fullscreenExitCount)}</p>
+  <p>Copy Attempts: {copyCount} {getIntegrityStatus(copyCount)}</p>
+  <p>Fast Answers (&lt;5s): {fastAnswerCount} {getIntegrityStatus(fastAnswerCount)}</p>
+
+  {(tabSwitchCount > 2 || blurCount > 2 || fullscreenExitCount > 0 || copyCount > 0) && (
+    <p style={{ color: '#dc2626', fontWeight: 600 }}>
+      ⚠ Suspicious activity detected during exam
+    </p>
+  )}
 </div>
 
       {questions.map((q, index) => {
