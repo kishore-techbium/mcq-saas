@@ -432,16 +432,7 @@ async function captureSnapshot() {
       .upload(path, blob, { upsert: true })
 
     if (!error) {
-    /*  const { data } = supabase.storage
-        .from('exam-proctoring')
-        .getPublicUrl(path)
-
-      await supabase.from('proctoring_images').insert({
-        exam_session_id: sessionId,
-        image_url: data.publicUrl,
-        capture_index: captureIndexRef.current
-      })*/
-      await supabase.from('proctoring_images').insert({
+       await supabase.from('proctoring_images').insert({
   exam_session_id: sessionId,
   image_url: path,   // store path only (NOT public URL)
   capture_index: captureIndexRef.current
@@ -537,15 +528,15 @@ await fetch('/api/exam/submit', {
     answers,
     timeSpent,
     questionOrder: JSON.parse(localStorage.getItem(LS_KEY) || '{}')?.questionOrder,
-    totalQuestions: questions.length, // 🔥 ADD THIS
-    score
+    totalQuestions: questions.length, 
+    score,
+  tab_switch_count: tabSwitchCount,
+  blur_count: blurCount,
+  fullscreen_exit_count: fullscreenExitCount,
+  copy_attempts: copyCount,
+  fast_answer_count: fastAnswerCount
   })
 })
-
-  // ✅ NEW INSERT
-  //if (answerRows.length > 0) {
-   // await supabase.from('exam_answers').insert(answerRows)
-  //}
 }
 
   /* ================= UI (UNCHANGED) ================= */
@@ -794,8 +785,6 @@ function formatTime(sec) {
 }
 
 /* styles unchanged */
-
-
 
 const styles = {
   page: {
