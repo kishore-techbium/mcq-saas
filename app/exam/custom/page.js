@@ -172,10 +172,13 @@ if (currentUser.type === 'manual') {
     await supabase.from('exam_sessions').insert({
       exam_id: null,
       student_id: studentId,
-      answers: { __meta: meta, ...answers },
+      answers: answers,
       score,
       submitted: true,
-      time_left: 0
+      time_left: 0,
+      total_questions: questions.length,
+      exam_type: 'CUSTOM_TEST',
+      meta: meta
     })
 
     localStorage.removeItem(LS_KEY)
