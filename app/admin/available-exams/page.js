@@ -112,13 +112,21 @@ async function toggleExam(id, active) {
 
   loadExams()
 }
- async function updateExamTime(id, value) {
+async function updateExamTime(id, value) {
   const collegeId = await getAdminCollege()
+
+  // Step 1: value is IST from input
+  const istDate = new Date(value)
+
+  // Step 2: convert IST → UTC
+  const utcDate = new Date(
+    istDate.getTime() - (5.5 * 60 * 60 * 1000)
+  )
 
   const { error } = await supabase
     .from('exams')
     .update({
-      exam_start_time: value ? new Date(value) : null
+      exam_start_time: utcDate
     })
     .eq('id', id)
     .eq('college_id', collegeId)
@@ -129,7 +137,6 @@ async function toggleExam(id, active) {
     return
   }
 
-  // optional refresh
   loadExams()
 }
  
@@ -138,8 +145,6 @@ async function deleteExam(id) {
   if (confirmText !== 'DELETE') return
 
   const collegeId = await getAdminCollege()
-
-  console.log('Delete Clicked:', { id, collegeId })
 
   const { data, error } = await supabase
     .from('exams')
@@ -210,11 +215,17 @@ async function deleteExam(id) {
                <td>
                 <input
                   type="datetime-local"
-                  value={
-                    exam.exam_start_time
-                      ? new Date(exam.exam_start_time).toISOString().slice(0,16)
-                      : ''
-                  }
+value={
+  exam.exam_start_time
+    ? new Date(
+        new Date(exam.exam_start_time).toLocaleString('en-US', {
+          timeZone: 'Asia/Kolkata'
+        })
+      )
+        .toISOString()
+        .slice(0, 16)
+    : ''
+}
                   onChange={(e) => updateExamTime(exam.id, e.target.value)}
                   style={{
                     padding: '4px',
