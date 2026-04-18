@@ -45,14 +45,46 @@ if (currentUser.type === 'manual') {
       .eq('email', email)
       .single()
 
-    let cat = 'JEE_MAINS'
+let cat = 'JEE_MAINS'
 
-    if (student?.exam_preference === 'NEET') {
-      cat = 'NEET'
-    } else if (student?.exam_preference === 'JEE') {
-      cat = 'JEE_MAINS'
-    }
+if (student?.exam_preference === 'NEET') {
+  cat = 'NEET'
+} else if (student?.exam_preference === 'JEE') {
+  cat = 'JEE_MAINS'
+}
 
+// 🔥 TRY MULTIPLE CATEGORY FORMATS (fallback handling)
+let { data, error } = await supabase.rpc('get_subjects', {
+  p_category: cat
+})
+
+// 🚨 fallback if empty
+if (!data || data.length === 0) {
+  console.log('Fallback triggered for category')
+
+  const fallbackMap = {
+    JEE_MAINS: 'JEE',
+    JEE: 'JEE_MAINS'
+  }
+
+  const fallbackCat = fallbackMap[cat]
+
+  if (fallbackCat) {
+    const res = await supabase.rpc('get_subjects', {
+      p_category: fallbackCat
+    })
+
+    data = res.data
+    cat = fallbackCat // ✅ update category for rest flow
+  }
+}
+
+setCategory(cat)
+
+const uniqueSubjects = (data || []).map(d => d.subject || d)
+setSubjects(uniqueSubjects)
+
+setLoading(false)
     setCategory(cat)
 
     console.log('Resolved Category:', cat)
@@ -62,7 +94,7 @@ if (currentUser.type === 'manual') {
       p_category: cat
     })
 
-    const uniqueSubjects = (data || []).map(d => d.subject)
+    const uniqueSubjects = (data || []).map(d => d.subject || d)
     setSubjects(uniqueSubjects)
 
     setLoading(false)
