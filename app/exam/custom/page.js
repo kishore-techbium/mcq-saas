@@ -177,11 +177,11 @@ if (currentUser.type === 'manual') {
 
 localStorage.setItem('custom_test_result', JSON.stringify(payload))
 
-window.location.href = '/custom-review'
+window.location.href = '/exam/review/custom-review'
     localStorage.removeItem(LS_KEY)
     localStorage.removeItem('custom_test_config')
 
-    window.location.href = `/select-category`
+    //window.location.href = `/select-category`
   }
 
   /* ================= UI ================= */
