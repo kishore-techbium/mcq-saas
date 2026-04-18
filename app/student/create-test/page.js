@@ -39,11 +39,14 @@ if (currentUser.type === 'manual') {
 }
 
     // 🔥 GET STUDENT PREFERENCE
-    const { data: student } = await supabase
-      .from('students')
-      .select('exam_preference')
-      .eq('email', email)
-      .single()
+const { data: student } = await supabase
+  .from('students')
+  .select('exam_preference, college_id')
+  .eq('email', email)
+  .single()
+
+// ✅ store college_id for later use
+localStorage.setItem('college_id', student?.college_id)
 
 let cat = 'JEE_MAINS'
 
@@ -54,37 +57,23 @@ if (student?.exam_preference === 'NEET') {
 }
 
 // 🔥 TRY MULTIPLE CATEGORY FORMATS (fallback handling)
-let { data, error } = await supabase.rpc('get_subjects', {
-  p_category: cat
-})
+const collegeId = localStorage.getItem('college_id')
 
-// fallback
-if (!data || data.length === 0) {
-  console.log('Fallback triggered for category')
+const { data, error } = await supabase
+  .from('question_bank')
+  .select('subject')
+  .eq('exam_category', cat)
+  .eq('college_id', collegeId)
+  .eq('is_active', true)
 
-  const fallbackMap = {
-    JEE_MAINS: 'JEE',
-    JEE: 'JEE_MAINS'
-  }
-
-  const fallbackCat = fallbackMap[cat]
-
-  if (fallbackCat) {
-    const res = await supabase.rpc('get_subjects', {
-      p_category: fallbackCat
-    })
-
-    data = res.data
-    cat = fallbackCat
-  }
-}
+const uniqueSubjects = [
+  ...new Set((data || []).map(d => d.subject))
+]
 
 setCategory(cat)
-
-const uniqueSubjects = (data || []).map(d => d.subject || d)
 setSubjects(uniqueSubjects)
-
 setLoading(false)
+
   }
 
   async function loadChapters(subject) {
@@ -93,12 +82,19 @@ setLoading(false)
     setChapters([])
     setMaxQuestions(0)
 
-    const { data } = await supabase.rpc('get_chapters', {
-      p_category: category,
-      p_subject: subject
-    })
+   const collegeId = localStorage.getItem('college_id')
 
-    const uniqueChapters = (data || []).map(d => d.chapter)
+const { data } = await supabase
+  .from('question_bank')
+  .select('chapter')
+  .eq('exam_category', category)
+  .eq('subject', subject)
+  .eq('college_id', collegeId)
+  .eq('is_active', true)
+
+const uniqueChapters = [
+  ...new Set((data || []).map(d => d.chapter))
+]
     setChapters(uniqueChapters)
   }
 
@@ -110,14 +106,19 @@ setLoading(false)
     setSelectedChapters(updated)
 
     if (updated.length > 0) {
-      const { data } = await supabase.rpc('get_question_count', {
-        p_category: category,
-        p_subject: selectedSubject,
-        p_chapters: updated
-      })
+    const collegeId = localStorage.getItem('college_id')
 
-      const count = data || 0
-      setMaxQuestions(count)
+const { data } = await supabase
+  .from('question_bank')
+  .select('id')
+  .eq('exam_category', category)
+  .eq('subject', selectedSubject)
+  .in('chapter', updated)
+  .eq('college_id', collegeId)
+  .eq('is_active', true)
+
+const count = data?.length || 0
+setMaxQuestions(count)
 
       if (questionCount > count) setQuestionCount(count)
     }
