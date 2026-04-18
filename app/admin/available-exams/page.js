@@ -218,18 +218,16 @@ async function deleteExam(id) {
 value={
   exam.exam_start_time
     ? (() => {
-        const d = new Date(
-          new Date(exam.exam_start_time).toLocaleString('en-US', {
-            timeZone: 'Asia/Kolkata',
-             hour12: false  
-          })
-        )
+        const utc = new Date(exam.exam_start_time)
 
-        const yyyy = d.getFullYear()
-        const mm = String(d.getMonth() + 1).padStart(2, '0')
-        const dd = String(d.getDate()).padStart(2, '0')
-        const hh = String(d.getHours()).padStart(2, '0')   // 🔥 24-hour
-        const min = String(d.getMinutes()).padStart(2, '0')
+        // ✅ convert UTC → IST (add 5.5 hrs)
+        const ist = new Date(utc.getTime() + (5.5 * 60 * 60 * 1000))
+
+        const yyyy = ist.getFullYear()
+        const mm = String(ist.getMonth() + 1).padStart(2, '0')
+        const dd = String(ist.getDate()).padStart(2, '0')
+        const hh = String(ist.getHours()).padStart(2, '0')   // 24-hour ✅
+        const min = String(ist.getMinutes()).padStart(2, '0')
 
         return `${yyyy}-${mm}-${dd}T${hh}:${min}`
       })()
