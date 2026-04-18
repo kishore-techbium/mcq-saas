@@ -57,7 +57,7 @@ if (student?.exam_preference === 'NEET') {
 }
 
 // 🔥 TRY MULTIPLE CATEGORY FORMATS (fallback handling)
-const res = await fetch('/api/owntestquestions', {
+const res = await fetch('/api/owntestsubjects', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -74,27 +74,32 @@ setLoading(false)
 
   }
 
-  async function loadChapters(subject) {
-    setSelectedSubject(subject)
-    setSelectedChapters([])
-    setChapters([])
-    setMaxQuestions(0)
+ async function loadChapters(subject) {
+  setSelectedSubject(subject)
+  setSelectedChapters([])
+  setChapters([])
+  setMaxQuestions(0)
 
-   const collegeId = localStorage.getItem('college_id')
+  const currentUser = await getCurrentUser(supabase)
 
-const { data } = await supabase
-  .from('question_bank')
-  .select('chapter')
-  .eq('exam_category', category)
-  .eq('subject', subject)
-  .eq('college_id', collegeId)
-  .eq('is_active', true)
+  let email = null
+  if (currentUser.type === 'google') email = currentUser.email
+  if (currentUser.type === 'manual') email = currentUser.user.email
 
-const uniqueChapters = [
-  ...new Set((data || []).map(d => d.chapter))
-]
-    setChapters(uniqueChapters)
-  }
+  const res = await fetch('/api/owntestchapters', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      category,
+      subject
+    })
+  })
+
+  const result = await res.json()
+
+  setChapters(result.chapters || [])
+}
 
   async function toggleChapter(ch) {
     const updated = selectedChapters.includes(ch)
