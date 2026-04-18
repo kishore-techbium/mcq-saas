@@ -57,21 +57,19 @@ if (student?.exam_preference === 'NEET') {
 }
 
 // 🔥 TRY MULTIPLE CATEGORY FORMATS (fallback handling)
-const collegeId = localStorage.getItem('college_id')
+const res = await fetch('/api/subjects', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email,
+    category: cat
+  })
+})
 
-const { data, error } = await supabase
-  .from('question_bank')
-  .select('subject')
-  .eq('exam_category', cat)
-  .eq('college_id', collegeId)
-  .eq('is_active', true)
-
-const uniqueSubjects = [
-  ...new Set((data || []).map(d => d.subject))
-]
+const result = await res.json()
 
 setCategory(cat)
-setSubjects(uniqueSubjects)
+setSubjects(result.subjects || [])
 setLoading(false)
 
   }
