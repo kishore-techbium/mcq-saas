@@ -212,7 +212,7 @@ if (currentUser.type === 'manual') {
 
 function pretty(cat) {
   if (cat === 'JEE_MAINS') return 'JEE Mains'
-  if (cat === 'NEET') return 'NEET UG'
+  if (cat === 'NEET') return 'NEET'
   return ''
 }
 
