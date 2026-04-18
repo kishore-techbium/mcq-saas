@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react'
 export default function AvailableExamsPage() {
   const [exams, setExams] = useState([])
   const [loading, setLoading] = useState(true)
-
+  const [saveStatus, setSaveStatus] = useState({})
   useEffect(() => {
     init()
   }, [])
@@ -115,7 +115,7 @@ async function updateExamDateTime(id, date, time) {
   const collegeId = await getAdminCollege()
 
   if (!date || !time) {
-    alert('Please select both date and time')
+    setSaveStatus(prev => ({ ...prev, [id]: 'error' }))
     return
   }
 
@@ -129,9 +129,17 @@ async function updateExamDateTime(id, date, time) {
     .eq('college_id', collegeId)
 
   if (error) {
-    alert('Update failed')
+    setSaveStatus(prev => ({ ...prev, [id]: 'error' }))
     return
   }
+
+  // ✅ success
+  setSaveStatus(prev => ({ ...prev, [id]: 'success' }))
+
+  // auto clear after 2 sec
+  setTimeout(() => {
+    setSaveStatus(prev => ({ ...prev, [id]: '' }))
+  }, 2000)
 
   loadExams()
 }
@@ -232,16 +240,26 @@ async function deleteExam(id) {
       }}
     />
 
-    <button
-      onClick={() => updateExamDateTime(exam.id, exam.exam_date, exam.exam_time)}
-      style={{
-        padding: '4px 8px',
-        fontSize: 12,
-        cursor: 'pointer'
-      }}
-    >
-      Save
-    </button>
+<div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+  <button
+    onClick={() => updateExamDateTime(exam.id, exam.exam_date, exam.exam_time)}
+    style={{
+      padding: '4px 8px',
+      fontSize: 12,
+      cursor: 'pointer'
+    }}
+  >
+    Save
+  </button>
+
+  {saveStatus[exam.id] === 'success' && (
+    <span style={{ color: 'green', fontSize: 12 }}>Saved ✅</span>
+  )}
+
+  {saveStatus[exam.id] === 'error' && (
+    <span style={{ color: 'red', fontSize: 12 }}>Error ❌</span>
+  )}
+</div>
   </div>
 </td>
                 <td><b>{exam.question_count}</b></td>
