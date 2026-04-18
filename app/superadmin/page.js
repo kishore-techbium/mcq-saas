@@ -100,6 +100,45 @@ export default function Dashboard() {
 
     setUpcomingExams(enriched)
   }
+  function getInfraRecommendation(exams) {
+  if (!exams || exams.length === 0) return null
+
+  const maxStudents = Math.max(...exams.map(e => e.student_count || 0))
+
+  if (maxStudents < 300) {
+    return {
+      level: 'safe',
+      message: 'Current infrastructure is sufficient.',
+      plan: '1 vCPU / 2GB',
+      action: 'No upgrade needed'
+    }
+  }
+
+  if (maxStudents < 600) {
+    return {
+      level: 'moderate',
+      message: 'Increase workers during exam.',
+      plan: '1 vCPU / 2GB',
+      action: 'Scale workers to 3–4'
+    }
+  }
+
+  if (maxStudents < 1000) {
+    return {
+      level: 'high',
+      message: 'Upgrade recommended for smooth performance.',
+      plan: '2 vCPU / 4GB',
+      action: 'Upgrade 30 mins before exam'
+    }
+  }
+
+  return {
+    level: 'critical',
+    message: 'Upgrade mandatory to avoid delays.',
+    plan: '4 vCPU / 8GB',
+    action: 'Upgrade 1 hour before exam'
+  }
+}
 
   function getRecommendedWorkers(count) {
     if (count < 50) return 1
@@ -138,7 +177,7 @@ export default function Dashboard() {
   if (loading) {
     return <p style={{ padding: 40 }}>Checking access...</p>
   }
-
+const infra = getInfraRecommendation(upcomingExams)
   return (
     <div>
       <h1>Dashboard</h1>
@@ -199,6 +238,29 @@ export default function Dashboard() {
           ))}
         </tbody>
       </table>
+        
+          {infra && (
+  <div style={{
+    marginTop: 30,
+    padding: 15,
+    borderRadius: 10,
+    background:
+      infra.level === 'safe' ? '#ecfdf5' :
+      infra.level === 'moderate' ? '#fffbeb' :
+      infra.level === 'high' ? '#fef2f2' :
+      '#fee2e2'
+  }}>
+    <h3>⚙ Infrastructure Recommendation</h3>
+
+    <p>📊 Max Students: {Math.max(...upcomingExams.map(e => e.student_count || 0))}</p>
+
+    <p>💡 {infra.message}</p>
+
+    <p>🖥 Recommended Plan: {infra.plan}</p>
+
+    <p>⏰ Action: {infra.action}</p>
+  </div>
+)}
     </div>
   )
 }
