@@ -57,7 +57,7 @@ if (student?.exam_preference === 'NEET') {
 }
 
 // 🔥 TRY MULTIPLE CATEGORY FORMATS (fallback handling)
-const res = await fetch('/api/owntestsubjects', {
+const res = await fetch('/api/createowntest/owntestsubjects', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -86,7 +86,7 @@ setLoading(false)
   if (currentUser.type === 'google') email = currentUser.email
   if (currentUser.type === 'manual') email = currentUser.user.email
 
-  const res = await fetch('/api/owntestchapters', {
+  const res = await fetch('/api/createowntest/owntestchapters', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
