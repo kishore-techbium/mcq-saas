@@ -217,13 +217,22 @@ async function deleteExam(id) {
                   type="datetime-local"
 value={
   exam.exam_start_time
-    ? new Date(
-        new Date(exam.exam_start_time).toLocaleString('en-US', {
-          timeZone: 'Asia/Kolkata'
-        })
-      )
-        .toISOString()
-        .slice(0, 16)
+    ? (() => {
+        const d = new Date(
+          new Date(exam.exam_start_time).toLocaleString('en-US', {
+            timeZone: 'Asia/Kolkata',
+             hour12: false  
+          })
+        )
+
+        const yyyy = d.getFullYear()
+        const mm = String(d.getMonth() + 1).padStart(2, '0')
+        const dd = String(d.getDate()).padStart(2, '0')
+        const hh = String(d.getHours()).padStart(2, '0')   // 🔥 24-hour
+        const min = String(d.getMinutes()).padStart(2, '0')
+
+        return `${yyyy}-${mm}-${dd}T${hh}:${min}`
+      })()
     : ''
 }
                   onChange={(e) => updateExamTime(exam.id, e.target.value)}
