@@ -49,24 +49,26 @@ if (!currentUser) {
       saved.timeLeft ?? Math.ceil(cfg.duration * 60)
     )
 
-   const { data: qs, error } = await supabase.rpc(
-  'generate_custom_exam',
-  {
-    p_category: cfg.category,
-    p_subject: cfg.subject,
-    p_chapters: cfg.chapters,
-    p_limit: cfg.questionCount
-  }
-)
+  let email = null
 
-if (error) {
-  console.error('Error fetching questions:', error)
-  alert('Unable to load questions.')
-  window.location.href = '/student-home'
-  return
-}
+if (currentUser.type === 'google') email = currentUser.email
+if (currentUser.type === 'manual') email = currentUser.user.email
 
-setQuestions(qs || [])
+const res = await fetch('/api/createowntest/owntestquestions', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email,
+    category: cfg.category,
+    subject: cfg.subject,
+    chapters: cfg.chapters,
+    limit: cfg.questionCount
+  })
+})
+
+const result = await res.json()
+
+setQuestions(result.questions || [])
     setLoading(false)
   }
 
@@ -186,7 +188,7 @@ if (currentUser.type === 'manual') {
 
   if (loading) return <p style={{ padding: 40 }}>Loading test…</p>
 
-  const q = questions[currentIndex]
+  const q = questions[currentIndex] || {}
 
   return (
     <div style={styles.page}>
@@ -205,7 +207,7 @@ if (currentUser.type === 'manual') {
 
 <div
   style={{ marginTop: 12 }}
-  dangerouslySetInnerHTML={{ __html: q.question }}
+  dangerouslySetInnerHTML={{ __html: q?.question || '' }}
 />
           {['A', 'B', 'C', 'D'].map(opt => (
             <label
@@ -224,7 +226,7 @@ if (currentUser.type === 'manual') {
               {opt}. 
 <span
   dangerouslySetInnerHTML={{
-    __html: q[`option_${opt.toLowerCase()}`]
+    __html: q?.[`option_${opt.toLowerCase()}`] || ''
   }}
 />
             </label>
