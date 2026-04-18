@@ -93,17 +93,12 @@ console.log('Exam Data:', examsData)
   }
 async function toggleExam(id, active) {
   const collegeId = await getAdminCollege()
-
-  console.log('Toggle Clicked:', { id, active, collegeId })
-
   const { data, error } = await supabase
     .from('exams')
     .update({ is_active: !active })
     .eq('id', id)
     .eq('college_id', collegeId)
     .select()
-
-  console.log('Update response:', data, error)
 
   if (error) {
     alert('Update failed: ' + error.message)
@@ -117,6 +112,27 @@ async function toggleExam(id, active) {
 
   loadExams()
 }
+ async function updateExamTime(id, value) {
+  const collegeId = await getAdminCollege()
+
+  const { error } = await supabase
+    .from('exams')
+    .update({
+      exam_start_time: value ? new Date(value) : null
+    })
+    .eq('id', id)
+    .eq('college_id', collegeId)
+
+  if (error) {
+    console.error(error)
+    alert('Failed to update exam time')
+    return
+  }
+
+  // optional refresh
+  loadExams()
+}
+ 
 async function deleteExam(id) {
   const confirmText = prompt('Type DELETE to confirm')
   if (confirmText !== 'DELETE') return
@@ -132,7 +148,6 @@ async function deleteExam(id) {
     .eq('college_id', collegeId)
     .select()
 
-  console.log('Delete response:', data, error)
 
   if (error) {
     alert('Delete failed: ' + error.message)
@@ -169,6 +184,7 @@ async function deleteExam(id) {
               <th>Questions</th>
               <th>Status</th>
               <th>Actions</th>
+              <th>Exam Time</th>
             </tr>
           </thead>
 
@@ -191,6 +207,21 @@ async function deleteExam(id) {
                 <td>{exam.exam_type || 'MOCK'}</td>
 
                 <td>{exam.duration_minutes} min</td>
+               <td>
+                <input
+                  type="datetime-local"
+                  value={
+                    exam.exam_start_time
+                      ? new Date(exam.exam_start_time).toISOString().slice(0,16)
+                      : ''
+                  }
+                  onChange={(e) => updateExamTime(exam.id, e.target.value)}
+                  style={{
+                    padding: '4px',
+                    fontSize: 12
+                  }}
+                />
+              </td>
 
                 <td><b>{exam.question_count}</b></td>
 
