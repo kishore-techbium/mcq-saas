@@ -112,28 +112,20 @@ async function toggleExam(id, active) {
 
   loadExams()
 }
-async function updateExamTime(id, value) {
+async function updateExamDateTime(id, date, time) {
   const collegeId = await getAdminCollege()
-
-  // Step 1: value is IST from input
-  const istDate = new Date(value)
-
-  // Step 2: convert IST → UTC
-  const utcDate = new Date(
-    istDate.getTime() - (5.5 * 60 * 60 * 1000)
-  )
 
   const { error } = await supabase
     .from('exams')
     .update({
-      exam_start_time: utcDate
+      exam_date: date,
+      exam_time: time
     })
     .eq('id', id)
     .eq('college_id', collegeId)
 
   if (error) {
-    console.error(error)
-    alert('Failed to update exam time')
+    alert('Update failed')
     return
   }
 
@@ -186,6 +178,7 @@ async function deleteExam(id) {
               <th>Category</th>
               <th>Type</th>
               <th>Duration</th>
+              <th>Exam Time</th>
               <th>Questions</th>
               <th>Status</th>
               <th>Actions</th>
@@ -212,35 +205,19 @@ async function deleteExam(id) {
                 <td>{exam.exam_type || 'MOCK'}</td>
 
                 <td>{exam.duration_minutes} min</td>
-               <td>
-                <input
-                  type="datetime-local"
-value={
-  exam.exam_start_time
-    ? (() => {
-        const utc = new Date(exam.exam_start_time)
+              <td>
+  <input
+    type="date"
+    value={exam.exam_date || ''}
+    onChange={(e) => updateExamDateTime(exam.id, e.target.value, exam.exam_time)}
+  />
 
-        // ✅ convert UTC → IST (add 5.5 hrs)
-        const ist = new Date(utc.getTime() + (5.5 * 60 * 60 * 1000))
-
-        const yyyy = ist.getFullYear()
-        const mm = String(ist.getMonth() + 1).padStart(2, '0')
-        const dd = String(ist.getDate()).padStart(2, '0')
-        const hh = String(ist.getHours()).padStart(2, '0')   // 24-hour ✅
-        const min = String(ist.getMinutes()).padStart(2, '0')
-
-        return `${yyyy}-${mm}-${dd}T${hh}:${min}`
-      })()
-    : ''
-}
-                  onChange={(e) => updateExamTime(exam.id, e.target.value)}
-                  style={{
-                    padding: '4px',
-                    fontSize: 12
-                  }}
-                />
-              </td>
-
+  <input
+    type="time"
+    value={exam.exam_time || ''}
+    onChange={(e) => updateExamDateTime(exam.id, exam.exam_date, e.target.value)}
+  />
+</td>
                 <td><b>{exam.question_count}</b></td>
 
                 <td>
