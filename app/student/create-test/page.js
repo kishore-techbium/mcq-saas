@@ -111,21 +111,30 @@ setLoading(false)
     if (updated.length > 0) {
     const collegeId = localStorage.getItem('college_id')
 
-const { data } = await supabase
-  .from('question_bank')
-  .select('id')
-  .eq('exam_category', category)
-  .eq('subject', selectedSubject)
-  .in('chapter', updated)
-  .eq('college_id', collegeId)
-  .eq('is_active', true)
+const currentUser = await getCurrentUser(supabase)
 
-const count = data?.length || 0
+let email = null
+if (currentUser.type === 'google') email = currentUser.email
+if (currentUser.type === 'manual') email = currentUser.user.email
+
+const res = await fetch('/api/createowntest/owntestcount', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email,
+    category,
+    subject: selectedSubject,
+    chapters: updated
+  })
+})
+
+const result = await res.json()
+
+const count = result.count || 0
 setMaxQuestions(count)
 
-      if (questionCount > count) setQuestionCount(count)
-    }
-  }
+if (questionCount > count) setQuestionCount(count)
+  }}
 
   function startTest() {
     const payload = {
