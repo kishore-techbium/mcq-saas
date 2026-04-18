@@ -61,8 +61,7 @@ export default function AvailableExamsPage() {
         console.error(error)
         return
       }
-console.log('Admin College:', collegeId)
-console.log('Exam Data:', examsData)
+
       const examIds = (examsData || []).map(e => e.id)
 
       const { data: mappings } = await supabase
@@ -112,7 +111,7 @@ async function toggleExam(id, active) {
 
   loadExams()
 }
-async function updateExamDateTime(id, date, time) {
+async function updateExamDateTime(exam.id, exam.exam_date, exam.exam_time) {
   const collegeId = await getAdminCollege()
 
   const { error } = await supabase
@@ -174,15 +173,14 @@ async function deleteExam(id) {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ textAlign: 'left' }}>
-              <th>Title</th>
-              <th>Category</th>
-              <th>Type</th>
-              <th>Duration</th>
-              <th>Exam Time</th>
-              <th>Questions</th>
-              <th>Status</th>
-              <th>Actions</th>
-              <th>Exam Time</th>
+          <th>Title</th>
+          <th>Category</th>
+          <th>Type</th>
+          <th>Duration</th>
+          <th>Exam Time</th>
+          <th>Questions</th>
+          <th>Status</th>
+          <th>Actions</th>
             </tr>
           </thead>
 
@@ -205,18 +203,41 @@ async function deleteExam(id) {
                 <td>{exam.exam_type || 'MOCK'}</td>
 
                 <td>{exam.duration_minutes} min</td>
-              <td>
-  <input
-    type="date"
-    value={exam.exam_date || ''}
-    onChange={(e) => updateExamDateTime(exam.id, e.target.value, exam.exam_time)}
-  />
+            <td>
+  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+    <input
+      type="date"
+      value={exam.exam_date || ''}
+      onChange={(e) => {
+        const updated = [...exams]
+        const idx = updated.findIndex(x => x.id === exam.id)
+        updated[idx].exam_date = e.target.value
+        setExams(updated)
+      }}
+    />
 
-  <input
-    type="time"
-    value={exam.exam_time || ''}
-    onChange={(e) => updateExamDateTime(exam.id, exam.exam_date, e.target.value)}
-  />
+    <input
+      type="time"
+      value={exam.exam_time || ''}
+      onChange={(e) => {
+        const updated = [...exams]
+        const idx = updated.findIndex(x => x.id === exam.id)
+        updated[idx].exam_time = e.target.value
+        setExams(updated)
+      }}
+    />
+
+    <button
+      onClick={() => updateExamDateTime(exam.id, exam.exam_date, exam.exam_time)}
+      style={{
+        padding: '4px 8px',
+        fontSize: 12,
+        cursor: 'pointer'
+      }}
+    >
+      Save
+    </button>
+  </div>
 </td>
                 <td><b>{exam.question_count}</b></td>
 
