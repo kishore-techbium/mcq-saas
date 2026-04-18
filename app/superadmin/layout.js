@@ -42,7 +42,7 @@ const styles = {
   container: { display: 'flex', minHeight: '100vh' },
   sidebar: {
     width: 220,
-    background: '#1e293b',
+    background: '#f3e5ab',
     color: '#fff',
     padding: 20,
     display: 'flex',
