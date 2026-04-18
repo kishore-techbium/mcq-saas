@@ -13,7 +13,8 @@ export default function CreateExamPage() {
   const [allowRetake, setAllowRetake] = useState(false)
   const [cameraRequired, setCameraRequired] = useState(false)
   const [status, setStatus] = useState('')
-  const [examStartTime, setExamStartTime] = useState('')
+  const [examDate, setExamDate] = useState('')
+  const [examTime, setExamTime] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export default function CreateExamPage() {
 
     setStatus('')
 
-    if (!title || !duration || !examCategory || !examStartTime) {
+    if (!title || !duration || !examCategory || !examDate || !examTime) {
       setStatus('❌ Please fill all required fields')
       return
     }
@@ -64,7 +65,8 @@ const user = auth.user
           exam_type: examType,
           exam_category: examCategory,
           duration_minutes: Number(duration),
-          exam_start_time: new Date(examStartTime),
+          exam_date: examDate,
+          exam_time: examTime,
           allow_retake: allowRetake,
           camera_required: cameraRequired,
           created_by: user.id,
@@ -144,15 +146,25 @@ const user = auth.user
               onChange={e => setDuration(e.target.value)}
             />
           </div>
-          <div style={styles.field}>
-          <label style={styles.label}>Exam Date & Time *</label>
-          <input
-            type="datetime-local"
-            style={styles.input}
-            value={examStartTime}
-            onChange={e => setExamStartTime(e.target.value)}
-            />
-          </div>      
+<div style={styles.field}>
+  <label style={styles.label}>Exam Date *</label>
+  <input
+    type="date"
+    style={styles.input}
+    value={examDate}
+    onChange={e => setExamDate(e.target.value)}
+  />
+</div>
+
+<div style={styles.field}>
+  <label style={styles.label}>Exam Time (24hr) *</label>
+  <input
+    type="time"
+    style={styles.input}
+    value={examTime}
+    onChange={e => setExamTime(e.target.value)}
+  />
+</div>
 
           <div style={styles.checkboxRow}>
             <label>
