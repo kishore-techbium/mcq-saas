@@ -57,23 +57,7 @@ async function checkAccess() {
 
     setStats({ colleges, students, exams })
   }
-if (loading) {
-  return <p style={{ padding: 40 }}>Checking access...</p>
-}
-  return (
-    <div>
-      <h1>Dashboard</h1>
-
-      <div style={styles.grid}>
-        <Card title="Colleges" value={stats.colleges} />
-        <Card title="Students" value={stats.students} />
-        <Card title="Exams" value={stats.exams} />
-      </div>
-    </div>
-  )
-}
-
-async function loadUpcomingExams() {
+  async function loadUpcomingExams() {
   const today = new Date().toISOString().split('T')[0]
 
   // ✅ get exams
@@ -115,15 +99,20 @@ async function loadUpcomingExams() {
 
   setUpcomingExams(enriched)
 }
-
-function Card({ title, value }) {
+  
+if (loading) {
+  return <p style={{ padding: 40 }}>Checking access...</p>
+}
   return (
-    <div style={styles.card}>
-      <h3>{title}</h3>
-      <h1>{value}</h1>
-    </div>
+    <div>
+      <h1>Dashboard</h1>
 
-  <h2 style={{ marginTop: 40 }}>📅 Upcoming Exams</h2>
+      <div style={styles.grid}>
+        <Card title="Colleges" value={stats.colleges} />
+        <Card title="Students" value={stats.students} />
+        <Card title="Exams" value={stats.exams} />
+      </div>
+      <h2 style={{ marginTop: 40 }}>📅 Upcoming Exams</h2>
 
 {upcomingExams.length === 0 && (
   <p>No upcoming exams</p>
@@ -149,6 +138,16 @@ function Card({ title, value }) {
   ))}
 </div>
 
+    </div>
+  )
+}
+
+function Card({ title, value }) {
+  return (
+    <div style={styles.card}>
+      <h3>{title}</h3>
+      <h1>{value}</h1>
+    </div>
   )
 }
 
