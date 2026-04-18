@@ -169,18 +169,15 @@ if (currentUser.type === 'manual') {
   studentId = currentUser.user.id
 }
 
-    await supabase.from('exam_sessions').insert({
-      exam_id: null,
-      student_id: studentId,
-      answers: answers,
-      score,
-      submitted: true,
-      time_left: 0,
-      total_questions: questions.length,
-      exam_type: 'CUSTOM_TEST',
-      meta: meta
-    })
+  const payload = {
+  questions,
+  answers,
+  config,
+}
 
+localStorage.setItem('custom_test_result', JSON.stringify(payload))
+
+window.location.href = '/custom-review'
     localStorage.removeItem(LS_KEY)
     localStorage.removeItem('custom_test_config')
 
