@@ -108,18 +108,32 @@ export default function Dashboard() {
     return 4
   }
 
-  async function handleScaleWorkers() {
-    try {
-      // 🔥 For now just simulate (you can connect PM2 later)
-      console.log('Scaling workers to:', workers)
+ async function handleScaleWorkers() {
+  try {
+    const { data: session } = await supabase.auth.getSession()
 
-      setSaveMsg('Workers updated successfully ✅')
+    const res = await fetch('/api/scale-workers', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.session.access_token}`
+      },
+      body: JSON.stringify({ workers })
+    })
 
-      setTimeout(() => setSaveMsg(''), 2000)
-    } catch {
-      setSaveMsg('Error ❌')
+    const data = await res.json()
+
+    if (!res.ok) {
+      throw new Error(data.error || 'Failed')
     }
+
+    setSaveMsg('Workers scaled successfully ✅')
+  } catch (err) {
+    setSaveMsg('Scaling failed ❌')
   }
+
+  setTimeout(() => setSaveMsg(''), 2000)
+}
 
   if (loading) {
     return <p style={{ padding: 40 }}>Checking access...</p>
