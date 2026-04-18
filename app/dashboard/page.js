@@ -276,17 +276,27 @@ const questionCountMap = await res2.json()
             <p style={styles.empty}>No available exams.</p>
           )}
           <div style={styles.grid}>
-            {availableExams.map(exam => (
-              <ExamCard
-                key={exam.id}
-                title={exam.title}
-                subtitle={`${exam.exam_type} • ${exam.duration_minutes} mins`}
-                footer={`Questions: ${exam.question_count}`}
-                action="Start Exam"
-                color="#16a34a"
-                onClick={() => startExam(exam.id, true)}
-              />
-            ))}
+          {availableExams.map(exam => {
+  const started = isExamStarted(exam)
+
+  return (
+    <ExamCard
+      key={exam.id}
+      title={exam.title}
+      subtitle={`${exam.exam_type} • ${exam.duration_minutes} mins`}
+      footer={
+        exam.exam_date && exam.exam_time
+          ? `🕒 Starts: ${formatExamDateTime(exam)} | Questions: ${exam.question_count}`
+          : `Questions: ${exam.question_count}`
+      }
+      action={started ? "Start Exam" : "Not Started"}
+      color={started ? "#16a34a" : "#9ca3af"}
+      onClick={() => {
+        if (started) startExam(exam.id, true)
+      }}
+    />
+  )
+})}
           </div>
         </Section>
       )}
@@ -351,6 +361,30 @@ function pretty(cat) {
   if (cat === 'JEE_ADVANCED') return 'JEE Advanced'
   if (cat === 'NEET') return 'NEET UG'
   return ''
+}
+
+function isExamStarted(exam) {
+  if (!exam.exam_date || !exam.exam_time) return true
+
+  const now = new Date()
+  const examDateTime = new Date(`${exam.exam_date}T${exam.exam_time}`)
+
+  return now >= examDateTime
+}
+
+function formatExamDateTime(exam) {
+  if (!exam.exam_date || !exam.exam_time) return ''
+
+  const dt = new Date(`${exam.exam_date}T${exam.exam_time}`)
+
+  return dt.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  })
 }
 
 function formatDate(dateStr) {
