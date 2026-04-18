@@ -111,8 +111,13 @@ async function toggleExam(id, active) {
 
   loadExams()
 }
-async function updateExamDateTime(exam.id, exam.exam_date, exam.exam_time) {
+async function updateExamDateTime(id, date, time) {
   const collegeId = await getAdminCollege()
+
+  if (!date || !time) {
+    alert('Please select both date and time')
+    return
+  }
 
   const { error } = await supabase
     .from('exams')
