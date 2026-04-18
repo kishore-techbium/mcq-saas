@@ -13,6 +13,7 @@ export default function CreateExamPage() {
   const [allowRetake, setAllowRetake] = useState(false)
   const [cameraRequired, setCameraRequired] = useState(false)
   const [status, setStatus] = useState('')
+  const [examStartTime, setExamStartTime] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export default function CreateExamPage() {
 
     setStatus('')
 
-    if (!title || !duration || !examCategory) {
+    if (!title || !duration || !examCategory || !examStartTime) {
       setStatus('❌ Please fill all required fields')
       return
     }
@@ -63,6 +64,7 @@ const user = auth.user
           exam_type: examType,
           exam_category: examCategory,
           duration_minutes: Number(duration),
+          exam_start_time: new Date(examStartTime),
           allow_retake: allowRetake,
           camera_required: cameraRequired,
           created_by: user.id,
@@ -142,6 +144,15 @@ const user = auth.user
               onChange={e => setDuration(e.target.value)}
             />
           </div>
+          <div style={styles.field}>
+          <label style={styles.label}>Exam Date & Time *</label>
+          <input
+            type="datetime-local"
+            style={styles.input}
+            value={examStartTime}
+            onChange={e => setExamStartTime(e.target.value)}
+            />
+          </div>      
 
           <div style={styles.checkboxRow}>
             <label>
