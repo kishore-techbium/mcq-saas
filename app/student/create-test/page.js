@@ -57,7 +57,7 @@ if (student?.exam_preference === 'NEET') {
 }
 
 // 🔥 TRY MULTIPLE CATEGORY FORMATS (fallback handling)
-const res = await fetch('/api/subjects', {
+const res = await fetch('/api/owntestquestions', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
