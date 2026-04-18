@@ -58,7 +58,7 @@ let { data, error } = await supabase.rpc('get_subjects', {
   p_category: cat
 })
 
-// 🚨 fallback if empty
+// fallback
 if (!data || data.length === 0) {
   console.log('Fallback triggered for category')
 
@@ -75,7 +75,7 @@ if (!data || data.length === 0) {
     })
 
     data = res.data
-    cat = fallbackCat // ✅ update category for rest flow
+    cat = fallbackCat
   }
 }
 
@@ -85,19 +85,6 @@ const uniqueSubjects = (data || []).map(d => d.subject || d)
 setSubjects(uniqueSubjects)
 
 setLoading(false)
-    setCategory(cat)
-
-    console.log('Resolved Category:', cat)
-
-    // 🔥 LOAD SUBJECTS
-    const { data } = await supabase.rpc('get_subjects', {
-      p_category: cat
-    })
-
-    const uniqueSubjects = (data || []).map(d => d.subject || d)
-    setSubjects(uniqueSubjects)
-
-    setLoading(false)
   }
 
   async function loadChapters(subject) {
