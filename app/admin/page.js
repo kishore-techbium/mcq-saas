@@ -265,6 +265,13 @@ async function regenerateCode() {
         />
 
         <Card
+          title="📈 Academic Intelligence"
+          desc="Advanced insights, trends, and student risk analysis"
+          color="#dbeafe"
+          action="Open Intelligence"
+          onClick="/admin/academic-intelligence"
+        />
+        <Card
           title="📊 Exam Results"
           desc="View performance analytics and student scores"
           color="#dcfce7"
