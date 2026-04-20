@@ -7,7 +7,7 @@ import { getAdminCollege } from '../../../lib/getAdminCollege'
 export default function CreateExamPage() {
 
   const [title, setTitle] = useState('')
-  const [examType, setExamType] = useState('MOCK')
+  const [examType, setExamType] = useState('WEEKLY_TEST')
   const [examCategory, setExamCategory] = useState('JEE_MAINS')
   const [duration, setDuration] = useState('')
   const [allowRetake, setAllowRetake] = useState(false)
@@ -131,9 +131,9 @@ const user = auth.user
               value={examType}
               onChange={e => setExamType(e.target.value)}
             >
-              <option value="REGULAR">Regular</option>
-              <option value="MOCK">Mock</option>
-              <option value="GRAND">Grand</option>
+<option value="WEEKLY_TEST">Weekly Test</option>
+<option value="MONTHLY_TEST">Monthly Test</option>
+<option value="GRAND_TEST">Grand Test</option>
             </select>
           </div>
 
