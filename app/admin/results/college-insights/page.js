@@ -2,7 +2,7 @@
 
 import { supabase } from '../../../../lib/supabase'
 import { useEffect, useRef, useState } from 'react'
-import html2pdf from 'html2pdf.js'
+//import html2pdf from 'html2pdf.js'
 
 export default function CollegeInsights() {
   const [loading, setLoading] = useState(true)
