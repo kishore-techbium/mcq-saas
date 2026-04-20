@@ -12,7 +12,10 @@ import {
   BarChart,
   Bar
 } from 'recharts'
-
+function format2(num) {
+  if (num === null || num === undefined) return '0.00'
+  return Number(num).toFixed(2)
+}
 export default function AcademicIntelligence() {
   const [loading, setLoading] = useState(true)
   const [examType, setExamType] = useState('ALL')
@@ -61,12 +64,34 @@ export default function AcademicIntelligence() {
       totalAttempts += s.total_attempts || 0
     })
 
-    const avgScore =
-      totalAttempts > 0
-        ? (totalScore / totalAttempts).toFixed(1)
-        : '0.0'
+  const avgScore =
+  totalAttempts > 0
+    ? format2(totalScore / totalAttempts)
+    : '0.00'
 
-    const risk = overall?.filter(s => (s.avg_score || 0) < 40) || []
+    // get risk students
+const riskRaw = overall?.filter(s => (s.avg_score || 0) < 40) || []
+
+let risk = []
+
+if (riskRaw.length > 0) {
+  const ids = riskRaw.map(r => r.student_id)
+
+  const { data: students } = await supabase
+    .from('students')
+    .select('id, first_name, last_name')
+    .in('id', ids)
+
+  const studentMap = {}
+  students?.forEach(s => {
+    studentMap[s.id] = `${s.first_name || ''} ${s.last_name || ''}`
+  })
+
+  risk = riskRaw.map(r => ({
+    ...r,
+    name: studentMap[r.student_id] || r.student_id
+  }))
+}
 
     // =========================
     // TREND
@@ -108,7 +133,7 @@ export default function AcademicIntelligence() {
 
     const examArray = Object.keys(examMap).map(type => ({
       type,
-      avg: (examMap[type].total / examMap[type].count).toFixed(1)
+      avg: format2(examMap[type].total / examMap[type].count)
     }))
 
     // =========================
@@ -290,7 +315,7 @@ export default function AcademicIntelligence() {
 
       <Section title="📉 Weak Subjects">
         {subjects.slice(0, 5).map(s => (
-          <p key={s.subject}>{s.subject} – {(s.accuracy*100).toFixed(1)}%</p>
+          <p key={s.subject}>{s.subject} – {(s.accuracy*100).toFixed(2)}%</p>
         ))}
       </Section>
 
@@ -304,7 +329,7 @@ export default function AcademicIntelligence() {
               padding: 6
             }}
           >
-            {s.subject} - {s.subtopic} ({(s.accuracy*100).toFixed(0)}%)
+            {s.subject} - {s.subtopic} ({(s.accuracy*100).toFixed(2)}%)
           </div>
         ))}
       </Section>
@@ -324,7 +349,7 @@ export default function AcademicIntelligence() {
 
       <Section title="⚠️ At Risk">
         {riskStudents.slice(0, 10).map(s => (
-          <p key={s.student_id}>{s.student_id} – {s.avg_score}%</p>
+          <p key={s.student_id}>{s.name} – {format2(s.avg_score)}%</p>
         ))}
       </Section>
 
