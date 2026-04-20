@@ -210,8 +210,14 @@ if (
 }
 
 setQuestions(finalQuestions)
-questionStartTimeRef.current = Date.now()    
-    setLoading(false)
+
+// 🔥 START tracking FIRST question properly
+setCurrentIndex(prev => {
+  questionStartTimeRef.current = Date.now()
+  return prev || 0
+})
+
+setLoading(false)
 
   }
 
