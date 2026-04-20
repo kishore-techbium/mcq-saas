@@ -54,7 +54,28 @@ useEffect(() => {
 
     setLoading(false)
   }
+async function downloadPDF() {
+  if (typeof window === 'undefined') return
 
+  const html2pdf = (await import('html2pdf.js')).default
+
+  const element = document.getElementById('college-report')
+
+  if (!element) {
+    alert('Report not ready')
+    return
+  }
+
+  const opt = {
+    margin: 0.5,
+    filename: `college-insights-${examType}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+  }
+
+  html2pdf().set(opt).from(element).save()
+}
   async function loadAll(college_id) {
     // =========================
     // TOP CARDS
@@ -328,28 +349,7 @@ topStudents.map(s => [
   )
 }
 
-async function downloadPDF() {
-  if (typeof window === 'undefined') return
 
-  const html2pdf = (await import('html2pdf.js')).default
-
-  const element = document.getElementById('college-report')
-
-  if (!element) {
-    alert('Report not ready')
-    return
-  }
-
-  const opt = {
-    margin: 0.5,
-    filename: `college-insights-${examType}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-  }
-
-  html2pdf().set(opt).from(element).save()
-}
 /* UI COMPONENTS */
 
 function Card({ title, value }) {
