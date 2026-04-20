@@ -96,7 +96,27 @@ function downloadPDF() {
 
   html2pdf().set(opt).from(element).save()
 }
- 
+if (!data || Object.keys(data).length === 0) {
+  return (
+    <div style={styles.page}>
+      <h1 style={styles.heading}>📊 Detailed Analysis</h1>
+
+      <div style={{ marginBottom: 15 }}>
+        <select
+          value={examType}
+          onChange={(e) => setExamType(e.target.value)}
+        >
+          <option value="ALL">All Exams</option>
+          <option value="WEEKLY_TEST">Weekly Test</option>
+          <option value="MONTHLY_TEST">Monthly Test</option>
+          <option value="GRAND_TEST">Grand Test</option>
+        </select>
+      </div>
+
+      <p>No data for selected exam type</p>
+    </div>
+  )
+}
   
   return (
   <div style={styles.page} id="analysis-report">
@@ -135,13 +155,7 @@ Student: {student ? `${student.first_name} ${student.last_name}` : '-'}
     Download PDF
   </button>
 </div>
-if (!data || Object.keys(data).length === 0) {
-  return (
-    <div style={{ padding: 20 }}>
-      <p>No data for selected exam type</p>
-    </div>
-  )
-}
+
       {Object.entries(data).map(([subject, chapters]) => {
         const chartData = Object.entries(chapters).map(
           ([chapter, value]) => ({
