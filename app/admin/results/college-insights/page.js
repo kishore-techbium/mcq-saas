@@ -2,7 +2,7 @@
 
 import { supabase } from '../../../../lib/supabase'
 import { useEffect, useRef, useState } from 'react'
-import html2pdf from 'html2pdf.js'
+
 
 export default function CollegeInsights() {
   const [loading, setLoading] = useState(true)
@@ -328,15 +328,18 @@ topStudents.map(s => [
   )
 }
 
+async function downloadPDF() {
+  if (typeof window === 'undefined') return
 
-function downloadPDF() {
+  const html2pdf = (await import('html2pdf.js')).default
+
   const element = document.getElementById('college-report')
 
   const opt = {
     margin: 0.5,
     filename: `college-insights-${examType}.pdf`,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
+    html2canvas: { scale: 2, useCORS: true },
     jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
   }
 
