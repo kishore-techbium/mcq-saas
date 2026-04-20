@@ -14,22 +14,21 @@ function format2(num) {
 
 export default function AcademicIntelligence() {
   const [loading, setLoading] = useState(true)
+
   const [examType, setExamType] = useState('ALL')
+  const [examCategory, setExamCategory] = useState('ALL')
 
   const [summary, setSummary] = useState({})
   const [subjects, setSubjects] = useState([])
   const [subtopics, setSubtopics] = useState([])
   const [riskStudents, setRiskStudents] = useState([])
-  const [insights, setInsights] = useState([])
-  const [trendData, setTrendData] = useState([])
-  const [examEffect, setExamEffect] = useState([])
+  const [subjectRecommendations, setSubjectRecommendations] = useState([])
   const [effortData, setEffortData] = useState([])
   const [efficiencyData, setEfficiencyData] = useState([])
-  const [subjectRecommendations, setSubjectRecommendations] = useState([])
 
   useEffect(() => {
     init()
-  }, [examType])
+  }, [examType, examCategory])
 
   async function init() {
     const { data: auth } = await supabase.auth.getUser()
@@ -46,11 +45,60 @@ export default function AcademicIntelligence() {
   }
 
   async function loadData(college_id) {
-    const { data: overall } = await supabase
+
+    // =========================
+    // BASE QUERY
+    // =========================
+    let overallQuery = supabase
       .from('student_overall_stats')
       .select('*')
       .eq('college_id', college_id)
 
+    let subjectQuery = supabase
+      .from('student_subject_stats')
+      .select('*')
+      .eq('college_id', college_id)
+
+    let subQuery = supabase
+      .from('student_subtopic_stats')
+      .select('*')
+      .eq('college_id', college_id)
+
+    if (examType !== 'ALL') {
+      subjectQuery = subjectQuery.eq('exam_type', examType)
+      subQuery = subQuery.eq('exam_type', examType)
+    }
+
+    if (examCategory !== 'ALL') {
+      subjectQuery = subjectQuery.eq('exam_category', examCategory)
+      subQuery = subQuery.eq('exam_category', examCategory)
+    }
+
+    const { data: overall } = await overallQuery
+    const { data: subjectStats } = await subjectQuery
+    const { data: subStats } = await subQuery
+
+    // =========================
+    // STUDENT MAP
+    // =========================
+    const ids = overall?.map(s => s.student_id) || []
+
+    let studentMap = {}
+
+    if (ids.length > 0) {
+      const { data: students } = await supabase
+        .from('students')
+        .select('id, first_name, last_name')
+        .in('id', ids)
+
+      students?.forEach(s => {
+        studentMap[s.id] = `${s.first_name || ''} ${s.last_name || ''}`
+      })
+    }
+
+    // =========================
+    // SUMMARY
+    // =========================
     let totalScore = 0
     let totalAttempts = 0
 
@@ -64,43 +112,18 @@ export default function AcademicIntelligence() {
       : '0.00'
 
     // =========================
-    // RISK STUDENTS
+    // RISK
     // =========================
-    const riskRaw = overall?.filter(s => (s.avg_score || 0) < 40) || []
-    let risk = []
-
-    if (riskRaw.length > 0) {
-      const ids = riskRaw.map(r => r.student_id)
-
-      const { data: students } = await supabase
-        .from('students')
-        .select('id, first_name, last_name')
-        .in('id', ids)
-
-      const map = {}
-      students?.forEach(s => {
-        map[s.id] = `${s.first_name || ''} ${s.last_name || ''}`
-      })
-
-      risk = riskRaw.map(r => ({
-        ...r,
-        name: map[r.student_id] || 'Unknown'
+    const risk = overall
+      ?.filter(s => (s.avg_score || 0) < 40)
+      .map(s => ({
+        ...s,
+        name: studentMap[s.student_id] || 'Unknown'
       }))
-    }
 
     // =========================
-    // SUBJECT + SUBTOPIC
+    // SUBJECT
     // =========================
-    const { data: subjectStats } = await supabase
-      .from('student_subject_stats')
-      .select('subject, correct, total_questions')
-      .eq('college_id', college_id)
-
-    const { data: subStats } = await supabase
-      .from('student_subtopic_stats')
-      .select('subject, subtopic, correct, total_questions')
-      .eq('college_id', college_id)
-
     const subjectMap = {}
 
     subjectStats?.forEach(s => {
@@ -119,6 +142,9 @@ export default function AcademicIntelligence() {
           : 0
     })).sort((a, b) => a.accuracy - b.accuracy)
 
+    // =========================
+    // SUBTOPICS
+    // =========================
     const subArray = subStats?.map(s => ({
       subject: s.subject,
       subtopic: s.subtopic,
@@ -133,51 +159,62 @@ export default function AcademicIntelligence() {
     // =========================
     const effort = overall?.map(s => ({
       effort: s.total_attempts,
-      score: Number(s.avg_score)
+      score: Number(s.avg_score).toFixed(2)
     }))
 
     // =========================
-    // ENHANCED RECOMMENDATIONS
+    // EFFICIENCY
+    // =========================
+    const efficiency = overall?.map(s => ({
+      name: studentMap[s.student_id] || 'Unknown',
+      efficiency: s.avg_time_per_exam
+        ? format2(s.avg_score / s.avg_time_per_exam)
+        : '0.00'
+    }))
+
+    // =========================
+    // RECOMMENDATIONS
     // =========================
     const recommendations = []
 
     subjectArray.forEach(subject => {
-      const relatedSubs = subArray?.filter(s => s.subject === subject.subject)
+      const relatedSubs = subArray?.filter(
+        s => s.subject === subject.subject
+      )
 
       const weakSubs = relatedSubs
         ?.filter(s => s.accuracy < 0.5)
         .slice(0, 3)
 
-      const avgAccuracy = subject.accuracy
+      const acc = subject.accuracy
+
       let severity = ''
       let action = ''
       let priority = ''
 
-      if (avgAccuracy < 0.4) {
+      if (acc < 0.4) {
         severity = '🔴 Critical'
         priority = 'High'
         action = 'Immediate intervention + concept clarity sessions'
-      } else if (avgAccuracy < 0.6) {
+      } else if (acc < 0.6) {
         severity = '🟡 Moderate'
         priority = 'Medium'
-        action = 'Increase practice and problem-solving'
+        action = 'Increase problem-solving practice'
       } else {
         severity = '🟢 Strong'
         priority = 'Low'
         action = 'Maintain consistency'
       }
 
-      const hint = weakSubs?.length
-        ? `Focus on: ${weakSubs.map(s => s.subtopic).join(', ')}`
-        : 'No major weak subtopics'
-
       recommendations.push({
         subject: subject.subject,
-        accuracy: format2(subject.accuracy * 100),
+        accuracy: format2(acc * 100),
         severity,
         priority,
         action,
-        hint
+        hint: weakSubs.length
+          ? `Focus on: ${weakSubs.map(s => s.subtopic).join(', ')}`
+          : 'No major weak subtopics'
       })
     })
 
@@ -191,14 +228,31 @@ export default function AcademicIntelligence() {
     setSubtopics(subArray || [])
     setRiskStudents(risk)
     setEffortData(effort)
+    setEfficiencyData(efficiency)
     setSubjectRecommendations(recommendations)
   }
 
-  if (loading) return <p style={{ padding: 30 }}>Loading...</p>
+  if (loading) return <p>Loading...</p>
 
   return (
     <div style={styles.page}>
       <h1>📈 Academic Intelligence</h1>
+
+      <div style={styles.filters}>
+        <select value={examType} onChange={e => setExamType(e.target.value)}>
+          <option value="ALL">All Types</option>
+          <option value="WEEKLY_TEST">Weekly</option>
+          <option value="MONTHLY_TEST">Monthly</option>
+          <option value="GRAND_TEST">Grand</option>
+        </select>
+
+        <select value={examCategory} onChange={e => setExamCategory(e.target.value)}>
+          <option value="ALL">All Categories</option>
+          <option value="JEE_MAINS">JEE Mains</option>
+          <option value="JEE_ADVANCED">JEE Advanced</option>
+          <option value="NEET">NEET</option>
+        </select>
+      </div>
 
       <div style={styles.cards}>
         <Card title="Students" value={summary.totalStudents} />
@@ -207,10 +261,24 @@ export default function AcademicIntelligence() {
         <Card title="At Risk" value={riskStudents.length} />
       </div>
 
-      <Section title="🧠 Subject-wise Recommendations"
-        desc="Detailed action plan for each subject based on performance.">
-        {subjectRecommendations.map((r, idx) => (
-          <div key={idx} style={styles.recCard}>
+      <Section title="⚡ Efficiency"
+        desc="Shows how effectively students use time vs score.">
+        {efficiencyData.slice(0, 10).map(e => (
+          <p key={e.name}>{e.name} – {e.efficiency}</p>
+        ))}
+      </Section>
+
+      <Section title="⚠️ At Risk Students"
+        desc="Students below 40% accuracy.">
+        {riskStudents.slice(0, 10).map(s => (
+          <p key={s.student_id}>{s.name} – {format2(s.avg_score)}%</p>
+        ))}
+      </Section>
+
+      <Section title="🧠 Subject Recommendations"
+        desc="Action plan per subject based on analytics.">
+        {subjectRecommendations.map((r, i) => (
+          <div key={i} style={styles.recCard}>
             <h3>{r.subject} ({r.accuracy}%) – {r.severity}</h3>
             <p><strong>Priority:</strong> {r.priority}</p>
             <p>• {r.action}</p>
@@ -242,14 +310,10 @@ function Section({ title, desc, children }) {
 
 const styles = {
   page: { padding: 40, background: '#f1f5f9' },
-  desc: { color: '#555' },
+  filters: { display: 'flex', gap: 10, marginBottom: 20 },
   cards: { display: 'flex', gap: 20 },
   card: { background: '#fff', padding: 20, borderRadius: 12 },
   section: { background: '#fff', padding: 20, marginTop: 20 },
-  recCard: {
-    background: '#f8fafc',
-    padding: 15,
-    marginTop: 10,
-    borderRadius: 10
-  }
+  recCard: { background: '#f8fafc', padding: 15, marginTop: 10, borderRadius: 10 },
+  desc: { color: '#555' }
 }
