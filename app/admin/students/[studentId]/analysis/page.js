@@ -19,12 +19,12 @@ export default function AnalysisPage() {
 const [student, setStudent] = useState(null)
 const [collegeName, setCollegeName] = useState('')
   const [data, setData] = useState({})
-  const [expanded, setExpanded] = useState({})
+  const [examType, setExamType] = useState('ALL')
 
-  useEffect(() => {
-    if (studentId) fetchData()
-  }, [studentId])
-
+useEffect(() => {
+  if (studentId) fetchData()
+}, [studentId, examType])
+  
 async function fetchData() {
 
   // ✅ Fetch student and college
@@ -39,10 +39,16 @@ setStudent(student || null)
 setCollegeName(student?.college_name || '')
 
   // ✅ Existing stats logic (unchanged)
-  const { data: stats } = await supabase
-    .from('student_subtopic_stats')
-    .select('*')
-    .eq('student_id', studentId)
+let query = supabase
+  .from('student_subtopic_stats')
+  .select('*')
+  .eq('student_id', studentId)
+
+if (examType !== 'ALL') {
+  query = query.eq('exam_type', examType)
+}
+
+const { data: stats } = await query
 
   if (!stats) return
 
@@ -75,12 +81,7 @@ grouped[row.subject][row.chapter].count += (row.attempts || 1)
     return '#16a34a' // green
   }
 
-  function toggle(subject) {
-    setExpanded((prev) => ({
-      ...prev,
-      [subject]: !prev[subject]
-    }))
-  }
+ 
 
 function downloadPDF() {
   const element = document.getElementById('analysis-report')
@@ -103,7 +104,17 @@ function downloadPDF() {
   
   <div>
     <h1 style={styles.heading}>📊 Detailed Analysis</h1>
-
+<div style={{ marginBottom: 15 }}>
+  <select
+    value={examType}
+    onChange={(e) => setExamType(e.target.value)}
+  >
+    <option value="ALL">All Exams</option>
+    <option value="WEEKLY_TEST">Weekly Test</option>
+    <option value="MONTHLY_TEST">Monthly Test</option>
+    <option value="GRAND_TEST">Grand Test</option>
+  </select>
+</div>
     <div style={{ fontSize: 14, color: '#555' }}>
    <strong>{collegeName || '-'}</strong><br/>
 Student: {student ? `${student.first_name} ${student.last_name}` : '-'}
@@ -124,6 +135,13 @@ Student: {student ? `${student.first_name} ${student.last_name}` : '-'}
     Download PDF
   </button>
 </div>
+if (!data || Object.keys(data).length === 0) {
+  return (
+    <div style={{ padding: 20 }}>
+      <p>No data for selected exam type</p>
+    </div>
+  )
+}
       {Object.entries(data).map(([subject, chapters]) => {
         const chartData = Object.entries(chapters).map(
           ([chapter, value]) => ({
@@ -190,20 +208,11 @@ const strongest =
                 ? `${strongest.name} (${strongest.accuracy.toFixed(1)}%)`
                 : '-'}
             </div>
-
-            <button
-              style={styles.button}
-              onClick={() => toggle(subject)}
-            >
-              {expanded[subject]
-                ? 'Hide Subtopics ▲'
-                : 'View Subtopics ▼'}
-            </button>
+       
 <div style={{ marginBottom: 10, fontSize: 14 }}>
   <strong>Average Accuracy:</strong> {subjectAvg}%
 </div>
-            {expanded[subject] &&
-              Object.entries(chapters).map(
+            {Object.entries(chapters).map(
                 ([chapter, value]) => (
                   <div key={chapter} style={styles.subtopicBox}>
                     <strong>{chapter}</strong>
