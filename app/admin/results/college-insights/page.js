@@ -8,6 +8,7 @@ export default function CollegeInsights() {
   const [loading, setLoading] = useState(true)
   const [avgScore, setAvgScore] = useState('0.0')
   const [examType, setExamType] = useState('ALL')
+  const [targetYear, setTargetYear] = useState('ALL')
   const [stats, setStats] = useState({})
   const [topStudents, setTopStudents] = useState([])
   const [subjects, setSubjects] = useState([])
@@ -18,7 +19,7 @@ export default function CollegeInsights() {
 
 useEffect(() => {
   init()
-}, [examType])
+}, [examType, targetYear])
 
   async function init() {
     // 🔐 AUTH (MATCHING YOUR ADMIN DASHBOARD)
@@ -146,6 +147,9 @@ setAvgScore(computedAvg)
 if (examType !== 'ALL') {
   subjectQuery = subjectQuery.eq('exam_type', examType)
 }
+if (targetYear !== 'ALL') {
+  subjectQuery = subjectQuery.eq('target_year', targetYear)
+}
 
 const { data: subjectStats } = await subjectQuery
 
@@ -184,6 +188,9 @@ let subQuery = supabase
 
 if (examType !== 'ALL') {
   subQuery = subQuery.eq('exam_type', examType)
+}
+if (targetYear !== 'ALL') {
+  subQuery = subQuery.eq('target_year', targetYear)
 }
 
 const { data: subtopicStats } = await subQuery
@@ -243,6 +250,14 @@ function handleSubjectClick(subject) {
     <option value="MONTHLY_TEST">Monthly Test</option>
     <option value="GRAND_TEST">Grand Test</option>
   </select>
+  <select
+  value={targetYear}
+  onChange={(e) => setTargetYear(e.target.value)}
+>
+  <option value="ALL">All Years</option>
+  <option value="1">1st Year</option>
+  <option value="2">2nd Year</option>
+</select>
 </div>
       <button
   onClick={downloadPDF}
