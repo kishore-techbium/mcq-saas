@@ -16,6 +16,7 @@ export default function CreateExamPage() {
   const [examDate, setExamDate] = useState('')
   const [examTime, setExamTime] = useState('')
   const [saving, setSaving] = useState(false)
+  const [targetYear, setTargetYear] = useState('ALL')
 
   useEffect(() => {
     checkAdmin()
@@ -63,6 +64,7 @@ const user = auth.user
         .insert({
           title: title.trim(),
           exam_type: examType,
+          target_year: targetYear,
           exam_category: examCategory,
           duration_minutes: Number(duration),
           exam_date: examDate,
@@ -136,7 +138,18 @@ const user = auth.user
 <option value="GRAND_TEST">Grand Test</option>
             </select>
           </div>
-
+<div style={styles.field}>
+  <label style={styles.label}>Target Students</label>
+  <select
+    style={styles.input}
+    value={targetYear}
+    onChange={e => setTargetYear(e.target.value)}
+  >
+    <option value="ALL">Both Years</option>
+    <option value="1">1st Year Only</option>
+    <option value="2">2nd Year Only</option>
+  </select>
+</div>
           <div style={styles.field}>
             <label style={styles.label}>Duration (minutes) *</label>
             <input
