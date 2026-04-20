@@ -90,7 +90,8 @@ function downloadPDF() {
     margin: 0.5,
     filename: 'student-analysis.pdf',
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
+    html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+    pagebreak: { mode: ['css', 'legacy'] },
     jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
   }
 
@@ -156,7 +157,7 @@ Student: {student ? `${student.first_name} ${student.last_name}` : '-'}
   </button>
 </div>
 
-      {Object.entries(data).map(([subject, chapters]) => {
+      {Object.entries(data).map(([subject, chapters], index) => {
         const chartData = Object.entries(chapters).map(
           ([chapter, value]) => ({
             name: chapter,
@@ -190,7 +191,10 @@ const strongest =
     ? [...chartData].sort((a, b) => b.accuracy - a.accuracy)[0]
     : null
         return (
-          <div key={subject} style={styles.card}>
+          <div key={subject}>
+            {index !== 0 && <div style={styles.pageBreak}></div>}
+
+            <div style={styles.card}>
             <h2>{subject}</h2>
 
             <div style={{ height: 250 }}>
@@ -223,9 +227,9 @@ const strongest =
                 : '-'}
             </div>
        
-<div style={{ marginBottom: 10, fontSize: 14 }}>
-  <strong>Average Accuracy:</strong> {subjectAvg}%
-</div>
+            <div style={{ marginBottom: 10, fontSize: 14 }}>
+              <strong>Average Accuracy:</strong> {subjectAvg}%
+            </div>
             {Object.entries(chapters).map(
                 ([chapter, value]) => (
                   <div key={chapter} style={styles.subtopicBox}>
@@ -248,13 +252,17 @@ const strongest =
                 )
               )}
           </div>
-        )
+        </div>
+)
       })}
     </div>
   )
 }
 
 const styles = {
+  pageBreak: {
+  pageBreakBefore: 'always'
+},
   page: {
     padding: 40,
     background: '#f5f7fb',
