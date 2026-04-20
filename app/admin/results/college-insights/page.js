@@ -2,10 +2,12 @@
 
 import { supabase } from '../../../../lib/supabase'
 import { useEffect, useRef, useState } from 'react'
+import html2pdf from 'html2pdf.js'
 
 export default function CollegeInsights() {
   const [loading, setLoading] = useState(true)
   const [avgScore, setAvgScore] = useState('0.0')
+  const [examType, setExamType] = useState('ALL')
   const [stats, setStats] = useState({})
   const [topStudents, setTopStudents] = useState([])
   const [subjects, setSubjects] = useState([])
@@ -14,9 +16,9 @@ export default function CollegeInsights() {
   const [selectedSubject, setSelectedSubject] = useState(null)
   const [adminName, setAdminName] = useState('')
 
-  useEffect(() => {
-    init()
-  }, [])
+useEffect(() => {
+  init()
+}, [examType])
 
   async function init() {
     // 🔐 AUTH (MATCHING YOUR ADMIN DASHBOARD)
@@ -114,10 +116,16 @@ setAvgScore(computedAvg)
     // =========================
     // SUBJECT ANALYSIS
     // =========================
-    const { data: subjectStats } = await supabase
-      .from('student_subject_stats')
-      .select('subject, attempts, correct, total_questions')
-      .eq('college_id', college_id)
+ let subjectQuery = supabase
+  .from('student_subject_stats')
+  .select('subject, attempts, correct, total_questions')
+  .eq('college_id', college_id)
+
+if (examType !== 'ALL') {
+  subjectQuery = subjectQuery.eq('exam_type', examType)
+}
+
+const { data: subjectStats } = await subjectQuery
 
     const subjectMap = {}
 
@@ -147,10 +155,16 @@ setAvgScore(computedAvg)
     // =========================
     // SUBTOPIC ANALYSIS
     // =========================
-    const { data: subtopicStats } = await supabase
-      .from('student_subtopic_stats')
-      .select('subject, subtopic, attempts, correct, total_questions')
-      .eq('college_id', college_id)
+let subQuery = supabase
+  .from('student_subtopic_stats')
+  .select('subject, subtopic, attempts, correct, total_questions')
+  .eq('college_id', college_id)
+
+if (examType !== 'ALL') {
+  subQuery = subQuery.eq('exam_type', examType)
+}
+
+const { data: subtopicStats } = await subQuery
 
     const subMap = {}
 
@@ -195,8 +209,32 @@ function handleSubjectClick(subject) {
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
   return (
-    <div style={styles.page}>
+    <div style={styles.page} id="college-report">
       <h1>🎓 College Intelligence Dashboard</h1>
+    <div style={{ marginBottom: 15 }}>
+  <select
+    value={examType}
+    onChange={(e) => setExamType(e.target.value)}
+  >
+    <option value="ALL">All Exams</option>
+    <option value="WEEKLY_TEST">Weekly Test</option>
+    <option value="MONTHLY_TEST">Monthly Test</option>
+    <option value="GRAND_TEST">Grand Test</option>
+  </select>
+</div>
+      <button
+  onClick={downloadPDF}
+  style={{
+    padding: '8px 14px',
+    background: '#16a34a',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 6,
+    cursor: 'pointer'
+  }}
+>
+  Download PDF
+</button>
       <p style={{ marginBottom: 20 }}>
         Welcome, <strong>{adminName}</strong>
       </p>
@@ -290,6 +328,20 @@ topStudents.map(s => [
   )
 }
 
+
+function downloadPDF() {
+  const element = document.getElementById('college-report')
+
+  const opt = {
+    margin: 0.5,
+    filename: `college-insights-${examType}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+  }
+
+  html2pdf().set(opt).from(element).save()
+}
 /* UI COMPONENTS */
 
 function Card({ title, value }) {
