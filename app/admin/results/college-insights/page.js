@@ -66,13 +66,14 @@ async function downloadPDF() {
     return
   }
 
-  const opt = {
-    margin: 0.5,
-    filename: `college-insights-${examType}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-  }
+ const opt = {
+  margin: 0.5,
+  filename: `college-insights-${examType}.pdf`,
+  image: { type: 'jpeg', quality: 0.98 },
+  html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+  jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+  pagebreak: { mode: ['css', 'legacy'] } // 👈 ADD THIS
+}
 
   html2pdf().set(opt).from(element).save()
 }
@@ -279,6 +280,7 @@ topStudents.map(s => [
 ])
         )}
       </Section>
+<div style={styles.pageBreak}></div>
 
       {/* SUBJECTS */}
       <Section title="📉 Weak Subjects">
@@ -312,7 +314,7 @@ topStudents.map(s => [
           ])
         )}
       </Section>
-
+<div style={styles.pageBreak}></div>
       {/* SUBTOPICS */}
 <div ref={subtopicsRef}>
   <Section
@@ -344,6 +346,7 @@ topStudents.map(s => [
             ])
         )}
       </Section>
+        
     </div>
      </div>
   )
@@ -424,7 +427,7 @@ function renderTable(headers, rows) {
 const styles = {
   page: { padding: 40, background: '#f1f5f9', minHeight: '100vh' },
   cards: { display: 'flex', gap: 20, marginBottom: 30 },
-  
+   pageBreak: { pageBreakBefore: 'always' },
   card: {
   background: '#fff',
   padding: 20,
