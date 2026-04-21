@@ -8,19 +8,33 @@ const supabase = createClient(
 
 export async function POST(req) {
   try {
-    const formData = await req.formData()
+    /* ================= AUTH ================= */
 
-    const file = formData.get('file')
-    const adminCollegeId = formData.get('adminCollegeId')
-    const adminCollegeName = formData.get('adminCollegeName')
+    const authHeader = req.headers.get('authorization')
 
-    /* ================= VALIDATION ================= */
-
-    if (!file) {
-      return Response.json({ error: 'File missing' }, { status: 400 })
+    if (!authHeader) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (!adminCollegeId || !adminCollegeName) {
+    const token = authHeader.replace('Bearer ', '')
+
+    const {
+      data: { user }
+    } = await supabase.auth.getUser(token)
+
+    if (!user) {
+      return Response.json({ error: 'Invalid user' }, { status: 401 })
+    }
+
+    /* ================= GET ADMIN ================= */
+
+    const { data: admin } = await supabase
+      .from('students')
+      .select('college_id, college_name')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!admin) {
       return Response.json(
         { error: 'Admin college info missing' },
         { status: 400 }
@@ -29,15 +43,19 @@ export async function POST(req) {
 
     /* ================= READ FILE ================= */
 
+    const formData = await req.formData()
+    const file = formData.get('file')
+
     const text = await file.text()
+
     const rows = text.split('\n').slice(1) // skip header
 
     let inserted = 0
     let failed = 0
 
-    /* ================= PROCESS EACH ROW ================= */
+    /* ================= PROCESS ROWS ================= */
 
-    for (const row of rows) {
+    for (let row of rows) {
       if (!row.trim()) continue
 
       const [
@@ -48,73 +66,47 @@ export async function POST(req) {
         password,
         exam_preference,
         phone,
-        address
+        address,
+        study_year
       ] = row.split(',')
 
-      try {
-        if (!email || !login_id || !password) {
-          failed++
-          continue
-        }
+      if (!email || !login_id) {
+        failed++
+        continue
+      }
 
+      try {
         const id = randomUUID()
 
-        /* 🔥 DUPLICATE CHECK */
-
-        const { data: existing } = await supabase
-          .from('students')
-          .select('id')
-          .eq('login_id', login_id.trim())
-          .maybeSingle()
-
-        if (existing) {
-          failed++
-          continue
-        }
-
-        /* 🔥 INSERT */
-
-        const { error } = await supabase
-          .from('students')
-          .insert({
-            id,
-            user_id: id,
-            email: email.trim(),
-            first_name: first_name?.trim(),
-            last_name: last_name?.trim(),
-            login_id: login_id.trim(),
-            password: password.trim(),
-            exam_preference: exam_preference?.trim(),
-            role: 'student',
-            college_id: adminCollegeId,        // ✅ IMPORTANT
-            college_name: adminCollegeName,    // ✅ IMPORTANT
-            phone: phone || null,
-            address: address || null
-          })
-
-        if (error) throw error
+        await supabase.from('students').insert({
+          id,
+          user_id: id,
+          email: email.trim(),
+          first_name: first_name?.trim(),
+          last_name: last_name?.trim(),
+          login_id: login_id?.trim(),
+          password: password?.trim(),
+          exam_preference: exam_preference?.trim(),
+          phone: phone?.trim(),
+          address: address?.trim(),
+          study_year: Number(study_year),
+          role: 'student',
+          college_id: admin.college_id,
+          college_name: admin.college_name
+        })
 
         inserted++
 
       } catch (err) {
-        console.error('Row failed:', row, err)
+        console.error(err)
         failed++
       }
     }
 
-    /* ================= RESPONSE ================= */
-
-    return Response.json({
-      inserted,
-      failed
-    })
+    return Response.json({ inserted, failed })
 
   } catch (err) {
-    console.error('BULK UPLOAD ERROR:', err)
-
-    return Response.json(
-      { error: err.message },
-      { status: 500 }
-    )
+    console.error(err)
+    return Response.json({ error: 'Upload failed' }, { status: 500 })
   }
 }
