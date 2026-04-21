@@ -184,25 +184,25 @@ function downloadTemplate() {
     style={styles.createBtn}
     onClick={() => window.location.href = '/admin/students/create'}
   >
-    ➕ Create Student
+    ➕ Create Single Student
   </button>
 
   <button
     style={styles.templateBtn}
     onClick={downloadTemplate}
   >
-    📄 Download Template
+    📄 Download for student logins
   </button>
 
   <button
     style={styles.uploadBtn}
     onClick={() => window.location.href = '/admin/students/bulk-upload'}
   >
-    ⬆ Upload Excel
+    ⬆ Upload for student logins
   </button>
 
     <button style={styles.exportBtn} onClick={exportToExcel}>
-      ⬇ Download Excel
+      ⬇ Download students data
     </button>
   </div>
 </div>
