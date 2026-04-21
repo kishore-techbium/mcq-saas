@@ -174,7 +174,7 @@ studentData.forEach(s => {
       .map(s => ({
         student: s.student_id,
         topic: s.subtopic,
-        acc: Number(((s.correct / s.total_questions) * 100).toFixed(2)) : 0
+        acc: Number(((s.correct / s.total_questions) * 100).toFixed(2))
       }))
       .filter(s => s.acc < 40)
       .slice(0,10)
