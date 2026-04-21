@@ -27,6 +27,7 @@ export default function ExamAnalyticsPage() {
 
   const [exam, setExam] = useState(null)
   const [studentsMap, setStudentsMap] = useState({})
+  const [collegeName, setCollegeName] = useState('')
   const [submitted, setSubmitted] = useState([])
   const [weakSubjects, setWeakSubjects] = useState([])
   const [moderateAreas, setModerateAreas] = useState([])
@@ -72,6 +73,18 @@ export default function ExamAnalyticsPage() {
       }
     })
 
+    // 🔥 GET COLLEGE NAME (from first student)
+if (students && students.length > 0) {
+  const collegeId = students[0].college_id
+
+  const { data: college } = await supabase
+    .from('colleges')
+    .select('name')
+    .eq('id', collegeId)
+    .single()
+
+  setCollegeName(college?.name || '')
+}
     setStudentsMap(map)
     setSubmitted(stats || [])
     setExam(examData)
@@ -281,7 +294,12 @@ export default function ExamAnalyticsPage() {
       {/* ================= TRUE SEPARATE LEADERBOARD ================= */}
       <div ref={leaderboardRef} style={styles.leaderboardPage}>
 
-        <h1 style={{ textAlign:'center' }}>🏆 OFFICIAL LEADERBOARD</h1>
+          <h1 style={{ textAlign:'center', fontWeight: 'bold' }}>
+            {collegeName || 'Leaderboard'}
+          </h1>
+            <p style={{ textAlign:'center', marginBottom: 10 }}>
+            Examination Result Sheet
+          </p>
 
         <div style={styles.lbHeader}>
           <p><b>Exam:</b> {exam.title}</p>
