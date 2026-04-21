@@ -40,10 +40,6 @@ sessions?.forEach(s => {
   const key = String(s.student_id)
   attemptMap[key] = s.total_attempts || 0
 })
-
-  
-  let filtered = merged
-
 // 🔍 Search filter
 if (search) {
   filtered = filtered.filter(s =>
@@ -102,6 +98,7 @@ const merged = (studentData || []).map(s => ({
   attempt_count: attemptMap[String(s.id)] || 0,
   rank: rankMap[s.id] || '-'
 }))
+let filtered = merged
 // 🎯 Exam category filter
 if (examCategory !== 'ALL') {
   filtered = filtered.filter(s => s.exam_preference === examCategory)
