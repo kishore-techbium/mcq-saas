@@ -14,8 +14,8 @@ export default function CompareStudentsPage() {
 
   const params = useSearchParams()
   const ids = params.get('ids')?.split(',') || []
-
   const [students, setStudents] = useState([])
+  const [nameMap, setNameMap] = useState({})
   const [examCategory, setExamCategory] = useState('ALL')
   const [targetYear, setTargetYear] = useState('ALL')
 
@@ -38,10 +38,12 @@ export default function CompareStudentsPage() {
       .select('*')
       .in('id', ids)
 
-    const nameMap = {}
-studentData.forEach(s => {
-  nameMap[s.id] = `${s.first_name}`
-})
+        setStudents(studentData || [])
+        const map = {}
+        studentData.forEach(s => {
+          map[s.id] = `${s.first_name}`
+        })
+        setNameMap(map)
     // 🔹 exam filter
     let examQuery = supabase.from('exams').select('id, exam_type')
 
