@@ -84,7 +84,7 @@ await fetch('/api/admin/create-student', {
   })
 })
 
-  const data = await res.json()
+  
 
   if (!res.ok) {
     alert(data.error || 'Failed')
