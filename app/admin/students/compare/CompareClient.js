@@ -38,8 +38,10 @@ export default function CompareStudentsPage() {
       .select('*')
       .in('id', ids)
 
-    setStudents(studentData || [])
-
+    const nameMap = {}
+studentData.forEach(s => {
+  nameMap[s.id] = `${s.first_name}`
+})
     // 🔹 exam filter
     let examQuery = supabase.from('exams').select('id, exam_type')
 
@@ -101,7 +103,7 @@ export default function CompareStudentsPage() {
     const avgData = studentData.map(s => {
       const arr = avgMap[s.id] || []
       const avg = arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0
-      return { name: s.first_name, score: avg }
+      return { name: s.first_name, score: Number(avg.toFixed(2)) }
     })
 
     setAvgScoreData(avgData)
@@ -109,7 +111,7 @@ export default function CompareStudentsPage() {
     // ================= TREND =================
     const trend = filteredStats.slice(0, 20).map((s,i)=>({
       name: `Test ${i+1}`,
-      [s.student_id]: s.avg_score
+      [nameMap[s.student_id]]: Number((s.avg_score || 0).toFixed(2))
     }))
 
     setTrendData(trend)
@@ -140,7 +142,7 @@ export default function CompareStudentsPage() {
         ? (subjectAgg[k].correct / subjectAgg[k].total) * 100
         : 0
 
-      subjects[subject][sid] = acc
+      subjects[subject][nameMap[sid]] = Number(acc.toFixed(2))
     })
 
     setSubjectData(Object.values(subjects))
@@ -154,7 +156,10 @@ export default function CompareStudentsPage() {
 
       const eff = totalTime ? totalScore / (totalTime/60) : 0
 
-      return { name: s.first_name, efficiency: eff }
+       return {
+        name: s.first_name,
+        efficiency: Number(eff.toFixed(2))
+      }
     })
 
     setEfficiencyData(efficiency)
@@ -169,7 +174,7 @@ export default function CompareStudentsPage() {
       .map(s => ({
         student: s.student_id,
         topic: s.subtopic,
-        acc: s.total_questions ? (s.correct / s.total_questions)*100 : 0
+        acc: Number(((s.correct / s.total_questions) * 100).toFixed(2)) : 0
       }))
       .filter(s => s.acc < 40)
       .slice(0,10)
@@ -206,7 +211,7 @@ export default function CompareStudentsPage() {
       <BarChart width={600} height={250} data={examTakenData}>
         <XAxis dataKey="name"/>
         <YAxis/>
-        <Tooltip/>
+        <Tooltip formatter={(value) => `${value}%`} />
         <Bar dataKey="exams" fill="#3b82f6"/>
       </BarChart>
 
@@ -215,7 +220,7 @@ export default function CompareStudentsPage() {
       <BarChart width={600} height={250} data={avgScoreData}>
         <XAxis dataKey="name"/>
         <YAxis/>
-        <Tooltip/>
+        <Tooltip formatter={(value) => `${value}%`} />
         <Bar dataKey="score" fill="#10b981"/>
       </BarChart>
 
@@ -225,9 +230,14 @@ export default function CompareStudentsPage() {
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="name"/>
         <YAxis/>
-        <Tooltip/>
+        <Tooltip formatter={(value) => `${value}%`} />
         {ids.map((id,i)=>(
-          <Line key={id} type="monotone" dataKey={id} stroke={COLORS[i]} />
+          <Line
+            key={id}
+            dataKey={nameMap[id]}
+            name={nameMap[id]}
+            stroke={COLORS[i]}
+          />
         ))}
       </LineChart>
 
@@ -236,11 +246,16 @@ export default function CompareStudentsPage() {
       <BarChart width={700} height={300} data={subjectData}>
         <XAxis dataKey="subject"/>
         <YAxis/>
-        <Tooltip/>
+        <Tooltip formatter={(value) => `${value}%`} />
         <Legend/>
-        {ids.map((id,i)=>(
-          <Bar key={id} dataKey={id} fill={COLORS[i]} />
-        ))}
+                {ids.map((id,i)=>(
+              <Bar
+                key={id}
+                dataKey={nameMap[id]}
+                name={nameMap[id]}
+                fill={COLORS[i]}
+              />
+            ))}
       </BarChart>
 
       {/* EFFICIENCY */}
@@ -248,7 +263,7 @@ export default function CompareStudentsPage() {
       <BarChart width={600} height={250} data={efficiencyData}>
         <XAxis dataKey="name"/>
         <YAxis/>
-        <Tooltip/>
+        <Tooltip formatter={(value) => `${value}%`} />
         <Bar dataKey="efficiency" fill="#8b5cf6"/>
       </BarChart>
 
