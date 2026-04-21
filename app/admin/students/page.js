@@ -152,10 +152,10 @@ function downloadTemplate() {
   }
 
   return (
-    
+    <h1 style={styles.heading}>👨‍🎓 Registered Students</h1>
     <div style={styles.page}>
       <div style={styles.header}>
-    <h1 style={styles.heading}>👨‍🎓 Registered Students</h1>
+    
     <div style={{ display: 'flex', gap: 10, marginBottom: 15 }}>
 
   <input
