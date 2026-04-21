@@ -64,15 +64,25 @@ async function handleSubmit(e) {
 
   console.log("ADMIN:", admin) // debug
 
-  const res = await fetch('/api/admin/create-student', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      ...form,
-      adminCollegeId: admin?.college_id,
-      adminCollegeName: admin?.college_name
-    })
+const { data } = await supabase.auth.getSession()
+
+await fetch('/api/admin/create-student', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${data.session.access_token}`
+  },
+  body: JSON.stringify({
+    email,
+    first_name,
+    last_name,
+    login_id,
+    password,
+    exam_preference,
+    phone,
+    address
   })
+})
 
   const data = await res.json()
 
