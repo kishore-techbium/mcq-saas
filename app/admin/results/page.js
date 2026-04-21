@@ -78,7 +78,7 @@ async function loadResults() {
       ...exam,
       students: s ? s.students : 0,
       attempts: s ? s.attempts : 0,
-      reattempts: s ? Math.max(0, s.attempts - s.students) : 0,
+      //reattempts: s ? Math.max(0, s.attempts - s.students) : 0,
       avg_score: s
         ? s.attempts > 0
           ? (s.totalScore / s.attempts).toFixed(1)
@@ -116,7 +116,7 @@ async function loadResults() {
       ExamType: r.exam_type,
       Students: r.students,
       Attempts: r.attempts,
-      ReAttempts: r.reattempts,
+      //ReAttempts: r.reattempts,
       Avg: r.avg_score,
       Max: r.max_score,
       
@@ -234,7 +234,7 @@ let filtered = rows.filter(r => {
               <th style={styles.left} onClick={()=>handleSort('exam_type')}>Exam Type</th>
               <th style={styles.right} onClick={()=>handleSort('students')}>Students</th>
               <th style={styles.right} onClick={()=>handleSort('attempts')}>Attempts</th>
-              <th style={styles.right} onClick={()=>handleSort('reattempts')}>Re-Attempts</th>
+              //<th style={styles.right} onClick={()=>handleSort('reattempts')}>Re-Attempts</th>
               <th style={styles.right} onClick={()=>handleSort('avg_score')}>Avg</th>
               <th style={styles.right}>Efficiency</th>
               <th style={styles.right}>Participation %</th>  
@@ -257,7 +257,7 @@ let filtered = rows.filter(r => {
                 <td style={styles.left}>{r.exam_type}</td>
                 <td style={styles.right}>{r.students}</td>
                 <td style={styles.right}>{r.attempts}</td>
-                <td style={styles.right}>{r.reattempts}</td>
+                //<td style={styles.right}>{r.reattempts}</td>
                 <td style={styles.right}>{r.avg_score}</td>
                 <td style={styles.right}>{r.efficiency}</td>
                 <td style={styles.right}>{r.participation}</td>
