@@ -168,22 +168,7 @@ let filtered = rows.filter(r => {
   return (
     <div style={styles.page}>
       <h1>📊 Exam Intelligence Dashboard</h1>
-<div style={{ marginBottom: 20 }}>
-  <button
-    onClick={() => window.location.href = '/admin/results/college-insights'}
-    style={{
-      padding: '10px 16px',
-      background: '#6366f1',
-      color: '#fff',
-      border: 'none',
-      borderRadius: 8,
-      cursor: 'pointer',
-      fontWeight: 600
-    }}
-  >
-    🎓 College Insights Dashboard →
-  </button>
-</div>
+
     <div style={styles.topBar}>
 
   <div style={{ display: 'flex', gap: 10 }}>
