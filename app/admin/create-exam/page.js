@@ -122,7 +122,7 @@ const user = auth.user
             >
               <option value="JEE_MAINS">JEE Mains</option>
               <option value="JEE_ADVANCED">JEE Advanced</option>
-              <option value="NEET">NEET UG</option>
+              <option value="NEET">NEET</option>
             </select>
           </div>
 
