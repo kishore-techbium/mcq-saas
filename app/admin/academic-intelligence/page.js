@@ -20,8 +20,9 @@ export default function AcademicIntelligence() {
   const [loading, setLoading] = useState(true)
   const [examType, setExamType] = useState('ALL')
   const [examCategory, setExamCategory] = useState('ALL')
-
+  const [targetYear, setTargetYear] = useState('ALL')
   const [summary, setSummary] = useState({})
+  const [topPerformers, setTopPerformers] = useState([])
   const [subjects, setSubjects] = useState([])
   const [subtopics, setSubtopics] = useState([])
   const [riskStudents, setRiskStudents] = useState([])
@@ -31,7 +32,7 @@ export default function AcademicIntelligence() {
   const [recommendations, setRecommendations] = useState([])
   const [aiInsights, setAiInsights] = useState([])
 
-  useEffect(() => { init() }, [examType, examCategory])
+  useEffect(() => { init() }, [examType, examCategory, targetYear])
 
   async function init() {
     setLoading(true)
@@ -79,8 +80,21 @@ export default function AcademicIntelligence() {
     const { data: examStats } = await examStatsQuery
     const { data: subStats } = await subQuery
 
+    // 🎯 FILTER BY TARGET YEAR (student level)
+      let filteredExamStats = examStats
+      
+      if (targetYear !== 'ALL') {
+        const { data: yearStudents } = await supabase
+          .from('students')
+          .select('id')
+          .eq('target_year', Number(targetYear))
+      
+        const ids = yearStudents?.map(s => s.id) || []
+      
+        filteredExamStats = examStats.filter(s => ids.includes(s.student_id))
+      }
     // 🔹 student names
-    const ids = examStats?.map(s => s.student_id) || []
+    const ids = filteredExamStats?.map(s => s.student_id) || []
     let studentMap = {}
 
     if (ids.length > 0) {
@@ -98,7 +112,7 @@ export default function AcademicIntelligence() {
     let totalScore = 0
     let totalAttempts = 0
 
-    examStats?.forEach(s => {
+    filteredExamStats?.forEach(s => {
       totalScore += (s.avg_score || 0) * (s.attempts || 0)
       totalAttempts += s.attempts || 0
     })
@@ -145,7 +159,7 @@ export default function AcademicIntelligence() {
       .filter(s => s.risk >= 2)
 
     // ================= EFFICIENCY =================
-    const efficiency = examStats?.map(s => ({
+    const efficiency = filteredExamStats?.map(s => ({
       name: studentMap[s.student_id] || 'Unknown',
       efficiency: s.avg_time_per_exam
         ? s.avg_score / (s.avg_time_per_exam / 60)
@@ -153,17 +167,26 @@ export default function AcademicIntelligence() {
     }))
 
     // ================= TREND =================
-    const trend = examStats?.slice(0, 10).map((s, i) => ({
+    const trend = filteredExamStats?.slice(0, 10).map((s, i) => ({
       name: `Test ${i + 1}`,
       score: Number(format2(s.avg_score))
     }))
 
     // ================= EFFORT =================
-    const effort = examStats?.map(s => ({
+    const effort = filteredExamStats?.map(s => ({
       effort: s.total_time_spent || 0,
       score: s.avg_score || 0
     }))
-
+    // 🏆 TOP PERFORMERS (COLLEGE INSIGHTS MERGE)
+    const performers = filteredExamStats
+      ?.map(s => ({
+        name: studentMap[s.student_id] || 'Unknown',
+        score: s.avg_score || 0
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10)
+    
+    setTopPerformers(performers)
     // ================= RECOMMENDATIONS =================
     const recs = subjectArray.map(s => ({
       subject: s.subject,
@@ -190,7 +213,7 @@ export default function AcademicIntelligence() {
 
     setSummary({
       avgScore: format2(avgScore),
-      totalStudents: examStats?.length || 0,
+      totalStudents: filteredExamStats?.length || 0,
       risk: risk.length
     })
 
@@ -235,6 +258,12 @@ export default function AcademicIntelligence() {
           <option value="JEE_MAINS">JEE</option>
           <option value="NEET">NEET</option>
         </select>
+
+        <select value={targetYear} onChange={e => setTargetYear(e.target.value)}>
+          <option value="ALL">All Years</option>
+          <option value="1">1st Year</option>
+          <option value="2">2nd Year</option>
+        </select>
       </div>
 
       <div ref={reportRef}>
@@ -255,7 +284,7 @@ export default function AcademicIntelligence() {
           <Chart><LineChart data={trendData}><XAxis dataKey="name"/><YAxis/><Tooltip/><Line dataKey="score"/></LineChart></Chart>
         </Section>
 
-        <Section title="Subjects" desc="Accuracy and time per question">
+        <Section title="Subjects" desc="Accuracy = Correct answers / Total questions. Also shows avg time per question.">
           {subjects.map(s => <Row key={s.subject} left={s.subject} right={`${format2(s.accuracy)}% | ${format2(s.avgTime)}s`} />)}
         </Section>
 
@@ -283,7 +312,15 @@ export default function AcademicIntelligence() {
         <Section title="Effort vs Performance" desc="Time vs score comparison">
           <Chart><ScatterChart><XAxis dataKey="effort"/><YAxis dataKey="score"/><Tooltip/><Scatter data={effortData}/></ScatterChart></Chart>
         </Section>
-
+        <Section title="🏆 Top Performers" desc="Top students based on performance">
+          {topPerformers.map((s, i) => (
+            <Row
+              key={i}
+              left={`${i + 1}. ${s.name}`}
+              right={`${format2(s.score)}%`}
+            />
+          ))}
+        </Section>
       </div>
     </div>
   )
