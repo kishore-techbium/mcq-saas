@@ -20,6 +20,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 export default function ExamAnalyticsPage() {
   const { examId } = useParams()
   const reportRef = useRef()
+  const leaderboardRef = useRef()
 
   const [exam, setExam] = useState(null)
   const [studentsMap, setStudentsMap] = useState({})
@@ -28,6 +29,7 @@ export default function ExamAnalyticsPage() {
   const [moderateAreas, setModerateAreas] = useState([])
   const [strongAreas, setStrongAreas] = useState([])
   const [weakChapters, setWeakChapters] = useState([])
+  const [aiInsights, setAiInsights] = useState([])
   const [difficulty, setDifficulty] = useState('')
   const [loading, setLoading] = useState(true)
 
@@ -68,7 +70,7 @@ export default function ExamAnalyticsPage() {
     setSubmitted(stats || [])
     setExam(examData)
 
-    // SUBJECT INTELLIGENCE
+    // SUBJECT ANALYSIS
     const { data: subjectStats } = await supabase
       .from('student_subject_stats')
       .select('*')
@@ -101,7 +103,7 @@ export default function ExamAnalyticsPage() {
     setModerateAreas(moderate)
     setStrongAreas(strong)
 
-    // CHAPTERS
+    // CHAPTER ANALYSIS
     const { data: subStats } = await supabase
       .from('student_subtopic_stats')
       .select('*')
@@ -134,19 +136,39 @@ export default function ExamAnalyticsPage() {
     else if (avg < 70) setDifficulty('Medium')
     else setDifficulty('Easy')
 
+    // 🧠 AI INSIGHTS
+    const insights = []
+
+    if (weak.length > 0) {
+      insights.push(`🔴 Weak Subjects: ${weak.map(s => s.subject).join(', ')}`)
+    }
+
+    if (weakChap.length > 0) {
+      insights.push(`⚠️ Weak Chapters: ${weakChap.slice(0,3).map(c => c.chapter).join(', ')}`)
+    }
+
+    if (moderate.length > 0) {
+      insights.push(`🟡 Needs Improvement: ${moderate.map(s => s.subject).join(', ')}`)
+    }
+
+    insights.push(`📊 Exam Difficulty: ${difficulty}`)
+
+    insights.push(`🎯 Action: Conduct revision classes and targeted practice`)
+
+    setAiInsights(insights)
+
     setLoading(false)
   }
 
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
-  // KPI
+  // KPIs
   const totalStudents = submitted.length
   const avgScore =
     submitted.reduce((s, x) => s + (x.avg_score || 0), 0) / totalStudents
 
   const maxScore = Math.max(...submitted.map(s => s.best_score || 0))
   const minScore = Math.min(...submitted.map(s => s.best_score || 0))
-
   const passCount = submitted.filter(s => (s.avg_score || 0) >= 40).length
 
   // DISTRIBUTION
@@ -175,93 +197,109 @@ export default function ExamAnalyticsPage() {
     .sort((a, b) => b.score - a.score)
 
   async function downloadPDF() {
-    const canvas = await html2canvas(reportRef.current, { scale: 2 })
     const pdf = new jsPDF()
-    const img = canvas.toDataURL('image/png')
-    pdf.addImage(img, 'PNG', 0, 0, 210, 295)
+
+    const canvas1 = await html2canvas(reportRef.current)
+    const img1 = canvas1.toDataURL('image/png')
+    pdf.addImage(img1, 'PNG', 0, 0, 210, 280)
+
+    pdf.addPage()
+
+    const canvas2 = await html2canvas(leaderboardRef.current)
+    const img2 = canvas2.toDataURL('image/png')
+    pdf.addImage(img2, 'PNG', 0, 0, 210, 280)
+
     pdf.save(`${exam.title}.pdf`)
   }
 
   return (
     <div style={{ padding: 40, background: '#f3f4f6' }}>
 
-      <button onClick={downloadPDF} style={{ marginBottom: 20 }}>
+      <button onClick={downloadPDF} style={styles.pdfBtn}>
         Download PDF
       </button>
 
+      {/* MAIN REPORT */}
       <div ref={reportRef}>
 
         {/* HEADER */}
         <h1>{exam.title}</h1>
-        <p>{exam.exam_category} | {exam.exam_type} | {new Date(exam.created_at).toDateString()}</p>
+        <p>
+          {exam.exam_category} | {exam.exam_type} | {new Date(exam.created_at).toDateString()}
+        </p>
 
-        {/* KPI */}
-        <div style={{ display: 'flex', gap: 20 }}>
-          <Card title="Students Appeared" value={totalStudents} />
-          <Card title="Average Score" value={avgScore.toFixed(1)} />
-          <Card title="Highest Score" value={maxScore} />
-          <Card title="Lowest Score" value={minScore} />
-          <Card title="Pass %" value={(passCount / totalStudents * 100).toFixed(1)} />
+        {/* KPI CARDS */}
+        <div style={styles.kpiRow}>
+          <KPI title="Students" value={totalStudents} color="#3b82f6" />
+          <KPI title="Average Score" value={avgScore.toFixed(1)} color="#10b981" />
+          <KPI title="Highest" value={maxScore} color="#f59e0b" />
+          <KPI title="Lowest" value={minScore} color="#ef4444" />
+          <KPI title="Pass %" value={(passCount / totalStudents * 100).toFixed(1)} color="#6366f1" />
         </div>
 
         {/* CHART */}
-        <div style={{ marginTop: 30 }}>
+        <div style={styles.card}>
           <h3>Score Distribution</h3>
           <Bar data={chartData} />
         </div>
 
-        {/* INTELLIGENCE */}
-        <div style={{ marginTop: 30 }}>
-          <h3>🧠 Insights</h3>
-          <p>Exam Difficulty: {difficulty}</p>
-
-          <h4>Weak Subjects</h4>
-          {weakSubjects.map(s => <p key={s.subject}>{s.subject} - {s.accuracy.toFixed(1)}%</p>)}
-
-          <h4>Weak Chapters</h4>
-          {weakChapters.map(c => <p key={c.chapter}>{c.chapter} - {c.accuracy.toFixed(1)}%</p>)}
-
-          <h4>Recommendations</h4>
-          <p>Focus on weak subjects and chapters. Conduct revision sessions.</p>
-        </div>
-
-        {/* LEADERBOARD */}
-        <div style={{ marginTop: 40 }}>
-          <h3>Leaderboard</h3>
-          <table style={{ width: '100%' }}>
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Student</th>
-                <th>Email</th>
-                <th>Score</th>
-                <th>Proctor</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboard.map((l, i) => (
-                <tr key={i}>
-                  <td>{i + 1}</td>
-                  <td>{studentsMap[l.student_id]?.name}</td>
-                  <td>{studentsMap[l.student_id]?.email}</td>
-                  <td>{l.score}</td>
-                  <td>{l.rejected ? '⚠️' : 'OK'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {/* AI INSIGHTS */}
+        <div style={styles.card}>
+          <h3>🧠 AI Insights</h3>
+          {aiInsights.map((i, idx) => (
+            <div key={idx} style={styles.insight}>{i}</div>
+          ))}
         </div>
 
       </div>
+
+      {/* LEADERBOARD SEPARATE */}
+      <div ref={leaderboardRef} style={styles.card}>
+        <h2>🏆 Leaderboard</h2>
+
+        <p>
+          {exam.title} | {exam.exam_category} | {exam.exam_type}
+        </p>
+
+        <table style={{ width: '100%' }}>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Name</th>
+              <th>Score</th>
+              <th>Proctor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {leaderboard.map((l, i) => (
+              <tr key={i}>
+                <td>{i + 1}</td>
+                <td>{studentsMap[l.student_id]?.name}</td>
+                <td>{l.score}</td>
+                <td>{l.rejected ? '⚠️' : 'OK'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
     </div>
   )
 }
 
-function Card({ title, value }) {
-  return (
-    <div style={{ background: '#fff', padding: 20, borderRadius: 10 }}>
-      <div>{title}</div>
-      <div style={{ fontSize: 22 }}>{value}</div>
-    </div>
-  )
+/* COMPONENTS */
+
+const KPI = ({ title, value, color }) => (
+  <div style={{ ...styles.kpi, borderTop: `4px solid ${color}` }}>
+    <div>{title}</div>
+    <div style={{ fontSize: 22 }}>{value}</div>
+  </div>
+)
+
+const styles = {
+  pdfBtn:{ padding:'8px 14px', background:'#2563eb', color:'#fff', borderRadius:6, marginBottom:20 },
+  kpiRow:{ display:'flex', gap:15, marginBottom:20 },
+  kpi:{ background:'#fff', padding:20, borderRadius:10, flex:1 },
+  card:{ background:'#fff', padding:20, borderRadius:12, marginTop:20 },
+  insight:{ background:'#f8fafc', padding:10, marginTop:8, borderLeft:'4px solid #2563eb' }
 }
