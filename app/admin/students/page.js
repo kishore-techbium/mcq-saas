@@ -9,7 +9,8 @@ export default function StudentListPage() {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-const [examCategory, setExamCategory] = useState('ALL')
+  const [examCategory, setExamCategory] = useState('ALL')
+  const [selectedStudents, setSelectedStudents] = useState([])
 
   useEffect(() => {
     fetchStudents()
@@ -180,30 +181,74 @@ function downloadTemplate() {
 
 <div style={{ display: 'flex', gap: 10 }}>
   
-  <button
-    style={styles.createBtn}
-    onClick={() => window.location.href = '/admin/students/create'}
-  >
-    ➕ Create Single Student
-  </button>
+          <button
+            style={{
+              ...styles.createBtn,
+              opacity: selectedStudents.length > 0 ? 0.5 : 1,
+              cursor: selectedStudents.length > 0 ? 'not-allowed' : 'pointer'
+            }}
+            disabled={selectedStudents.length > 0}
+            onClick={() => window.location.href = '/admin/students/create'}
+          >
+            ➕ Create Single Student
+          </button>
 
-  <button
-    style={styles.templateBtn}
-    onClick={downloadTemplate}
-  >
-    📄 Download for student logins
-  </button>
+          <button
+            style={{
+              ...styles.templateBtn,
+              opacity: selectedStudents.length > 0 ? 0.5 : 1,
+              cursor: selectedStudents.length > 0 ? 'not-allowed' : 'pointer'
+            }}
+            disabled={selectedStudents.length > 0}
+            onClick={downloadTemplate}
+          >
+            📄 Download for student logins
+          </button>
 
-  <button
-    style={styles.uploadBtn}
-    onClick={() => window.location.href = '/admin/students/bulk-upload'}
-  >
-    ⬆ Upload for student logins
-  </button>
+          <button
+            style={{
+              ...styles.uploadBtn,
+              opacity: selectedStudents.length > 0 ? 0.5 : 1,
+              cursor: selectedStudents.length > 0 ? 'not-allowed' : 'pointer'
+            }}
+            
+            disabled={selectedStudents.length > 0}
+            onClick={() => window.location.href = '/admin/students/bulk-upload'}
+          >
+            ⬆ Upload for student logins
+          </button>
+          <button
+            style={{
+              ...styles.exportBtn,
+              opacity: selectedStudents.length > 0 ? 0.5 : 1,
+              cursor: selectedStudents.length > 0 ? 'not-allowed' : 'pointer'
+            }}
+            disabled={selectedStudents.length > 0}
+            onClick={exportToExcel}
+          >
+            ⬇ Download students data
+          </button>
 
-    <button style={styles.exportBtn} onClick={exportToExcel}>
-      ⬇ Download students data
-    </button>
+        <button
+        style={styles.compareBtn}
+        disabled={selectedStudents.length < 2}
+        onClick={() => {
+          if (selectedStudents.length > 5) {
+            alert('Maximum 5 students allowed for comparison')
+            return
+          }
+
+          if (selectedStudents.length < 2) {
+            alert('Select at least 2 students to compare')
+            return
+          }
+
+          const ids = selectedStudents.join(',')
+          window.location.href = `/admin/students/compare?ids=${ids}`
+        }}
+        >
+        🔍 Compare Students
+        </button>
   </div>
 </div>
 </div>
@@ -219,6 +264,7 @@ function downloadTemplate() {
           <table style={styles.table}>
             <thead>
               <tr>
+                <th style={styles.th}></th>
                 <th style={styles.th}>First Name</th>
                 <th style={styles.th}>Last Name</th>
                 <th style={styles.th}>Email</th>
@@ -236,6 +282,23 @@ function downloadTemplate() {
             <tbody>
               {students.map((student) => (
                 <tr key={student.id}>
+                  <td style={styles.td}>
+                      <input
+                        type="checkbox"
+                        checked={selectedStudents.includes(student.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            if (selectedStudents.length >= 5) {
+                              alert('You can compare maximum 5 students only')
+                              return
+                            }
+                            setSelectedStudents([...selectedStudents, student.id])
+                          } else {
+                            setSelectedStudents(selectedStudents.filter(id => id !== student.id))
+                          }
+                        }}
+                      />
+                  </td>
                   <td style={styles.td}>
                     {student.first_name || '-'}
                   </td>
@@ -315,7 +378,15 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer'
   },
-
+    compareBtn: {
+      padding: '10px 18px',
+      background: '#7c3aed',
+      color: '#fff',
+      border: 'none',
+      borderRadius: 8,
+      fontWeight: 600,
+      cursor: 'pointer'
+    },
   tableWrapper: {
     overflowX: 'auto',
     background: '#fff',
@@ -371,13 +442,14 @@ const styles = {
     cursor: 'pointer'
   },
 
-  createBtn: {
+ createBtn: {
   padding: '10px 18px',
   background: '#2563eb',
   color: '#fff',
   border: 'none',
   borderRadius: 8,
   fontWeight: 600,
-  cursor: 'pointer'
+  cursor: 'pointer',
+  opacity: 1
 }
 }
