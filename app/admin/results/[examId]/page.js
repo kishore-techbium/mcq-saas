@@ -17,8 +17,11 @@ import jsPDF from 'jspdf'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
+function format2(n){ return Number(n || 0).toFixed(2) }
+
 export default function ExamAnalyticsPage() {
   const { examId } = useParams()
+
   const reportRef = useRef()
   const leaderboardRef = useRef()
 
@@ -40,12 +43,14 @@ export default function ExamAnalyticsPage() {
   async function fetchAll() {
     setLoading(true)
 
+    // 🔹 exam
     const { data: examData } = await supabase
       .from('exams')
       .select('*')
       .eq('id', examId)
       .single()
 
+    // 🔹 exam stats
     const { data: stats } = await supabase
       .from('student_exam_stats')
       .select('*')
@@ -53,6 +58,7 @@ export default function ExamAnalyticsPage() {
 
     const studentIds = [...new Set(stats.map(s => s.student_id))]
 
+    // 🔹 students
     const { data: students } = await supabase
       .from('students')
       .select('*')
@@ -70,7 +76,7 @@ export default function ExamAnalyticsPage() {
     setSubmitted(stats || [])
     setExam(examData)
 
-    // SUBJECT ANALYSIS
+    // ================= SUBJECT ANALYSIS =================
     const { data: subjectStats } = await supabase
       .from('student_subject_stats')
       .select('*')
@@ -103,7 +109,7 @@ export default function ExamAnalyticsPage() {
     setModerateAreas(moderate)
     setStrongAreas(strong)
 
-    // CHAPTER ANALYSIS
+    // ================= CHAPTER ANALYSIS =================
     const { data: subStats } = await supabase
       .from('student_subtopic_stats')
       .select('*')
@@ -125,10 +131,12 @@ export default function ExamAnalyticsPage() {
         accuracy: v.total > 0 ? (v.correct / v.total) * 100 : 0
       }))
       .filter(c => c.accuracy < 40)
+      .sort((a,b)=>a.accuracy-b.accuracy)
+      .slice(0,5)
 
     setWeakChapters(weakChap)
 
-    // DIFFICULTY
+    // ================= DIFFICULTY =================
     const avg =
       stats.reduce((sum, s) => sum + (s.avg_score || 0), 0) / stats.length
 
@@ -136,24 +144,27 @@ export default function ExamAnalyticsPage() {
     else if (avg < 70) setDifficulty('Medium')
     else setDifficulty('Easy')
 
-    // 🧠 AI INSIGHTS
+    // ================= AI INSIGHTS =================
     const insights = []
 
     if (weak.length > 0) {
       insights.push(`🔴 Weak Subjects: ${weak.map(s => s.subject).join(', ')}`)
     }
 
-    if (weakChap.length > 0) {
-      insights.push(`⚠️ Weak Chapters: ${weakChap.slice(0,3).map(c => c.chapter).join(', ')}`)
-    }
-
     if (moderate.length > 0) {
-      insights.push(`🟡 Needs Improvement: ${moderate.map(s => s.subject).join(', ')}`)
+      insights.push(`🟡 Moderate: ${moderate.map(s => s.subject).join(', ')}`)
     }
 
-    insights.push(`📊 Exam Difficulty: ${difficulty}`)
+    if (strong.length > 0) {
+      insights.push(`🟢 Strong: ${strong.map(s => s.subject).join(', ')}`)
+    }
 
-    insights.push(`🎯 Action: Conduct revision classes and targeted practice`)
+    if (weakChap.length > 0) {
+      insights.push(`⚠️ Weak Chapters: ${weakChap.map(c => c.chapter).join(', ')}`)
+    }
+
+    insights.push(`📊 Difficulty: ${difficulty}`)
+    insights.push(`🎯 Action: Focus revision on weak areas & conduct practice tests`)
 
     setAiInsights(insights)
 
@@ -162,8 +173,9 @@ export default function ExamAnalyticsPage() {
 
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
-  // KPIs
+  // ================= KPI =================
   const totalStudents = submitted.length
+
   const avgScore =
     submitted.reduce((s, x) => s + (x.avg_score || 0), 0) / totalStudents
 
@@ -171,7 +183,7 @@ export default function ExamAnalyticsPage() {
   const minScore = Math.min(...submitted.map(s => s.best_score || 0))
   const passCount = submitted.filter(s => (s.avg_score || 0) >= 40).length
 
-  // DISTRIBUTION
+  // ================= DISTRIBUTION =================
   const buckets = { '0-25': 0, '26-50': 0, '51-75': 0, '76-100': 0 }
 
   submitted.forEach(s => {
@@ -187,7 +199,7 @@ export default function ExamAnalyticsPage() {
     datasets: [{ data: Object.values(buckets), backgroundColor: '#3b82f6' }]
   }
 
-  // LEADERBOARD
+  // ================= LEADERBOARD =================
   const leaderboard = submitted
     .map(s => ({
       student_id: s.student_id,
@@ -196,51 +208,64 @@ export default function ExamAnalyticsPage() {
     }))
     .sort((a, b) => b.score - a.score)
 
+  // ================= PDF =================
   async function downloadPDF() {
-    const pdf = new jsPDF()
 
-    const canvas1 = await html2canvas(reportRef.current)
+    const pdf = new jsPDF('p','mm','a4')
+
+    // PAGE 1 (analytics)
+    const canvas1 = await html2canvas(reportRef.current, { scale: 2 })
     const img1 = canvas1.toDataURL('image/png')
-    pdf.addImage(img1, 'PNG', 0, 0, 210, 280)
+    pdf.addImage(img1, 'PNG', 0, 0, 210, 297)
 
+    // PAGE 2 (leaderboard clean)
     pdf.addPage()
 
-    const canvas2 = await html2canvas(leaderboardRef.current)
+    const canvas2 = await html2canvas(leaderboardRef.current, { scale: 2 })
     const img2 = canvas2.toDataURL('image/png')
-    pdf.addImage(img2, 'PNG', 0, 0, 210, 280)
+    pdf.addImage(img2, 'PNG', 0, 0, 210, 297)
 
     pdf.save(`${exam.title}.pdf`)
   }
 
   return (
-    <div style={{ padding: 40, background: '#f3f4f6' }}>
+    <div style={{ padding: 30, background: '#f3f4f6' }}>
 
       <button onClick={downloadPDF} style={styles.pdfBtn}>
         Download PDF
       </button>
 
-      {/* MAIN REPORT */}
+      {/* ================= MAIN ANALYTICS ================= */}
       <div ref={reportRef}>
 
         {/* HEADER */}
         <h1>{exam.title}</h1>
-        <p>
-          {exam.exam_category} | {exam.exam_type} | {new Date(exam.created_at).toDateString()}
-        </p>
+        <p>{exam.exam_category} | {exam.exam_type} | {new Date(exam.created_at).toDateString()}</p>
 
-        {/* KPI CARDS */}
+        {/* KPI */}
         <div style={styles.kpiRow}>
           <KPI title="Students" value={totalStudents} color="#3b82f6" />
-          <KPI title="Average Score" value={avgScore.toFixed(1)} color="#10b981" />
+          <KPI title="Avg Score" value={format2(avgScore)} color="#10b981" />
           <KPI title="Highest" value={maxScore} color="#f59e0b" />
           <KPI title="Lowest" value={minScore} color="#ef4444" />
-          <KPI title="Pass %" value={(passCount / totalStudents * 100).toFixed(1)} color="#6366f1" />
+          <KPI title="Pass %" value={format2(passCount/totalStudents*100)} color="#6366f1" />
         </div>
 
         {/* CHART */}
         <div style={styles.card}>
           <h3>Score Distribution</h3>
           <Bar data={chartData} />
+        </div>
+
+        {/* SUBJECT INTELLIGENCE */}
+        <div style={styles.card}>
+          <h3>📚 Subject Intelligence</h3>
+
+          <p>🔴 Weak: {weakSubjects.map(s=>`${s.subject} (${format2(s.accuracy)}%)`).join(', ') || '-'}</p>
+          <p>🟡 Moderate: {moderateAreas.map(s=>`${s.subject} (${format2(s.accuracy)}%)`).join(', ') || '-'}</p>
+          <p>🟢 Strong: {strongAreas.map(s=>`${s.subject} (${format2(s.accuracy)}%)`).join(', ') || '-'}</p>
+
+          <p>⚠️ Weak Chapters: {weakChapters.map(c=>`${c.chapter} (${format2(c.accuracy)}%)`).join(', ') || '-'}</p>
         </div>
 
         {/* AI INSIGHTS */}
@@ -253,15 +278,19 @@ export default function ExamAnalyticsPage() {
 
       </div>
 
-      {/* LEADERBOARD SEPARATE */}
-      <div ref={leaderboardRef} style={styles.card}>
-        <h2>🏆 Leaderboard</h2>
+      {/* ================= TRUE SEPARATE LEADERBOARD ================= */}
+      <div ref={leaderboardRef} style={styles.leaderboardPage}>
 
-        <p>
-          {exam.title} | {exam.exam_category} | {exam.exam_type}
-        </p>
+        <h1 style={{ textAlign:'center' }}>🏆 OFFICIAL LEADERBOARD</h1>
 
-        <table style={{ width: '100%' }}>
+        <div style={styles.lbHeader}>
+          <p><b>Exam:</b> {exam.title}</p>
+          <p><b>Category:</b> {exam.exam_category}</p>
+          <p><b>Type:</b> {exam.exam_type}</p>
+          <p><b>Date:</b> {new Date(exam.created_at).toDateString()}</p>
+        </div>
+
+        <table style={styles.table}>
           <thead>
             <tr>
               <th>Rank</th>
@@ -270,10 +299,11 @@ export default function ExamAnalyticsPage() {
               <th>Proctor</th>
             </tr>
           </thead>
+
           <tbody>
             {leaderboard.map((l, i) => (
               <tr key={i}>
-                <td>{i + 1}</td>
+                <td style={{ fontWeight:'bold' }}>{i+1}</td>
                 <td>{studentsMap[l.student_id]?.name}</td>
                 <td>{l.score}</td>
                 <td>{l.rejected ? '⚠️' : 'OK'}</td>
@@ -281,18 +311,19 @@ export default function ExamAnalyticsPage() {
             ))}
           </tbody>
         </table>
+
       </div>
 
     </div>
   )
 }
 
-/* COMPONENTS */
+/* ================= UI ================= */
 
 const KPI = ({ title, value, color }) => (
-  <div style={{ ...styles.kpi, borderTop: `4px solid ${color}` }}>
+  <div style={{ ...styles.kpi, borderTop:`4px solid ${color}` }}>
     <div>{title}</div>
-    <div style={{ fontSize: 22 }}>{value}</div>
+    <div style={{ fontSize:22 }}>{value}</div>
   </div>
 )
 
@@ -301,5 +332,20 @@ const styles = {
   kpiRow:{ display:'flex', gap:15, marginBottom:20 },
   kpi:{ background:'#fff', padding:20, borderRadius:10, flex:1 },
   card:{ background:'#fff', padding:20, borderRadius:12, marginTop:20 },
-  insight:{ background:'#f8fafc', padding:10, marginTop:8, borderLeft:'4px solid #2563eb' }
+  insight:{ background:'#f8fafc', padding:10, marginTop:8, borderLeft:'4px solid #2563eb' },
+
+  leaderboardPage:{
+    background:'#fff',
+    width:'210mm',
+    minHeight:'297mm',
+    padding:'20mm',
+    margin:'40px auto'
+  },
+
+  lbHeader:{ textAlign:'center', marginBottom:20 },
+
+  table:{
+    width:'100%',
+    borderCollapse:'collapse'
+  }
 }
