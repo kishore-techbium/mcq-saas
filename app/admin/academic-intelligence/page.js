@@ -16,7 +16,7 @@ function format2(num) {
 export default function AcademicIntelligence() {
 
   const reportRef = useRef(null)
-const [aiInsights, setAiInsights] = useState([])
+
   const [loading, setLoading] = useState(true)
   const [examType, setExamType] = useState('ALL')
   const [examCategory, setExamCategory] = useState('ALL')
@@ -29,6 +29,7 @@ const [aiInsights, setAiInsights] = useState([])
   const [efficiencyData, setEfficiencyData] = useState([])
   const [trendData, setTrendData] = useState([])
   const [recommendations, setRecommendations] = useState([])
+  const [aiInsights, setAiInsights] = useState([])
 
   useEffect(() => { init() }, [examType, examCategory])
 
@@ -50,7 +51,7 @@ const [aiInsights, setAiInsights] = useState([])
 
   async function loadData(college_id) {
 
-    // 🔥 exam_id mapping
+    // 🔹 exam filter → exam_ids
     let examQuery = supabase.from('exams').select('id')
 
     if (examType !== 'ALL') examQuery.eq('exam_type', examType)
@@ -59,18 +60,26 @@ const [aiInsights, setAiInsights] = useState([])
     const { data: exams } = await examQuery
     const examIds = exams?.map(e => e.id) || []
 
+    // 🔹 queries
     let examStatsQuery = supabase
       .from('student_exam_stats')
       .select('*')
       .eq('college_id', college_id)
 
+    let subQuery = supabase
+      .from('student_subtopic_stats')
+      .select('*')
+      .eq('college_id', college_id)
+
     if (examIds.length > 0) {
-      examStatsQuery.in('exam_id', examIds)
+      examStatsQuery = examStatsQuery.in('exam_id', examIds)
+      subQuery = subQuery.in('exam_id', examIds)
     }
 
     const { data: examStats } = await examStatsQuery
+    const { data: subStats } = await subQuery
 
-    // student names
+    // 🔹 student names
     const ids = examStats?.map(s => s.student_id) || []
     let studentMap = {}
 
@@ -96,6 +105,36 @@ const [aiInsights, setAiInsights] = useState([])
 
     const avgScore = totalAttempts > 0 ? totalScore / totalAttempts : 0
 
+    // ================= SUBJECT =================
+    const subjectAgg = {}
+
+    subStats?.forEach(s => {
+      if (!subjectAgg[s.subject]) {
+        subjectAgg[s.subject] = { correct: 0, total: 0, time: 0 }
+      }
+      subjectAgg[s.subject].correct += s.correct || 0
+      subjectAgg[s.subject].total += s.total_questions || 0
+      subjectAgg[s.subject].time += s.total_time_spent || 0
+    })
+
+    const subjectArray = Object.keys(subjectAgg).map(sub => {
+      const d = subjectAgg[sub]
+      return {
+        subject: sub,
+        accuracy: d.total > 0 ? (d.correct / d.total) * 100 : 0,
+        avgTime: d.total > 0 ? d.time / d.total : 0
+      }
+    })
+
+    // ================= SUBTOPICS =================
+    const subArray = subStats?.map(s => ({
+      subject: s.subject,
+      subtopic: s.subtopic,
+      accuracy: s.total_questions > 0
+        ? (s.correct / s.total_questions) * 100
+        : 0
+    })) || []
+
     // ================= RISK =================
     const risk = examStats
       ?.map(s => ({
@@ -104,7 +143,6 @@ const [aiInsights, setAiInsights] = useState([])
         risk: (s.avg_score < 40 ? 2 : 0) + (s.avg_time_per_exam > 90 ? 1 : 0)
       }))
       .filter(s => s.risk >= 2)
-      .sort((a, b) => a.score - b.score)
 
     // ================= EFFICIENCY =================
     const efficiency = examStats?.map(s => ({
@@ -116,7 +154,7 @@ const [aiInsights, setAiInsights] = useState([])
 
     // ================= TREND =================
     const trend = examStats?.slice(0, 10).map((s, i) => ({
-      name: `T${i + 1}`,
+      name: `Test ${i + 1}`,
       score: Number(format2(s.avg_score))
     }))
 
@@ -126,27 +164,29 @@ const [aiInsights, setAiInsights] = useState([])
       score: s.avg_score || 0
     }))
 
-    // ================= SUBJECT =================
-    const subjectAgg = {}
-    examStats?.forEach(s => {
-      if (!subjectAgg[s.subject]) subjectAgg[s.subject] = { score: 0, count: 0 }
-      subjectAgg[s.subject].score += s.avg_score || 0
-      subjectAgg[s.subject].count++
-    })
-
-    const subjectArray = Object.keys(subjectAgg).map(sub => ({
-      subject: sub,
-      score: subjectAgg[sub].score / subjectAgg[sub].count
-    }))
-
     // ================= RECOMMENDATIONS =================
     const recs = subjectArray.map(s => ({
       subject: s.subject,
       msg:
-        s.score < 40 ? '🔴 Focus heavily' :
-          s.score < 60 ? '🟡 Improve practice' :
-            '🟢 Maintain'
+        s.accuracy < 40 ? '🔴 Strong intervention needed' :
+        s.accuracy < 60 ? '🟡 Improve practice' :
+        '🟢 Good performance'
     }))
+
+    // ================= AI INSIGHTS =================
+    const insights = []
+
+    if (subjectArray.some(s => s.accuracy < 40)) {
+      insights.push('🔴 Some subjects have very low accuracy — immediate focus required')
+    }
+
+    if (risk.length > 0) {
+      insights.push(`⚠️ ${risk.length} students are at risk`)
+    }
+
+    if (efficiency.some(e => e.efficiency < 1)) {
+      insights.push('⚡ Students spending more time but scoring low')
+    }
 
     setSummary({
       avgScore: format2(avgScore),
@@ -154,73 +194,20 @@ const [aiInsights, setAiInsights] = useState([])
       risk: risk.length
     })
 
+    setSubjects(subjectArray)
+    setSubtopics(subArray)
     setRiskStudents(risk)
+    setEffortData(effort)
     setEfficiencyData(efficiency)
     setTrendData(trend)
-    setEffortData(effort)
-    setSubjects(subjectArray)
     setRecommendations(recs)
-
-    // =========================
-// 🧠 AI INSIGHTS
-// =========================
-const insights = []
-
-// 🔴 Weak subjects
-const weakSubjects = subjectArray.filter(s => s.score < 40)
-if (weakSubjects.length > 0) {
-  insights.push(`🔴 Weak Subjects: ${weakSubjects.map(s => s.subject).join(', ')}`)
-}
-
-// 🟡 Moderate subjects
-const moderateSubjects = subjectArray.filter(s => s.score >= 40 && s.score < 60)
-if (moderateSubjects.length > 0) {
-  insights.push(`🟡 Needs Improvement: ${moderateSubjects.map(s => s.subject).join(', ')}`)
-}
-
-// 🟢 Strong subjects
-const strongSubjects = subjectArray.filter(s => s.score >= 60)
-if (strongSubjects.length > 0) {
-  insights.push(`🟢 Strong Areas: ${strongSubjects.map(s => s.subject).join(', ')}`)
-}
-
-// ⚠️ Risk students
-if (risk.length > 0) {
-  insights.push(`⚠️ ${risk.length} students are at risk and need attention`)
-}
-
-// ⚡ Efficiency insight
-const lowEfficiency = efficiency.filter(e => e.efficiency < 1)
-if (lowEfficiency.length > 0) {
-  insights.push(`⚡ Some students are spending more time but scoring low → focus on strategy`)
-}
-
-// 🎯 Effort vs Performance
-const highEffortLowScore = effort.filter(e => e.effort > 3000 && e.score < 40)
-if (highEffortLowScore.length > 0) {
-  insights.push(`🎯 High effort but low score → indicates concept gaps`)
-}
-
-// 📈 Improvement (trend)
-if (trend.length >= 2) {
-  const first = trend[0].score
-  const last = trend[trend.length - 1].score
-
-  if (last > first) {
-    insights.push(`📈 Overall performance is improving`)
-  } else if (last < first) {
-    insights.push(`📉 Performance declining — intervention needed`)
-  }
-}
-
-setAiInsights(insights)
+    setAiInsights(insights)
   }
 
   async function downloadPDF() {
-    const canvas = await html2canvas(reportRef.current)
+    const canvas = await html2canvas(reportRef.current, { scale: 2 })
     const pdf = new jsPDF()
     const img = canvas.toDataURL('image/png')
-
     pdf.addImage(img, 'PNG', 0, 0, 210, 295)
     pdf.save('academic-intelligence.pdf')
   }
@@ -232,10 +219,9 @@ setAiInsights(insights)
 
       <div style={styles.header}>
         <h1>📊 Academic Intelligence</h1>
-        <button style={styles.btn} onClick={downloadPDF}>Download PDF</button>
+        <button style={styles.btn} onClick={downloadPDF}>PDF</button>
       </div>
 
-      {/* FILTERS */}
       <div style={styles.filters}>
         <select value={examType} onChange={e => setExamType(e.target.value)}>
           <option value="ALL">All Types</option>
@@ -253,79 +239,49 @@ setAiInsights(insights)
 
       <div ref={reportRef}>
 
-        {/* SUMMARY CARDS */}
-        <div style={styles.cards}>
-          <Card title="Students" value={summary.totalStudents} />
-          <Card title="Avg Score" value={summary.avgScore + '%'} />
-          <Card title="At Risk" value={summary.risk} />
-        </div>
-
-<Section title="🧠 AI Insights">
-  {aiInsights.length === 0 ? (
-    <p>No insights available</p>
-  ) : (
-    aiInsights.map((insight, i) => (
-      <div key={i} style={styles.insightCard}>
-        {insight}
-      </div>
-    ))
-  )}
-</Section>
-        {/* TREND */}
-        <Section title="📈 Score Trend">
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={trendData}>
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Line dataKey="score" stroke="#2563eb" strokeWidth={3} />
-            </LineChart>
-          </ResponsiveContainer>
+        <Section title="Summary" desc="Overall performance snapshot">
+          <CardRow>
+            <Card title="Students" value={summary.totalStudents} />
+            <Card title="Avg Score" value={summary.avgScore + '%'} />
+            <Card title="At Risk" value={summary.risk} />
+          </CardRow>
         </Section>
 
-        {/* SUBJECT BAR */}
-        <Section title="📚 Subject Performance">
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={subjects}>
-              <XAxis dataKey="subject" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="score" fill="#16a34a" />
-            </BarChart>
-          </ResponsiveContainer>
+        <Section title="AI Insights" desc="Automatically generated key findings">
+          {aiInsights.map((i, idx) => <Insight key={idx} text={i} />)}
         </Section>
 
-        {/* EFFORT VS PERFORMANCE */}
-        <Section title="🎯 Effort vs Performance">
-          <ResponsiveContainer width="100%" height={250}>
-            <ScatterChart>
-              <XAxis dataKey="effort" />
-              <YAxis dataKey="score" />
-              <Tooltip />
-              <Scatter data={effortData} fill="#f59e0b" />
-            </ScatterChart>
-          </ResponsiveContainer>
+        <Section title="Trend" desc="Performance over recent tests">
+          <Chart><LineChart data={trendData}><XAxis dataKey="name"/><YAxis/><Tooltip/><Line dataKey="score"/></LineChart></Chart>
         </Section>
 
-        {/* RISK */}
-        <Section title="⚠️ At Risk Students">
-          {riskStudents.map((r, i) => (
-            <Row key={i} left={r.name} right={format2(r.score) + '%'} />
+        <Section title="Subjects" desc="Accuracy and time per question">
+          {subjects.map(s => <Row key={s.subject} left={s.subject} right={`${format2(s.accuracy)}% | ${format2(s.avgTime)}s`} />)}
+        </Section>
+
+        <Section title="Subtopics" desc="Concept-level performance heatmap">
+          {subtopics.slice(0,20).map((s,i)=>(
+            <Row key={i}
+              left={`${s.subject} - ${s.subtopic}`}
+              right={`${format2(s.accuracy)}%`}
+            />
           ))}
         </Section>
 
-        {/* EFFICIENCY */}
-        <Section title="⚡ Efficiency">
-          {efficiencyData.slice(0, 10).map(e => (
+        <Section title="At Risk" desc="Students needing attention">
+          {riskStudents.map((r,i)=>(
+            <Row key={i} left={r.name} right={`${format2(r.score)}%`} />
+          ))}
+        </Section>
+
+        <Section title="Efficiency" desc="Score per minute">
+          {efficiencyData.slice(0,10).map(e=>(
             <Row key={e.name} left={e.name} right={format2(e.efficiency)} />
           ))}
         </Section>
 
-        {/* RECOMMENDATIONS */}
-        <Section title="🧠 Recommendations">
-          {recommendations.map((r, i) => (
-            <Row key={i} left={r.subject} right={r.msg} />
-          ))}
+        <Section title="Effort vs Performance" desc="Time vs score comparison">
+          <Chart><ScatterChart><XAxis dataKey="effort"/><YAxis dataKey="score"/><Tooltip/><Scatter data={effortData}/></ScatterChart></Chart>
         </Section>
 
       </div>
@@ -335,47 +291,45 @@ setAiInsights(insights)
 
 /* UI */
 
-function Card({ title, value }) {
-  return (
-    <div style={styles.card}>
-      <div>{title}</div>
-      <div style={{ fontSize: 24, fontWeight: 'bold' }}>{value}</div>
-    </div>
-  )
-}
+const Section = ({title, desc, children}) => (
+  <div style={styles.section}>
+    <h2>{title}</h2>
+    <p style={styles.desc}>{desc}</p>
+    {children}
+  </div>
+)
 
-function Section({ title, children }) {
-  return (
-    <div style={styles.section}>
-      <h2>{title}</h2>
-      {children}
-    </div>
-  )
-}
+const CardRow = ({children}) => (
+  <div style={{display:'flex', gap:20}}>{children}</div>
+)
 
-function Row({ left, right }) {
-  return (
-    <div style={styles.row}>
-      <span>{left}</span>
-      <span>{right}</span>
-    </div>
-  )
-}
+const Card = ({title,value}) => (
+  <div style={styles.card}>
+    <div>{title}</div>
+    <div style={{fontSize:22,fontWeight:'bold'}}>{value}</div>
+  </div>
+)
+
+const Row = ({left,right}) => (
+  <div style={styles.row}><span>{left}</span><span>{right}</span></div>
+)
+
+const Insight = ({text}) => (
+  <div style={styles.insight}>{text}</div>
+)
+
+const Chart = ({children}) => (
+  <ResponsiveContainer width="100%" height={250}>{children}</ResponsiveContainer>
+)
 
 const styles = {
-  insightCard: {
-  background: '#f8fafc',
-  padding: 12,
-  borderRadius: 8,
-  marginTop: 8,
-  borderLeft: '4px solid #2563eb'
-},
-  page: { padding: 40, background: '#f1f5f9' },
-  header: { display: 'flex', justifyContent: 'space-between' },
-  filters: { display: 'flex', gap: 10, margin: '20px 0' },
-  btn: { padding: 10, background: '#2563eb', color: '#fff', borderRadius: 6 },
-  cards: { display: 'flex', gap: 20 },
-  card: { background: '#fff', padding: 20, borderRadius: 12, flex: 1 },
-  section: { background: '#fff', padding: 20, marginTop: 20, borderRadius: 12 },
-  row: { display: 'flex', justifyContent: 'space-between', padding: 6 }
+  page:{padding:40, background:'#f1f5f9'},
+  header:{display:'flex',justifyContent:'space-between'},
+  btn:{padding:'6px 12px', fontSize:12, background:'#2563eb', color:'#fff', borderRadius:6},
+  filters:{display:'flex', gap:10, margin:'20px 0'},
+  section:{background:'#fff', padding:20, marginTop:20, borderRadius:12},
+  desc:{color:'#64748b', fontSize:13},
+  card:{background:'#fff', padding:20, borderRadius:12, flex:1},
+  row:{display:'flex',justifyContent:'space-between',padding:6},
+  insight:{background:'#f8fafc',padding:10,borderLeft:'4px solid #2563eb',marginTop:6}
 }
