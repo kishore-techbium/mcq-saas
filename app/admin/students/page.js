@@ -190,7 +190,7 @@ function downloadTemplate() {
             disabled={selectedStudents.length > 0}
             onClick={() => window.location.href = '/admin/students/create'}
           >
-            ➕ Create Single Student
+            ➕ Create Student
           </button>
 
           <button
@@ -202,7 +202,7 @@ function downloadTemplate() {
             disabled={selectedStudents.length > 0}
             onClick={downloadTemplate}
           >
-            📄 Download for student logins
+            📄 Download login template
           </button>
 
           <button
@@ -215,7 +215,7 @@ function downloadTemplate() {
             disabled={selectedStudents.length > 0}
             onClick={() => window.location.href = '/admin/students/bulk-upload'}
           >
-            ⬆ Upload for student logins
+            ⬆ Upload logins
           </button>
           <button
             style={{
@@ -226,7 +226,7 @@ function downloadTemplate() {
             disabled={selectedStudents.length > 0}
             onClick={exportToExcel}
           >
-            ⬇ Download students data
+            ⬇ Download
           </button>
 
         <button
@@ -247,7 +247,7 @@ function downloadTemplate() {
           window.location.href = `/admin/students/compare?ids=${ids}`
         }}
         >
-        🔍 Compare Students
+        Compare Students
         </button>
   </div>
 </div>
