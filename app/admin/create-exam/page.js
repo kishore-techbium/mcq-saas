@@ -10,7 +10,7 @@ export default function CreateExamPage() {
   const [examType, setExamType] = useState('WEEKLY_TEST')
   const [examCategory, setExamCategory] = useState('JEE_MAINS')
   const [duration, setDuration] = useState('')
-  const [allowRetake, setAllowRetake] = useState(false)
+  
   const [cameraRequired, setCameraRequired] = useState(false)
   const [status, setStatus] = useState('')
   const [examDate, setExamDate] = useState('')
@@ -69,7 +69,7 @@ const user = auth.user
           duration_minutes: Number(duration),
           exam_date: examDate,
           exam_time: examTime,
-          allow_retake: allowRetake,
+          
           camera_required: cameraRequired,
           created_by: user.id,
           is_active: true,
@@ -180,14 +180,6 @@ const user = auth.user
 </div>
 
           <div style={styles.checkboxRow}>
-            <label>
-              <input
-                type="checkbox"
-                checked={allowRetake}
-                onChange={() => setAllowRetake(!allowRetake)}
-              /> Allow Retake
-            </label>
-
             <label>
               <input
                 type="checkbox"
