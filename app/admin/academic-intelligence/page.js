@@ -16,7 +16,7 @@ function format2(num) {
 export default function AcademicIntelligence() {
 
   const reportRef = useRef(null)
-
+const [aiInsights, setAiInsights] = useState([])
   const [loading, setLoading] = useState(true)
   const [examType, setExamType] = useState('ALL')
   const [examCategory, setExamCategory] = useState('ALL')
@@ -160,6 +160,60 @@ export default function AcademicIntelligence() {
     setEffortData(effort)
     setSubjects(subjectArray)
     setRecommendations(recs)
+
+    // =========================
+// 🧠 AI INSIGHTS
+// =========================
+const insights = []
+
+// 🔴 Weak subjects
+const weakSubjects = subjectArray.filter(s => s.score < 40)
+if (weakSubjects.length > 0) {
+  insights.push(`🔴 Weak Subjects: ${weakSubjects.map(s => s.subject).join(', ')}`)
+}
+
+// 🟡 Moderate subjects
+const moderateSubjects = subjectArray.filter(s => s.score >= 40 && s.score < 60)
+if (moderateSubjects.length > 0) {
+  insights.push(`🟡 Needs Improvement: ${moderateSubjects.map(s => s.subject).join(', ')}`)
+}
+
+// 🟢 Strong subjects
+const strongSubjects = subjectArray.filter(s => s.score >= 60)
+if (strongSubjects.length > 0) {
+  insights.push(`🟢 Strong Areas: ${strongSubjects.map(s => s.subject).join(', ')}`)
+}
+
+// ⚠️ Risk students
+if (risk.length > 0) {
+  insights.push(`⚠️ ${risk.length} students are at risk and need attention`)
+}
+
+// ⚡ Efficiency insight
+const lowEfficiency = efficiency.filter(e => e.efficiency < 1)
+if (lowEfficiency.length > 0) {
+  insights.push(`⚡ Some students are spending more time but scoring low → focus on strategy`)
+}
+
+// 🎯 Effort vs Performance
+const highEffortLowScore = effort.filter(e => e.effort > 3000 && e.score < 40)
+if (highEffortLowScore.length > 0) {
+  insights.push(`🎯 High effort but low score → indicates concept gaps`)
+}
+
+// 📈 Improvement (trend)
+if (trend.length >= 2) {
+  const first = trend[0].score
+  const last = trend[trend.length - 1].score
+
+  if (last > first) {
+    insights.push(`📈 Overall performance is improving`)
+  } else if (last < first) {
+    insights.push(`📉 Performance declining — intervention needed`)
+  }
+}
+
+setAiInsights(insights)
   }
 
   async function downloadPDF() {
@@ -206,6 +260,17 @@ export default function AcademicIntelligence() {
           <Card title="At Risk" value={summary.risk} />
         </div>
 
+<Section title="🧠 AI Insights">
+  {aiInsights.length === 0 ? (
+    <p>No insights available</p>
+  ) : (
+    aiInsights.map((insight, i) => (
+      <div key={i} style={styles.insightCard}>
+        {insight}
+      </div>
+    ))
+  )}
+</Section>
         {/* TREND */}
         <Section title="📈 Score Trend">
           <ResponsiveContainer width="100%" height={250}>
@@ -298,6 +363,13 @@ function Row({ left, right }) {
 }
 
 const styles = {
+  insightCard: {
+  background: '#f8fafc',
+  padding: 12,
+  borderRadius: 8,
+  marginTop: 8,
+  borderLeft: '4px solid #2563eb'
+},
   page: { padding: 40, background: '#f1f5f9' },
   header: { display: 'flex', justifyContent: 'space-between' },
   filters: { display: 'flex', gap: 10, margin: '20px 0' },
