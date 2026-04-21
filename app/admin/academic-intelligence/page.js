@@ -15,8 +15,11 @@ function format2(num) {
 
 export default function AcademicIntelligence() {
 
-  const reportRef = useRef(null)
-
+  
+  const summaryRef = useRef(null)
+  const subjectRef = useRef(null)
+  const performanceRef = useRef(null)
+  const leaderboardRef = useRef(null)
   const [loading, setLoading] = useState(true)
   const [examType, setExamType] = useState('ALL')
   const [examCategory, setExamCategory] = useState('ALL')
@@ -119,10 +122,16 @@ export default function AcademicIntelligence() {
 
     const avgScore = totalAttempts > 0 ? totalScore / totalAttempts : 0
 
+    let filteredSubStats = subStats
+
+if (targetYear !== 'ALL') {
+  const ids = filteredExamStats.map(s => s.student_id)
+  filteredSubStats = subStats.filter(s => ids.includes(s.student_id))
+}
     // ================= SUBJECT =================
     const subjectAgg = {}
 
-    subStats?.forEach(s => {
+    filteredSubStats?.forEach(s => {
       if (!subjectAgg[s.subject]) {
         subjectAgg[s.subject] = { correct: 0, total: 0, time: 0 }
       }
@@ -141,7 +150,7 @@ export default function AcademicIntelligence() {
     })
 
     // ================= SUBTOPICS =================
-    const subArray = subStats?.map(s => ({
+    const subArray = filteredSubStats?.map(s => ({
       subject: s.subject,
       subtopic: s.subtopic,
       accuracy: s.total_questions > 0
@@ -150,7 +159,7 @@ export default function AcademicIntelligence() {
     })) || []
 
     // ================= RISK =================
-    const risk = examStats
+    const risk = filteredExamStats
       ?.map(s => ({
         name: studentMap[s.student_id] || 'Unknown',
         score: s.avg_score || 0,
@@ -227,13 +236,26 @@ export default function AcademicIntelligence() {
     setAiInsights(insights)
   }
 
-  async function downloadPDF() {
-    const canvas = await html2canvas(reportRef.current, { scale: 2 })
-    const pdf = new jsPDF()
+async function downloadPDF() {
+
+  const pdf = new jsPDF('p', 'mm', 'a4')
+
+  const addPage = async (ref, isFirst = false) => {
+    const canvas = await html2canvas(ref.current, { scale: 2 })
     const img = canvas.toDataURL('image/png')
-    pdf.addImage(img, 'PNG', 0, 0, 210, 295)
-    pdf.save('academic-intelligence.pdf')
+
+    if (!isFirst) pdf.addPage()
+
+    pdf.addImage(img, 'PNG', 0, 0, 210, 297)
   }
+
+  await addPage(summaryRef, true)
+  await addPage(subjectRef)
+  await addPage(performanceRef)
+  await addPage(leaderboardRef)
+
+  pdf.save('academic-intelligence.pdf')
+}
 
   if (loading) return <p>Loading...</p>
 
@@ -265,63 +287,99 @@ export default function AcademicIntelligence() {
           <option value="2">2nd Year</option>
         </select>
       </div>
+{/* ================= PAGE 1 ================= */}
+<div ref={summaryRef} style={styles.pageBlock}>
 
-      <div ref={reportRef}>
+  <Section title="Summary" desc="Overall performance snapshot">
+    <CardRow>
+      <Card title="Students" value={summary.totalStudents} />
+      <Card title="Avg Score" value={summary.avgScore + '%'} />
+      <Card title="At Risk" value={summary.risk} />
+    </CardRow>
+  </Section>
 
-        <Section title="Summary" desc="Overall performance snapshot">
-          <CardRow>
-            <Card title="Students" value={summary.totalStudents} />
-            <Card title="Avg Score" value={summary.avgScore + '%'} />
-            <Card title="At Risk" value={summary.risk} />
-          </CardRow>
-        </Section>
+  <Section title="AI Insights" desc="Automatically generated key findings">
+    {aiInsights.map((i, idx) => <Insight key={idx} text={i} />)}
+  </Section>
 
-        <Section title="AI Insights" desc="Automatically generated key findings">
-          {aiInsights.map((i, idx) => <Insight key={idx} text={i} />)}
-        </Section>
+</div>
 
-        <Section title="Trend" desc="Performance over recent tests">
-          <Chart><LineChart data={trendData}><XAxis dataKey="name"/><YAxis/><Tooltip/><Line dataKey="score"/></LineChart></Chart>
-        </Section>
 
-        <Section title="Subjects" desc="Accuracy = Correct answers / Total questions. Also shows avg time per question.">
-          {subjects.map(s => <Row key={s.subject} left={s.subject} right={`${format2(s.accuracy)}% | ${format2(s.avgTime)}s`} />)}
-        </Section>
+{/* ================= PAGE 2 ================= */}
+<div ref={subjectRef} style={styles.pageBlock}>
 
-        <Section title="Subtopics" desc="Concept-level performance heatmap">
-          {subtopics.slice(0,20).map((s,i)=>(
-            <Row key={i}
-              left={`${s.subject} - ${s.subtopic}`}
-              right={`${format2(s.accuracy)}%`}
-            />
-          ))}
-        </Section>
+  <Section title="Subjects" desc="Accuracy = Correct answers / Total questions. Also shows avg time per question.">
+    {subjects.map(s => (
+      <Row key={s.subject} left={s.subject} right={`${format2(s.accuracy)}% | ${format2(s.avgTime)}s`} />
+    ))}
+  </Section>
 
-        <Section title="At Risk" desc="Students needing attention">
-          {riskStudents.map((r,i)=>(
-            <Row key={i} left={r.name} right={`${format2(r.score)}%`} />
-          ))}
-        </Section>
+  <Section title="Subtopics" desc="Concept-level performance heatmap">
+    {subtopics.slice(0,20).map((s,i)=>(
+      <Row key={i}
+        left={`${s.subject} - ${s.subtopic}`}
+        right={`${format2(s.accuracy)}%`}
+      />
+    ))}
+  </Section>
 
-        <Section title="Efficiency" desc="Score per minute">
-          {efficiencyData.slice(0,10).map(e=>(
-            <Row key={e.name} left={e.name} right={format2(e.efficiency)} />
-          ))}
-        </Section>
+</div>
 
-        <Section title="Effort vs Performance" desc="Time vs score comparison">
-          <Chart><ScatterChart><XAxis dataKey="effort"/><YAxis dataKey="score"/><Tooltip/><Scatter data={effortData}/></ScatterChart></Chart>
-        </Section>
-        <Section title="🏆 Top Performers" desc="Top students based on performance">
-          {topPerformers.map((s, i) => (
-            <Row
-              key={i}
-              left={`${i + 1}. ${s.name}`}
-              right={`${format2(s.score)}%`}
-            />
-          ))}
-        </Section>
-      </div>
+
+{/* ================= PAGE 3 ================= */}
+<div ref={performanceRef} style={styles.pageBlock}>
+
+  <Section title="Trend" desc="Performance over recent tests">
+    <Chart>
+      <LineChart data={trendData}>
+        <XAxis dataKey="name"/>
+        <YAxis/>
+        <Tooltip/>
+        <Line dataKey="score"/>
+      </LineChart>
+    </Chart>
+  </Section>
+
+  <Section title="Efficiency" desc="Score per minute">
+    {efficiencyData.slice(0,10).map(e=>(
+      <Row key={e.name} left={e.name} right={format2(e.efficiency)} />
+    ))}
+  </Section>
+
+  <Section title="Effort vs Performance" desc="Time vs score comparison">
+    <Chart>
+      <ScatterChart>
+        <XAxis dataKey="effort"/>
+        <YAxis dataKey="score"/>
+        <Tooltip/>
+        <Scatter data={effortData}/>
+      </ScatterChart>
+    </Chart>
+  </Section>
+
+  <Section title="At Risk" desc="Students needing attention">
+    {riskStudents.map((r,i)=>(
+      <Row key={i} left={r.name} right={`${format2(r.score)}%`} />
+    ))}
+  </Section>
+
+</div>
+
+
+{/* ================= PAGE 4 ================= */}
+<div ref={leaderboardRef} style={styles.pageBlock}>
+
+  <Section title="🏆 Top Performers" desc="Top students based on performance">
+    {topPerformers.map((s, i) => (
+      <Row
+        key={i}
+        left={`${i + 1}. ${s.name}`}
+        right={`${format2(s.score)}%`}
+      />
+    ))}
+  </Section>
+
+</div>
     </div>
   )
 }
@@ -360,6 +418,12 @@ const Chart = ({children}) => (
 )
 
 const styles = {
+  pageBlock: {
+  background: '#fff',
+  padding: 20,
+  marginBottom: 20,
+  minHeight: '280mm'
+},
   page:{padding:40, background:'#f1f5f9'},
   header:{display:'flex',justifyContent:'space-between'},
   btn:{padding:'6px 12px', fontSize:12, background:'#2563eb', color:'#fff', borderRadius:6},
