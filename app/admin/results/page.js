@@ -9,6 +9,8 @@ export default function AdminResults() {
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState([])
   const [search, setSearch] = useState('')
+  const [examTypeFilter, setExamTypeFilter] = useState('ALL')
+  const [examCategoryFilter, setExamCategoryFilter] = useState('ALL')
   const [sortField, setSortField] = useState(null)
   const [sortAsc, setSortAsc] = useState(true)
   const [page, setPage] = useState(1)
@@ -84,6 +86,12 @@ async function loadResults() {
         : '-',
       max_score: s ? s.max : '-',
       min_score: s ? s.min : '-',
+      efficiency: s && s.attempts > 0
+  ? ((s.totalScore / s.attempts) / 60).toFixed(2)
+  : '-',
+      participation: s
+  ? ((s.students / (exams.length || 1)) * 100).toFixed(1)
+  : '-',
       last_attempt: s ? s.last : null
     }
   })
@@ -113,8 +121,8 @@ async function loadResults() {
       Max: r.max_score,
       
       LastAttempt: r.last_attempt
-        ? new Date(a.created_at).toLocaleDateString('en-IN')
-        : '-'
+  ? new Date(r.last_attempt).toLocaleDateString('en-IN')
+  : '-'
     }))
 
     const ws = XLSX.utils.json_to_sheet(data)
@@ -123,22 +131,33 @@ async function loadResults() {
     XLSX.writeFile(wb, 'Exam_Intelligence_Summary.xlsx')
   }
 
-  let filtered = rows.filter(r =>
+let filtered = rows.filter(r => {
+
+  const matchSearch =
     r.title.toLowerCase().includes(search.toLowerCase()) ||
     r.exam_category?.toLowerCase().includes(search.toLowerCase()) ||
     r.exam_type?.toLowerCase().includes(search.toLowerCase())
-  )
+
+  const matchType =
+    examTypeFilter === 'ALL' || r.exam_type === examTypeFilter
+
+  const matchCategory =
+    examCategoryFilter === 'ALL' || r.exam_category === examCategoryFilter
+
+  return matchSearch && matchType && matchCategory
+})
 
   if (sortField) {
-    filtered.sort((a,b)=>{
-      let v1 = a[sortField]
-      let v2 = b[sortField]
-      if (v1 === '-' || v1 == null) v1 = 0
-      if (v2 === '-' || v2 == null) v2 = 0
-      if (typeof v1 === 'string')
-        return sortAsc ? v1.localeCompare(v2) : v2.localeCompare(v1)
-      return sortAsc ? v1 - v2 : v2 - v1
-    })
+   filtered.sort((a,b)=>{
+
+  let v1 = a[sortField]
+  let v2 = b[sortField]
+
+  v1 = v1 === '-' ? 0 : Number(v1)
+  v2 = v2 === '-' ? 0 : Number(v2)
+
+  return sortAsc ? v1 - v2 : v2 - v1
+})
   }
 
   const totalPages = Math.ceil(filtered.length / pageSize)
@@ -165,18 +184,45 @@ async function loadResults() {
     🎓 College Insights Dashboard →
   </button>
 </div>
-      <div style={styles.topBar}>
-        <input
-          placeholder="Search exam, category, type..."
-          value={search}
-          onChange={(e)=>{setSearch(e.target.value); setPage(1)}}
-          style={styles.searchInput}
-        />
+    <div style={styles.topBar}>
 
-        <button onClick={exportAll} style={styles.exportBtn}>
-          Export All Exams
-        </button>
-      </div>
+  <div style={{ display: 'flex', gap: 10 }}>
+
+    <input
+      placeholder="Search exam..."
+      value={search}
+      onChange={(e)=>{setSearch(e.target.value); setPage(1)}}
+      style={styles.searchInput}
+    />
+
+    <select
+      value={examTypeFilter}
+      onChange={(e)=>{setExamTypeFilter(e.target.value); setPage(1)}}
+      style={styles.searchInput}
+    >
+      <option value="ALL">All Types</option>
+      <option value="WEEKLY_TEST">Weekly</option>
+      <option value="MONTHLY_TEST">Monthly</option>
+      <option value="GRAND_TEST">Grand</option>
+    </select>
+
+    <select
+      value={examCategoryFilter}
+      onChange={(e)=>{setExamCategoryFilter(e.target.value); setPage(1)}}
+      style={styles.searchInput}
+    >
+      <option value="ALL">All Categories</option>
+      <option value="JEE_MAINS">JEE</option>
+      <option value="NEET">NEET</option>
+    </select>
+
+  </div>
+
+  <button onClick={exportAll} style={styles.exportBtn}>
+    Export All
+  </button>
+
+</div>
 
       <div style={styles.card}>
         <table style={styles.table}>
@@ -190,6 +236,8 @@ async function loadResults() {
               <th style={styles.right} onClick={()=>handleSort('attempts')}>Attempts</th>
               <th style={styles.right} onClick={()=>handleSort('reattempts')}>Re-Attempts</th>
               <th style={styles.right} onClick={()=>handleSort('avg_score')}>Avg</th>
+              <th style={styles.right}>Efficiency</th>
+              <th style={styles.right}>Participation %</th>  
               <th style={styles.right}>Max</th>
               
               <th style={styles.left}>Last Attempt</th>
@@ -211,6 +259,8 @@ async function loadResults() {
                 <td style={styles.right}>{r.attempts}</td>
                 <td style={styles.right}>{r.reattempts}</td>
                 <td style={styles.right}>{r.avg_score}</td>
+                <td style={styles.right}>{r.efficiency}</td>
+                <td style={styles.right}>{r.participation}</td>
                 <td style={styles.right}>{r.max_score}</td>
                 
                 <td style={styles.left}>
