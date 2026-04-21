@@ -41,12 +41,7 @@ sessions?.forEach(s => {
   attemptMap[key] = s.total_attempts || 0
 })
 
-  // ✅ MERGE
-  const merged = (studentData || []).map(s => ({
-  ...s,
-  attempt_count: attemptMap[String(s.id)] || 0,
-  rank: rankMap[s.id] || '-'
-}))
+  
   let filtered = merged
 
 // 🔍 Search filter
@@ -102,7 +97,11 @@ const rankMap = {}
 ranked.forEach(([id], index) => {
   rankMap[id] = index + 1
 })
-
+const merged = (studentData || []).map(s => ({
+  ...s,
+  attempt_count: attemptMap[String(s.id)] || 0,
+  rank: rankMap[s.id] || '-'
+}))
 // 🎯 Exam category filter
 if (examCategory !== 'ALL') {
   filtered = filtered.filter(s => s.exam_preference === examCategory)
@@ -153,8 +152,10 @@ function downloadTemplate() {
   }
 
   return (
+    
     <div style={styles.page}>
       <div style={styles.header}>
+    <h1 style={styles.heading}>👨‍🎓 Registered Students</h1>
     <div style={{ display: 'flex', gap: 10, marginBottom: 15 }}>
 
   <input
@@ -181,7 +182,7 @@ function downloadTemplate() {
   </select>
 
 </div>
-  <h1 style={styles.heading}>👨‍🎓 Registered Students</h1>
+  
 
 <div style={{ display: 'flex', gap: 10 }}>
   
