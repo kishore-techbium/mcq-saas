@@ -1,20 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { supabase } from '../../../lib/supabase'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar
+  ScatterChart, Scatter, BarChart, Bar
 } from 'recharts'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 
 function format2(num) {
-  if (num === null || num === undefined) return '0.00'
-  return Number(num).toFixed(2)
+  return Number(num || 0).toFixed(2)
 }
 
 export default function AcademicIntelligence() {
-  const [loading, setLoading] = useState(true)
 
+  const reportRef = useRef(null)
+
+  const [loading, setLoading] = useState(true)
   const [examType, setExamType] = useState('ALL')
   const [examCategory, setExamCategory] = useState('ALL')
 
@@ -22,15 +25,16 @@ export default function AcademicIntelligence() {
   const [subjects, setSubjects] = useState([])
   const [subtopics, setSubtopics] = useState([])
   const [riskStudents, setRiskStudents] = useState([])
-  const [subjectRecommendations, setSubjectRecommendations] = useState([])
   const [effortData, setEffortData] = useState([])
   const [efficiencyData, setEfficiencyData] = useState([])
+  const [trendData, setTrendData] = useState([])
+  const [recommendations, setRecommendations] = useState([])
 
-  useEffect(() => {
-    init()
-  }, [examType, examCategory])
+  useEffect(() => { init() }, [examType, examCategory])
 
   async function init() {
+    setLoading(true)
+
     const { data: auth } = await supabase.auth.getUser()
     const user = auth?.user
 
@@ -46,43 +50,28 @@ export default function AcademicIntelligence() {
 
   async function loadData(college_id) {
 
-    // =========================
-    // BASE QUERY
-    // =========================
-    let overallQuery = supabase
-      .from('student_overall_stats')
+    // 🔥 exam_id mapping
+    let examQuery = supabase.from('exams').select('id')
+
+    if (examType !== 'ALL') examQuery.eq('exam_type', examType)
+    if (examCategory !== 'ALL') examQuery.eq('exam_category', examCategory)
+
+    const { data: exams } = await examQuery
+    const examIds = exams?.map(e => e.id) || []
+
+    let examStatsQuery = supabase
+      .from('student_exam_stats')
       .select('*')
       .eq('college_id', college_id)
 
-    let subjectQuery = supabase
-      .from('student_subject_stats')
-      .select('*')
-      .eq('college_id', college_id)
-
-    let subQuery = supabase
-      .from('student_subtopic_stats')
-      .select('*')
-      .eq('college_id', college_id)
-
-    if (examType !== 'ALL') {
-      subjectQuery = subjectQuery.eq('exam_type', examType)
-      subQuery = subQuery.eq('exam_type', examType)
+    if (examIds.length > 0) {
+      examStatsQuery.in('exam_id', examIds)
     }
 
-    if (examCategory !== 'ALL') {
-      subjectQuery = subjectQuery.eq('exam_category', examCategory)
-      subQuery = subQuery.eq('exam_category', examCategory)
-    }
+    const { data: examStats } = await examStatsQuery
 
-    const { data: overall } = await overallQuery
-    const { data: subjectStats } = await subjectQuery
-    const { data: subStats } = await subQuery
-
-    // =========================
-    // STUDENT MAP
-    // =========================
-    const ids = overall?.map(s => s.student_id) || []
-
+    // student names
+    const ids = examStats?.map(s => s.student_id) || []
     let studentMap = {}
 
     if (ids.length > 0) {
@@ -92,152 +81,107 @@ export default function AcademicIntelligence() {
         .in('id', ids)
 
       students?.forEach(s => {
-        studentMap[s.id] = `${s.first_name || ''} ${s.last_name || ''}`
+        studentMap[s.id] = `${s.first_name} ${s.last_name}`
       })
     }
 
-    // =========================
-    // SUMMARY
-    // =========================
+    // ================= SUMMARY =================
     let totalScore = 0
     let totalAttempts = 0
 
-    overall?.forEach(s => {
-      totalScore += (s.avg_score || 0) * (s.total_attempts || 0)
-      totalAttempts += s.total_attempts || 0
+    examStats?.forEach(s => {
+      totalScore += (s.avg_score || 0) * (s.attempts || 0)
+      totalAttempts += s.attempts || 0
     })
 
-    const avgScore = totalAttempts > 0
-      ? format2(totalScore / totalAttempts)
-      : '0.00'
+    const avgScore = totalAttempts > 0 ? totalScore / totalAttempts : 0
 
-    // =========================
-    // RISK
-    // =========================
-    const risk = overall
-      ?.filter(s => (s.avg_score || 0) < 40)
-      .map(s => ({
-        ...s,
-        name: studentMap[s.student_id] || 'Unknown'
+    // ================= RISK =================
+    const risk = examStats
+      ?.map(s => ({
+        name: studentMap[s.student_id] || 'Unknown',
+        score: s.avg_score || 0,
+        risk: (s.avg_score < 40 ? 2 : 0) + (s.avg_time_per_exam > 90 ? 1 : 0)
       }))
+      .filter(s => s.risk >= 2)
+      .sort((a, b) => a.score - b.score)
 
-    // =========================
-    // SUBJECT
-    // =========================
-    const subjectMap = {}
-
-    subjectStats?.forEach(s => {
-      if (!subjectMap[s.subject]) {
-        subjectMap[s.subject] = { correct: 0, total: 0 }
-      }
-      subjectMap[s.subject].correct += s.correct || 0
-      subjectMap[s.subject].total += s.total_questions || 0
-    })
-
-    const subjectArray = Object.keys(subjectMap).map(sub => ({
-      subject: sub,
-      accuracy:
-        subjectMap[sub].total > 0
-          ? subjectMap[sub].correct / subjectMap[sub].total
-          : 0
-    })).sort((a, b) => a.accuracy - b.accuracy)
-
-    // =========================
-    // SUBTOPICS
-    // =========================
-    const subArray = subStats?.map(s => ({
-      subject: s.subject,
-      subtopic: s.subtopic,
-      accuracy:
-        s.total_questions > 0
-          ? s.correct / s.total_questions
-          : 0
-    }))
-
-    // =========================
-    // EFFORT
-    // =========================
-    const effort = overall?.map(s => ({
-      effort: s.total_attempts,
-      score: Number(s.avg_score).toFixed(2)
-    }))
-
-    // =========================
-    // EFFICIENCY
-    // =========================
-    const efficiency = overall?.map(s => ({
+    // ================= EFFICIENCY =================
+    const efficiency = examStats?.map(s => ({
       name: studentMap[s.student_id] || 'Unknown',
       efficiency: s.avg_time_per_exam
-        ? format2(s.avg_score / s.avg_time_per_exam)
-        : '0.00'
+        ? s.avg_score / (s.avg_time_per_exam / 60)
+        : 0
     }))
 
-    // =========================
-    // RECOMMENDATIONS
-    // =========================
-    const recommendations = []
+    // ================= TREND =================
+    const trend = examStats?.slice(0, 10).map((s, i) => ({
+      name: `T${i + 1}`,
+      score: Number(format2(s.avg_score))
+    }))
 
-    subjectArray.forEach(subject => {
-      const relatedSubs = subArray?.filter(
-        s => s.subject === subject.subject
-      )
+    // ================= EFFORT =================
+    const effort = examStats?.map(s => ({
+      effort: s.total_time_spent || 0,
+      score: s.avg_score || 0
+    }))
 
-      const weakSubs = relatedSubs
-        ?.filter(s => s.accuracy < 0.5)
-        .slice(0, 3)
-
-      const acc = subject.accuracy
-
-      let severity = ''
-      let action = ''
-      let priority = ''
-
-      if (acc < 0.4) {
-        severity = '🔴 Critical'
-        priority = 'High'
-        action = 'Immediate intervention + concept clarity sessions'
-      } else if (acc < 0.6) {
-        severity = '🟡 Moderate'
-        priority = 'Medium'
-        action = 'Increase problem-solving practice'
-      } else {
-        severity = '🟢 Strong'
-        priority = 'Low'
-        action = 'Maintain consistency'
-      }
-
-      recommendations.push({
-        subject: subject.subject,
-        accuracy: format2(acc * 100),
-        severity,
-        priority,
-        action,
-        hint: weakSubs.length
-          ? `Focus on: ${weakSubs.map(s => s.subtopic).join(', ')}`
-          : 'No major weak subtopics'
-      })
+    // ================= SUBJECT =================
+    const subjectAgg = {}
+    examStats?.forEach(s => {
+      if (!subjectAgg[s.subject]) subjectAgg[s.subject] = { score: 0, count: 0 }
+      subjectAgg[s.subject].score += s.avg_score || 0
+      subjectAgg[s.subject].count++
     })
+
+    const subjectArray = Object.keys(subjectAgg).map(sub => ({
+      subject: sub,
+      score: subjectAgg[sub].score / subjectAgg[sub].count
+    }))
+
+    // ================= RECOMMENDATIONS =================
+    const recs = subjectArray.map(s => ({
+      subject: s.subject,
+      msg:
+        s.score < 40 ? '🔴 Focus heavily' :
+          s.score < 60 ? '🟡 Improve practice' :
+            '🟢 Maintain'
+    }))
 
     setSummary({
-      avgScore,
-      totalAttempts,
-      totalStudents: overall?.length || 0
+      avgScore: format2(avgScore),
+      totalStudents: examStats?.length || 0,
+      risk: risk.length
     })
 
-    setSubjects(subjectArray)
-    setSubtopics(subArray || [])
     setRiskStudents(risk)
-    setEffortData(effort)
     setEfficiencyData(efficiency)
-    setSubjectRecommendations(recommendations)
+    setTrendData(trend)
+    setEffortData(effort)
+    setSubjects(subjectArray)
+    setRecommendations(recs)
+  }
+
+  async function downloadPDF() {
+    const canvas = await html2canvas(reportRef.current)
+    const pdf = new jsPDF()
+    const img = canvas.toDataURL('image/png')
+
+    pdf.addImage(img, 'PNG', 0, 0, 210, 295)
+    pdf.save('academic-intelligence.pdf')
   }
 
   if (loading) return <p>Loading...</p>
 
   return (
     <div style={styles.page}>
-      <h1>📈 Academic Intelligence</h1>
 
+      <div style={styles.header}>
+        <h1>📊 Academic Intelligence</h1>
+        <button style={styles.btn} onClick={downloadPDF}>Download PDF</button>
+      </div>
+
+      {/* FILTERS */}
       <div style={styles.filters}>
         <select value={examType} onChange={e => setExamType(e.target.value)}>
           <option value="ALL">All Types</option>
@@ -248,72 +192,118 @@ export default function AcademicIntelligence() {
 
         <select value={examCategory} onChange={e => setExamCategory(e.target.value)}>
           <option value="ALL">All Categories</option>
-          <option value="JEE_MAINS">JEE Mains</option>
-          <option value="JEE_ADVANCED">JEE Advanced</option>
+          <option value="JEE_MAINS">JEE</option>
           <option value="NEET">NEET</option>
         </select>
       </div>
 
-      <div style={styles.cards}>
-        <Card title="Students" value={summary.totalStudents} />
-        <Card title="Avg Score" value={summary.avgScore + '%'} />
-        <Card title="Attempts" value={summary.totalAttempts} />
-        <Card title="At Risk" value={riskStudents.length} />
+      <div ref={reportRef}>
+
+        {/* SUMMARY CARDS */}
+        <div style={styles.cards}>
+          <Card title="Students" value={summary.totalStudents} />
+          <Card title="Avg Score" value={summary.avgScore + '%'} />
+          <Card title="At Risk" value={summary.risk} />
+        </div>
+
+        {/* TREND */}
+        <Section title="📈 Score Trend">
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={trendData}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Line dataKey="score" stroke="#2563eb" strokeWidth={3} />
+            </LineChart>
+          </ResponsiveContainer>
+        </Section>
+
+        {/* SUBJECT BAR */}
+        <Section title="📚 Subject Performance">
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={subjects}>
+              <XAxis dataKey="subject" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="score" fill="#16a34a" />
+            </BarChart>
+          </ResponsiveContainer>
+        </Section>
+
+        {/* EFFORT VS PERFORMANCE */}
+        <Section title="🎯 Effort vs Performance">
+          <ResponsiveContainer width="100%" height={250}>
+            <ScatterChart>
+              <XAxis dataKey="effort" />
+              <YAxis dataKey="score" />
+              <Tooltip />
+              <Scatter data={effortData} fill="#f59e0b" />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </Section>
+
+        {/* RISK */}
+        <Section title="⚠️ At Risk Students">
+          {riskStudents.map((r, i) => (
+            <Row key={i} left={r.name} right={format2(r.score) + '%'} />
+          ))}
+        </Section>
+
+        {/* EFFICIENCY */}
+        <Section title="⚡ Efficiency">
+          {efficiencyData.slice(0, 10).map(e => (
+            <Row key={e.name} left={e.name} right={format2(e.efficiency)} />
+          ))}
+        </Section>
+
+        {/* RECOMMENDATIONS */}
+        <Section title="🧠 Recommendations">
+          {recommendations.map((r, i) => (
+            <Row key={i} left={r.subject} right={r.msg} />
+          ))}
+        </Section>
+
       </div>
-
-      <Section title="⚡ Efficiency"
-        desc="Shows how effectively students use time vs score.">
-        {efficiencyData.slice(0, 10).map(e => (
-          <p key={e.name}>{e.name} – {e.efficiency}</p>
-        ))}
-      </Section>
-
-      <Section title="⚠️ At Risk Students"
-        desc="Students below 40% accuracy.">
-        {riskStudents.slice(0, 10).map(s => (
-          <p key={s.student_id}>{s.name} – {format2(s.avg_score)}%</p>
-        ))}
-      </Section>
-
-      <Section title="🧠 Subject Recommendations"
-        desc="Action plan per subject based on analytics.">
-        {subjectRecommendations.map((r, i) => (
-          <div key={i} style={styles.recCard}>
-            <h3>{r.subject} ({r.accuracy}%) – {r.severity}</h3>
-            <p><strong>Priority:</strong> {r.priority}</p>
-            <p>• {r.action}</p>
-            <p>• {r.hint}</p>
-          </div>
-        ))}
-      </Section>
     </div>
   )
 }
 
-/* COMPONENTS */
+/* UI */
 
 function Card({ title, value }) {
-  return <div style={styles.card}><div>{title}</div><div>{value}</div></div>
+  return (
+    <div style={styles.card}>
+      <div>{title}</div>
+      <div style={{ fontSize: 24, fontWeight: 'bold' }}>{value}</div>
+    </div>
+  )
 }
 
-function Section({ title, desc, children }) {
+function Section({ title, children }) {
   return (
     <div style={styles.section}>
       <h2>{title}</h2>
-      <p style={styles.desc}>{desc}</p>
       {children}
     </div>
   )
 }
 
-/* STYLES */
+function Row({ left, right }) {
+  return (
+    <div style={styles.row}>
+      <span>{left}</span>
+      <span>{right}</span>
+    </div>
+  )
+}
 
 const styles = {
   page: { padding: 40, background: '#f1f5f9' },
-  filters: { display: 'flex', gap: 10, marginBottom: 20 },
+  header: { display: 'flex', justifyContent: 'space-between' },
+  filters: { display: 'flex', gap: 10, margin: '20px 0' },
+  btn: { padding: 10, background: '#2563eb', color: '#fff', borderRadius: 6 },
   cards: { display: 'flex', gap: 20 },
-  card: { background: '#fff', padding: 20, borderRadius: 12 },
-  section: { background: '#fff', padding: 20, marginTop: 20 },
-  recCard: { background: '#f8fafc', padding: 15, marginTop: 10, borderRadius: 10 },
-  desc: { color: '#555' }
+  card: { background: '#fff', padding: 20, borderRadius: 12, flex: 1 },
+  section: { background: '#fff', padding: 20, marginTop: 20, borderRadius: 12 },
+  row: { display: 'flex', justifyContent: 'space-between', padding: 6 }
 }
