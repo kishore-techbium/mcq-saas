@@ -152,7 +152,7 @@ function downloadTemplate() {
   }
 
   return (
-    <h1 style={styles.heading}>👨‍🎓 Registered Students</h1>
+    <h1 style={styles.heading}>👨‍🎓 Registered Students</h1><br></br>
     <div style={styles.page}>
       <div style={styles.header}>
     
