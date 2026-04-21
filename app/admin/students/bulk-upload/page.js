@@ -5,92 +5,55 @@ import { supabase } from '../../../../lib/supabase'
 
 export default function BulkUpload() {
   const [file, setFile] = useState(null)
-  const [admin, setAdmin] = useState(null)
+  
   const [loading, setLoading] = useState(false)
 
   /* ================= FETCH ADMIN ================= */
 
   useEffect(() => {
-    fetchAdmin()
+    
   }, [])
-
-  async function fetchAdmin() {
-    try {
-      const { data } = await supabase.auth.getUser()
-
-      if (!data?.user) {
-        alert('Not logged in')
-        return
-      }
-
-      const email = data.user.email
-
-      const { data: user, error } = await supabase
-        .from('students')
-        .select('*')
-        .eq('email', email)
-        .single()
-
-      if (error || !user) {
-        alert('Admin not found')
-        return
-      }
-
-      if (user.role !== 'admin') {
-        alert('Access denied')
-        return
-      }
-
-      setAdmin(user)
-
-    } catch (err) {
-      console.error(err)
-      alert('Error loading admin')
-    }
-  }
 
   /* ================= UPLOAD ================= */
 
   async function handleUpload() {
-    if (!file) {
-      alert('Please select a file')
-      return
-    }
-
-    if (!admin) {
-      alert('Admin not loaded yet')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('adminCollegeId', admin.college_id)
-      formData.append('adminCollegeName', admin.college_name)
-
-      const res = await fetch('/api/admin/bulk-students', {
-        method: 'POST',
-        body: formData
-      })
-
-      const data = await res.json()
-
-      if (!res.ok) {
-        alert(data.error || 'Upload failed')
-        return
-      }
-
-      alert(`✅ Inserted: ${data.inserted}\n❌ Failed: ${data.failed}`)
-
-    } catch (err) {
-      console.error(err)
-      alert('Upload error')
-    }
-
-    setLoading(false)
+  if (!file) {
+    alert('Please select a file')
+    return
   }
+
+  setLoading(true)
+
+  try {
+    const { data } = await supabase.auth.getSession()
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const res = await fetch('/api/admin/bulk-students', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${data.session.access_token}`
+      },
+      body: formData
+    })
+
+    const result = await res.json()
+
+    if (!res.ok) {
+      alert(result.error || 'Upload failed')
+      return
+    }
+
+    alert(`✅ Inserted: ${result.inserted}\n❌ Failed: ${result.failed}`)
+
+  } catch (err) {
+    console.error(err)
+    alert('Upload error')
+  }
+
+  setLoading(false)
+}
 
   /* ================= UI ================= */
 
