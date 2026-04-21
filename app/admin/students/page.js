@@ -178,9 +178,6 @@ function downloadTemplate() {
     <option value="NEET">NEET</option>
   </select>
 
-</div>
-  
-
 <div style={{ display: 'flex', gap: 10 }}>
   
   <button
@@ -208,6 +205,7 @@ function downloadTemplate() {
       ⬇ Download Excel
     </button>
   </div>
+</div>
 </div>
 
       {loading && <p>Loading students...</p>}
