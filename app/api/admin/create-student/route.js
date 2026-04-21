@@ -19,9 +19,7 @@ export async function POST(req) {
       exam_preference,
       phone,
       address,
-      adminCollegeId,
-      adminCollegeName
-    } = body
+      } = body
 
     /* ================= CLEAN INPUT ================= */
 
@@ -39,13 +37,40 @@ export async function POST(req) {
       )
     }
 
-    if (!adminCollegeId || !adminCollegeName) {
-      return Response.json(
-        { error: 'Admin college info missing' },
-        { status: 400 }
-      )
-    }
+   /* ================= GET ADMIN COLLEGE ================= */
 
+const authHeader = req.headers.get('authorization')
+
+if (!authHeader) {
+  return Response.json({ error: 'Unauthorized' }, { status: 401 })
+}
+
+const token = authHeader.replace('Bearer ', '')
+
+const {
+  data: { user },
+  error: authError
+} = await supabase.auth.getUser(token)
+
+if (authError || !user) {
+  return Response.json({ error: 'Invalid user' }, { status: 401 })
+}
+
+const { data: admin, error: adminError } = await supabase
+  .from('students')
+  .select('college_id, college_name')
+  .eq('user_id', user.id)
+  .single()
+
+if (adminError || !admin) {
+  return Response.json(
+    { error: 'Admin college info missing' },
+    { status: 400 }
+  )
+}
+
+const adminCollegeId = admin.college_id
+const adminCollegeName = admin.college_name
     /* ================= CHECK DUPLICATE USERNAME ================= */
 
     const { data: existingUser, error: checkError } = await supabase
