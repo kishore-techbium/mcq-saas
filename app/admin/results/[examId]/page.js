@@ -1,51 +1,36 @@
 'use client'
 
 import { supabase } from '../../../../lib/supabase'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
-  PointElement,
-  LineElement,
-  ArcElement,
   Tooltip,
   Legend
 } from 'chart.js'
-import { Bar, Line } from 'react-chartjs-2'
-import * as XLSX from 'xlsx'
+import { Bar } from 'react-chartjs-2'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  PointElement,
-  LineElement,
-  ArcElement,
-  Tooltip,
-  Legend
-)
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend)
 
 export default function ExamAnalyticsPage() {
   const { examId } = useParams()
+  const reportRef = useRef()
 
   const [exam, setExam] = useState(null)
   const [studentsMap, setStudentsMap] = useState({})
-  const [activeTab, setActiveTab] = useState('overview')
-  const [loading, setLoading] = useState(true)
+  const [submitted, setSubmitted] = useState([])
   const [weakSubjects, setWeakSubjects] = useState([])
-  const [weakChapters, setWeakChapters] = useState([])
+  const [moderateAreas, setModerateAreas] = useState([])
   const [strongAreas, setStrongAreas] = useState([])
+  const [weakChapters, setWeakChapters] = useState([])
   const [difficulty, setDifficulty] = useState('')
-const [submitted, setSubmitted] = useState([])
-const [moderateAreas, setModerateAreas] = useState([])
-  function getPerformanceLabel(score) {
-  if (score < 40) return '🔴 Low'
-  if (score < 70) return '🟡 Moderate'
-  return '🟢 Strong'
-}
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
     if (examId) fetchAll()
   }, [examId])
@@ -53,582 +38,230 @@ const [moderateAreas, setModerateAreas] = useState([])
   async function fetchAll() {
     setLoading(true)
 
-    // Exam
     const { data: examData } = await supabase
       .from('exams')
       .select('*')
       .eq('id', examId)
       .single()
-const { data: examStats } = await supabase
-  .from('student_exam_stats')
-  .select('*')
-  .eq('exam_id', examId)
 
-const submittedLocal = examStats || []
-  
-    // Students
-    const studentIds = [
-  ...new Set(
-    submittedLocal
-      .map(s => s.student_id)
-      .filter(id => id && typeof id === 'string')
-  )
-]
-    console.log('clean studentIds:', studentIds)
+    const { data: stats } = await supabase
+      .from('student_exam_stats')
+      .select('*')
+      .eq('exam_id', examId)
+
+    const studentIds = [...new Set(stats.map(s => s.student_id))]
+
     const { data: students } = await supabase
       .from('students')
       .select('*')
       .in('id', studentIds)
 
-    let studentMap = {}
+    const map = {}
     students?.forEach(s => {
-      studentMap[s.id] = {
-        name: `${s.first_name || ''} ${s.last_name || ''}`.trim(),
+      map[s.id] = {
+        name: `${s.first_name || ''} ${s.last_name || ''}`,
         email: s.email
       }
     })
 
-    setSubmitted(submittedLocal)
+    setStudentsMap(map)
+    setSubmitted(stats || [])
     setExam(examData)
-    
-    setStudentsMap(studentMap)
-// =========================
-// 🔥 PERFORMANCE INTELLIGENCE
-// =========================
 
+    // SUBJECT INTELLIGENCE
+    const { data: subjectStats } = await supabase
+      .from('student_subject_stats')
+      .select('*')
+      .in('student_id', studentIds)
 
-// SUBJECT STATS
-let subjectStats = []
+    const subjectAgg = {}
 
-if (studentIds.length > 0) {
-  const res = await supabase
-    .from('student_subject_stats')
-    .select('*')
-    .or(studentIds.map(id => `student_id.eq.${id}`).join(','))
-  
-  subjectStats = res.data || []
-}
-const subjectAgg = {}
+    subjectStats?.forEach(s => {
+      if (!subjectAgg[s.subject]) {
+        subjectAgg[s.subject] = { correct: 0, total: 0 }
+      }
+      subjectAgg[s.subject].correct += s.correct || 0
+      subjectAgg[s.subject].total += s.total_questions || 0
+    })
 
-subjectStats?.forEach(s => {
-  if (!subjectAgg[s.subject]) {
-    subjectAgg[s.subject] = { total: 0, count: 0 }
-  }
+    const subjectArray = Object.entries(subjectAgg).map(([k, v]) => ({
+      subject: k,
+      accuracy: v.total > 0 ? (v.correct / v.total) * 100 : 0
+    }))
 
-subjectAgg[s.subject].total += (s.correct || 0)
-subjectAgg[s.subject].count += (s.total_questions || 0)
-})
+    const weak = [], moderate = [], strong = []
 
-const subjectArray = Object.entries(subjectAgg).map(([k, v]) => ({
-  subject: k,
-  accuracy: v.count > 0 ? (v.total / v.count) * 100 : 0
-}))
+    subjectArray.forEach(s => {
+      if (s.accuracy < 40) weak.push(s)
+      else if (s.accuracy < 70) moderate.push(s)
+      else strong.push(s)
+    })
 
-subjectArray.sort((a, b) => a.accuracy - b.accuracy)
+    setWeakSubjects(weak)
+    setModerateAreas(moderate)
+    setStrongAreas(strong)
 
-const weak = []
-const moderate = []
-const strong = []
+    // CHAPTERS
+    const { data: subStats } = await supabase
+      .from('student_subtopic_stats')
+      .select('*')
+      .in('student_id', studentIds)
 
-subjectArray.forEach(s => {
-  if (s.accuracy < 40) weak.push(s)
-  else if (s.accuracy < 70) moderate.push(s)
-  else strong.push(s)
-})
+    const chapterAgg = {}
 
-setWeakSubjects(weak)
-setModerateAreas(moderate)
-setStrongAreas(strong)
-// CHAPTER STATS 
-let subtopicStats = []
+    subStats?.forEach(s => {
+      if (!chapterAgg[s.chapter]) {
+        chapterAgg[s.chapter] = { correct: 0, total: 0 }
+      }
+      chapterAgg[s.chapter].correct += s.correct || 0
+      chapterAgg[s.chapter].total += s.total_questions || 0
+    })
 
-if (studentIds.length > 0) {
-  const res = await supabase
-    .from('student_subtopic_stats')
-    .select('*')
-    .or(studentIds.map(id => `student_id.eq.${id}`).join(','))
-  
-  subtopicStats = res.data || []
-}
+    const weakChap = Object.entries(chapterAgg)
+      .map(([k, v]) => ({
+        chapter: k,
+        accuracy: v.total > 0 ? (v.correct / v.total) * 100 : 0
+      }))
+      .filter(c => c.accuracy < 40)
 
+    setWeakChapters(weakChap)
 
-console.log('subtopicStats:', subtopicStats)
-const chapterAgg = {}
+    // DIFFICULTY
+    const avg =
+      stats.reduce((sum, s) => sum + (s.avg_score || 0), 0) / stats.length
 
-subtopicStats?.forEach(s => {
-  if (!chapterAgg[s.chapter]) {
-    chapterAgg[s.chapter] = { total: 0, count: 0 }
-  }
-chapterAgg[s.chapter].total += (s.correct || 0)
-chapterAgg[s.chapter].count += (s.total_questions || 0)
-})
+    if (avg < 40) setDifficulty('Hard')
+    else if (avg < 70) setDifficulty('Medium')
+    else setDifficulty('Easy')
 
-const chapterArray = Object.entries(chapterAgg).map(([k, v]) => ({
-  chapter: k,
-  accuracy: v.count > 0 ? v.total / v.count : 0
-}))
-
-chapterArray.sort((a, b) => a.accuracy - b.accuracy)
-
-const weakChap = []
-
-chapterArray.forEach(c => {
-  if (c.accuracy < 40) weakChap.push(c)
-})
-
-setWeakChapters(weakChap)
-
-let totalScore = 0
-let totalAttempts = 0
-
-submittedLocal.forEach(s => {
-  totalScore += (s.avg_score || 0) * (s.attempts || 0)
-  totalAttempts += s.attempts || 0
-})
-
-const avgScore =
-  totalAttempts > 0 ? totalScore / totalAttempts : 0
-
-if (avgScore < 40) setDifficulty('Hard')
-else if (avgScore < 70) setDifficulty('Medium')
-else setDifficulty('Easy')
-    
     setLoading(false)
   }
 
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
-  // =========================
-  // PROCTOR FLAG COUNT
-  // =========================
-  const rejectedSessions = submitted.filter(
-    s => s.proctor_status === 'REJECTED'
-  )
+  // KPI
+  const totalStudents = submitted.length
+  const avgScore =
+    submitted.reduce((s, x) => s + (x.avg_score || 0), 0) / totalStudents
 
-  // =========================
-  // LEADERBOARD
-  // =========================
-  const leaderboard = Object.values(
-    
-    submitted.reduce((acc, s) => {
-  const totalQ = s.total_questions || 1
-  const maxScore = totalQ * 4
+  const maxScore = Math.max(...submitted.map(s => s.best_score || 0))
+  const minScore = Math.min(...submitted.map(s => s.best_score || 0))
 
-  const percent =
-    maxScore > 0
-      ? ((s.best_score || 0) / maxScore) * 100
-      : 0
+  const passCount = submitted.filter(s => (s.avg_score || 0) >= 40).length
 
-  if (!acc[s.student_id]) {
-    acc[s.student_id] = {
-      student_id: s.student_id,
-      best: s.best_score || 0,
-      bestPercent: percent,
-      attempts: 0,
-      rejected: false
-    }
-  }
-
-  acc[s.student_id].best = Math.max(
-    acc[s.student_id].best,
-    s.best_score || 0
-  )
-
-  acc[s.student_id].bestPercent = Math.max(
-    acc[s.student_id].bestPercent,
-    percent
-  )
-
-  acc[s.student_id].attempts += (s.attempts || 0)
-
-  if (s.proctor_status === 'REJECTED') {
-    acc[s.student_id].rejected = true
-  }
-
-  return acc
-}, {})
-  ).sort((a, b) => b.bestPercent - a.bestPercent)
-
-  // =========================
-  // SCORE DISTRIBUTION
-  // =========================
+  // DISTRIBUTION
   const buckets = { '0-25': 0, '26-50': 0, '51-75': 0, '76-100': 0 }
 
-submitted.forEach(s => {
-  const totalQ = s.total_questions || 1
-const maxScore = totalQ * 4
+  submitted.forEach(s => {
+    const percent = s.avg_score || 0
+    if (percent <= 25) buckets['0-25']++
+    else if (percent <= 50) buckets['26-50']++
+    else if (percent <= 75) buckets['51-75']++
+    else buckets['76-100']++
+  })
 
-const percent = maxScore > 0
-  ? ((s.best_score || 0) / maxScore) * 100
-  : 0
-
-  if (percent <= 25) buckets['0-25']++
-  else if (percent <= 50) buckets['26-50']++
-  else if (percent <= 75) buckets['51-75']++
-  else buckets['76-100']++
-})
-  const distributionData = {
+  const chartData = {
     labels: Object.keys(buckets),
-   datasets: [
-  {
-    label: 'Students in Score Range',
-    data: Object.values(buckets),
-    backgroundColor: '#3b82f6'
-  }
-]
+    datasets: [{ data: Object.values(buckets), backgroundColor: '#3b82f6' }]
   }
 
-const trendData = {
-  labels: submitted.map(s => studentsMap[s.student_id]?.name || 'Student'),
-datasets: [
-  {
-    label: 'Average Score (%)',
-    data: submitted.map(s => Math.max(0, s.avg_score || 0)),
-    borderColor: '#10b981',
-    fill: false
-  }
-]
-}
-
-  function exportExcel() {
-    const data = leaderboard.map((l, i) => ({
-      Rank: i + 1,
-      Student: studentsMap[l.student_id]?.name,
-      Email: studentsMap[l.student_id]?.email,
-      Best: l.best,
-      Attempts: l.attempts,
-      Proctor_Status: l.rejected ? 'REJECTED' : 'OK'
+  // LEADERBOARD
+  const leaderboard = submitted
+    .map(s => ({
+      student_id: s.student_id,
+      score: s.best_score || 0,
+      rejected: s.proctor_status === 'REJECTED'
     }))
+    .sort((a, b) => b.score - a.score)
 
-    const ws = XLSX.utils.json_to_sheet(data)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Leaderboard')
-    XLSX.writeFile(wb, `${exam.title}_Analytics.xlsx`)
-  }
-
-  const medal = rank => {
-    if (rank === 0) return '🥇'
-    if (rank === 1) return '🥈'
-    if (rank === 2) return '🥉'
-    return rank + 1
-  }
-
-  const kpiCard = {
-    background: '#ffffff',
-    padding: 25,
-    borderRadius: 14,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-    textAlign: 'center'
-  }
-
-  const kpiNumber = {
-    fontSize: 28,
-    fontWeight: 600,
-    marginBottom: 8
-  }
-
-  const kpiLabel = {
-    color: '#6b7280',
-    fontSize: 14
-  }
-
-  const th = {
-    padding: 12,
-    textAlign: 'left',
-    borderBottom: '1px solid #e5e7eb'
-  }
-
-  const td = {
-    padding: 12,
-    borderBottom: '1px solid #f3f4f6'
-  }
-
-  const chartCard = {
-    background: '#ffffff',
-    padding: 20,
-    borderRadius: 14,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+  async function downloadPDF() {
+    const canvas = await html2canvas(reportRef.current, { scale: 2 })
+    const pdf = new jsPDF()
+    const img = canvas.toDataURL('image/png')
+    pdf.addImage(img, 'PNG', 0, 0, 210, 295)
+    pdf.save(`${exam.title}.pdf`)
   }
 
   return (
-    <div
-      style={{
-        padding: 40,
-        background: '#f3f4f6',
-        minHeight: '100vh'
-      }}
-    >
-      <h1
-        style={{
-          fontSize: 28,
-          fontWeight: 600,
-          marginBottom: 25
-        }}
-      >
-        {exam.title} - Enterprise Analytics
-      </h1>
+    <div style={{ padding: 40, background: '#f3f4f6' }}>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 30 }}>
-        {['overview', 'leaderboard', 'graphs', 'intelligence'].map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            style={{
-              padding: '8px 18px',
-              borderRadius: 20,
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 500,
-              background:
-                activeTab === tab ? '#2563eb' : '#e5e7eb',
-              color:
-                activeTab === tab ? '#fff' : '#111827'
-            }}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
-      </div>
+      <button onClick={downloadPDF} style={{ marginBottom: 20 }}>
+        Download PDF
+      </button>
 
-      {/* Overview */}
-      {activeTab === 'overview' && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns:
-              'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: 20
-          }}
-        >
-          <div style={kpiCard}>
-            <div style={kpiNumber}>{submitted.reduce((sum, s) => sum + (s.attempts || 0), 0)}</div>
-            <div style={kpiLabel}>Total Attempts</div>
-          </div>
+      <div ref={reportRef}>
 
-          <div style={kpiCard}>
-            <div style={kpiNumber}>{submitted.length}</div>
-            <div style={kpiLabel}>Submitted</div>
-          </div>
+        {/* HEADER */}
+        <h1>{exam.title}</h1>
+        <p>{exam.exam_category} | {exam.exam_type} | {new Date(exam.created_at).toDateString()}</p>
 
-          <div style={kpiCard}>
-            <div style={kpiNumber}>
-              {
-  submitted.length > 0
-    ? (() => {
-        let totalScore = 0
-        let totalAttempts = 0
-
-        submitted.forEach(s => {
-          totalScore += (s.avg_score || 0) * (s.attempts || 0)
-          totalAttempts += s.attempts || 0
-        })
-
-        return totalAttempts > 0
-          ? (totalScore / totalAttempts).toFixed(1)
-          : 0
-      })()
-    : 0
-}
-            </div>
-            <div style={kpiLabel}>Average Score</div>
-          </div>
-
-          <div style={kpiCard}>
-            <div style={kpiNumber}>
-              {rejectedSessions.length}
-            </div>
-            <div style={kpiLabel}>
-              ⚠ Proctor Rejections
-            </div>
-          </div>
+        {/* KPI */}
+        <div style={{ display: 'flex', gap: 20 }}>
+          <Card title="Students Appeared" value={totalStudents} />
+          <Card title="Average Score" value={avgScore.toFixed(1)} />
+          <Card title="Highest Score" value={maxScore} />
+          <Card title="Lowest Score" value={minScore} />
+          <Card title="Pass %" value={(passCount / totalStudents * 100).toFixed(1)} />
         </div>
-      )}
 
-      {/* Leaderboard */}
-      {activeTab === 'leaderboard' && (
-        <div
-          style={{
-            background: '#fff',
-            padding: 25,
-            borderRadius: 12,
-            boxShadow:
-              '0 4px 10px rgba(0,0,0,0.05)'
-          }}
-        >
-          <button
-            onClick={exportExcel}
-            style={{
-              marginBottom: 20,
-              padding: '8px 16px',
-              background: '#10b981',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              cursor: 'pointer'
-            }}
-          >
-            Download Leaderboard
-          </button>
+        {/* CHART */}
+        <div style={{ marginTop: 30 }}>
+          <h3>Score Distribution</h3>
+          <Bar data={chartData} />
+        </div>
 
-          <table
-            style={{
-              width: '100%',
-              borderCollapse: 'collapse'
-            }}
-          >
+        {/* INTELLIGENCE */}
+        <div style={{ marginTop: 30 }}>
+          <h3>🧠 Insights</h3>
+          <p>Exam Difficulty: {difficulty}</p>
+
+          <h4>Weak Subjects</h4>
+          {weakSubjects.map(s => <p key={s.subject}>{s.subject} - {s.accuracy.toFixed(1)}%</p>)}
+
+          <h4>Weak Chapters</h4>
+          {weakChapters.map(c => <p key={c.chapter}>{c.chapter} - {c.accuracy.toFixed(1)}%</p>)}
+
+          <h4>Recommendations</h4>
+          <p>Focus on weak subjects and chapters. Conduct revision sessions.</p>
+        </div>
+
+        {/* LEADERBOARD */}
+        <div style={{ marginTop: 40 }}>
+          <h3>Leaderboard</h3>
+          <table style={{ width: '100%' }}>
             <thead>
-              <tr style={{ background: '#f9fafb' }}>
-                <th style={th}>Rank</th>
-                <th style={th}>Student</th>
-                <th style={th}>Email</th>
-                <th style={th}>Best</th>
-                <th style={th}>Attempts</th>
-                <th style={th}>Proctor</th>
+              <tr>
+                <th>Rank</th>
+                <th>Student</th>
+                <th>Email</th>
+                <th>Score</th>
+                <th>Proctor</th>
               </tr>
             </thead>
             <tbody>
               {leaderboard.map((l, i) => (
-                <tr key={l.student_id}>
-                  <td style={td}>{medal(i)}</td>
-                  <td style={td}>
-                    {studentsMap[l.student_id]?.name}
-                  </td>
-                  <td
-                    style={{
-                      ...td,
-                      color: '#6b7280'
-                    }}
-                  >
-                    {
-                      studentsMap[l.student_id]
-                        ?.email
-                    }
-                  </td>
-                  <td style={td}>{l.bestPercent.toFixed(1)}%</td>
-                  <td style={td}>{l.attempts}</td>
-                  <td style={td}>
-                    {l.rejected ? (
-                      <span
-                        style={{
-                          background: '#dc2626',
-                          color: '#fff',
-                          padding:
-                            '4px 10px',
-                          borderRadius: 20,
-                          fontSize: 12
-                        }}
-                      >
-                        REJECTED
-                      </span>
-                    ) : (
-                      <span
-                        style={{
-                          background: '#16a34a',
-                          color: '#fff',
-                          padding:
-                            '4px 10px',
-                          borderRadius: 20,
-                          fontSize: 12
-                        }}
-                      >
-                        OK
-                      </span>
-                    )}
-                  </td>
+                <tr key={i}>
+                  <td>{i + 1}</td>
+                  <td>{studentsMap[l.student_id]?.name}</td>
+                  <td>{studentsMap[l.student_id]?.email}</td>
+                  <td>{l.score}</td>
+                  <td>{l.rejected ? '⚠️' : 'OK'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      )}
 
-      {/* Graphs */}
-      {activeTab === 'graphs' && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns:
-              'repeat(auto-fit,minmax(300px,1fr))',
-            gap: 20
-          }}
-        >
-      
-          <div style={chartCard}>
-          
-  <p style={{ color: '#6b7280', fontSize: 13 }}>
-  Shows how many students fall into each score range. Total Students: {submitted.length}
+      </div>
+    </div>
+  )
+}
 
-</p>
-            <h3>Score Distribution</h3>
-            <Bar data={distributionData} height={150} />
-          </div>
-
-          <div style={chartCard}>
-    <p style={{ color: '#6b7280', fontSize: 13 }}>
-  Shows how student performance is changing across attempts.
-</p>        
-    <h3>Student Performance Comparison</h3>
-    <p>Shows performance of each student in this exam</p>
-            <Line data={trendData} height={150} />
-          </div>
-        </div>
-      )}
-
-      {/* 🔥 INTELLIGENCE TAB */}
-{activeTab === 'intelligence' && (
-  <div
-    style={{
-      background: '#ffffff',
-      padding: 25,
-      borderRadius: 12,
-      boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
-    }}
-  >
-    <h3>🧠 Student Performance Comparison</h3>
-<p style={{ color: '#6b7280', marginTop: 10 }}>
-  Shows performance of each student in this exam compared to their overall performance in all exams.
-  Accuracy % represents how correctly students answered questions in each subject or chapter.
-</p>
-    <p>
-  <strong>Exam Difficulty:</strong> {difficulty} 
-  <span style={{ color: '#6b7280', marginLeft: 6 }}>
-    (Based on overall student performance)
-  </span>
-</p>
-
-    <h4 style={{ marginTop: 20 }}>🔴 Weak Subjects</h4>
-    {weakSubjects.length === 0 && <p>-</p>}
-    {weakSubjects.map((s, i) => (
-      <p key={i}>
-        {s.subject} → {s.accuracy.toFixed(1)}% ({getPerformanceLabel(s.accuracy)})
-      </p>
-    ))}
-
-    <h4 style={{ marginTop: 20 }}>🟠 Weak Chapters</h4>
-    {weakChapters.length === 0 && <p>-</p>}
-    {weakChapters.map((c, i) => (
-      <p key={i}>
-        {c.chapter} → {c.accuracy.toFixed(1)}% ({getPerformanceLabel(c.accuracy)})
-      </p>
-    ))}
-<h4 style={{ marginTop: 20 }}>🟡 Moderate Areas</h4>
-{moderateAreas.length === 0 && <p>-</p>}
-{moderateAreas.map((s, i) => (
-  <p key={i}>
-    {s.subject} → {s.accuracy.toFixed(1)}% ({getPerformanceLabel(s.accuracy)})
-  </p>
-))}
-    <h4 style={{ marginTop: 20 }}>🟢 Strong Areas</h4>
-    {strongAreas.length === 0 && <p>-</p>}
-    {strongAreas.map((s, i) => (
-      <p key={i}>
-        {s.subject} → {s.accuracy.toFixed(1)}% ({getPerformanceLabel(s.accuracy)})
-      </p>
-    ))}
-  </div>
-)}
-        
+function Card({ title, value }) {
+  return (
+    <div style={{ background: '#fff', padding: 20, borderRadius: 10 }}>
+      <div>{title}</div>
+      <div style={{ fontSize: 22 }}>{value}</div>
     </div>
   )
 }
