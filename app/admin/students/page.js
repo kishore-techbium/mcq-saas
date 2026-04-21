@@ -8,6 +8,8 @@ import { getStudentsWithCollege } from '../../../lib/db'
 export default function StudentListPage() {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+const [examCategory, setExamCategory] = useState('ALL')
 
   useEffect(() => {
     fetchStudents()
@@ -41,11 +43,72 @@ sessions?.forEach(s => {
 
   // ✅ MERGE
   const merged = (studentData || []).map(s => ({
-    ...s,
-    attempt_count: attemptMap[String(s.id)] || 0
-  }))
+  ...s,
+  attempt_count: attemptMap[String(s.id)] || 0,
+  rank: rankMap[s.id] || '-'
+}))
+  let filtered = merged
 
-  setStudents(merged)
+// 🔍 Search filter
+if (search) {
+  filtered = filtered.filter(s =>
+    `${s.first_name} ${s.last_name}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  )
+}
+
+  // 🔥 FETCH GRAND TEST SCORES
+const { data: grandStats } = await supabase
+  .from('student_exam_stats')
+  .select('student_id, avg_score, exam_id')
+  .in('student_id', studentData.map(s => s.id))
+
+// 🔥 GET GRAND TEST EXAM IDS
+const { data: grandExams } = await supabase
+  .from('exams')
+  .select('id')
+  .eq('exam_type', 'GRAND_TEST')
+
+const grandIds = grandExams?.map(e => e.id) || []
+
+// 🔥 FILTER GRAND TEST STATS
+const grandFiltered = grandStats?.filter(s => grandIds.includes(s.exam_id))
+
+// 🔥 CALCULATE BEST SCORE PER STUDENT
+const scoreMap = {}
+
+grandFiltered?.forEach(s => {
+  if (!scoreMap[s.student_id]) {
+    scoreMap[s.student_id] = []
+  }
+  scoreMap[s.student_id].push(s.avg_score || 0)
+})
+
+// 🔥 AVERAGE SCORE
+const avgScoreMap = {}
+
+Object.keys(scoreMap).forEach(id => {
+  const arr = scoreMap[id]
+  const avg = arr.reduce((a, b) => a + b, 0) / arr.length
+  avgScoreMap[id] = avg
+})
+
+// 🔥 SORT + RANK
+const ranked = Object.entries(avgScoreMap)
+  .sort((a, b) => b[1] - a[1])
+
+const rankMap = {}
+ranked.forEach(([id], index) => {
+  rankMap[id] = index + 1
+})
+
+// 🎯 Exam category filter
+if (examCategory !== 'ALL') {
+  filtered = filtered.filter(s => s.exam_preference === examCategory)
+}
+
+setStudents(filtered)
   setLoading(false)
 }
 function downloadTemplate() {
@@ -92,6 +155,32 @@ function downloadTemplate() {
   return (
     <div style={styles.page}>
       <div style={styles.header}>
+    <div style={{ display: 'flex', gap: 10, marginBottom: 15 }}>
+
+  <input
+    type="text"
+    placeholder="Search student name..."
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+    style={{
+      padding: 8,
+      borderRadius: 6,
+      border: '1px solid #ccc',
+      width: 200
+    }}
+  />
+
+  <select
+    value={examCategory}
+    onChange={(e) => setExamCategory(e.target.value)}
+    style={{ padding: 8, borderRadius: 6 }}
+  >
+    <option value="ALL">All Categories</option>
+    <option value="JEE">JEE</option>
+    <option value="NEET">NEET</option>
+  </select>
+
+</div>
   <h1 style={styles.heading}>👨‍🎓 Registered Students</h1>
 
 <div style={{ display: 'flex', gap: 10 }}>
@@ -143,6 +232,7 @@ function downloadTemplate() {
                 <th style={styles.th}>Address</th>
                 <th style={styles.th}>Created At</th>
                 <th style={styles.th}>Attempts</th>
+                <th style={styles.th}>Rank (Grand Test)</th>
                 <th style={styles.th}>Actions</th>
               </tr>
             </thead>
@@ -171,8 +261,14 @@ function downloadTemplate() {
                     {new Date(student.created_at).toLocaleDateString('en-IN')}
                   </td>
                   <td style={styles.td}>
-  {student.attempt_count}
-</td>
+                  {student.attempt_count}
+                </td>
+                <td style={{
+                ...styles.td,
+                color: student.rank <= 10 ? 'green' : 'black'
+              }}>
+                {student.rank}
+              </td>
                   <td style={styles.td}>
                     <button
                       style={styles.viewBtn}
