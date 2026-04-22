@@ -18,10 +18,22 @@ export default function CreateExamPage() {
   const [saving, setSaving] = useState(false)
   const [targetYear, setTargetYear] = useState('ALL')
 
-  useEffect(() => {
-    checkAdmin()
-  }, [])
+useEffect(() => {
+  checkAdmin()
 
+  // 👉 Set today's date
+  const today = new Date()
+  const yyyy = today.getFullYear()
+  const mm = String(today.getMonth() + 1).padStart(2, '0')
+  const dd = String(today.getDate()).padStart(2, '0')
+
+  const formattedDate = `${yyyy}-${mm}-${dd}`
+  const formattedTime = `18:00`
+
+  setExamDate(formattedDate)
+  setExamTime(formattedTime)
+
+}, [])
   async function checkAdmin() {
     const { data } = await supabase.auth.getUser()
 
