@@ -157,9 +157,9 @@ const user = auth.user
     value={targetYear}
     onChange={e => setTargetYear(e.target.value)}
   >
-    <option value="ALL">Both Years</option>
-    <option value="1">1st Year Only</option>
     <option value="2">2nd Year Only</option>
+    <option value="1">1st Year Only</option>
+    
   </select>
 </div>
           <div style={styles.field}>
