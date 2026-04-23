@@ -8,6 +8,7 @@ import { getStudentsWithCollege } from '../../../lib/db'
 export default function StudentListPage() {
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [allStudents, setAllStudents] = useState([])
   const [search, setSearch] = useState('')
   const [examCategory, setExamCategory] = useState('ALL')
   const [selectedStudents, setSelectedStudents] = useState([])
@@ -15,7 +16,30 @@ export default function StudentListPage() {
 useEffect(() => {
   fetchStudents()
 }, [])
+useEffect(() => {
+  let filtered = allStudents
 
+  // 🔍 FIRST NAME SEARCH
+  if (search) {
+    filtered = filtered.filter(s =>
+      (s.first_name || '')
+        .toLowerCase()
+        .includes(search.toLowerCase().trim())
+    )
+  }
+
+  // 🎯 CATEGORY
+  if (examCategory !== 'ALL') {
+    filtered = filtered.filter(s => s.exam_preference === examCategory)
+  }
+
+  // 🎯 YEAR
+  if (studyYear !== 'ALL') {
+    filtered = filtered.filter(s => String(s.study_year) === studyYear)
+  }
+
+  setStudents(filtered)
+}, [search, examCategory, studyYear, allStudents])
 async function fetchStudents() {
   setLoading(true)
 
@@ -116,7 +140,8 @@ if (studyYear !== 'ALL') {
 console.log('Search value:', search)
 console.log('First student name:', merged?.[0]?.first_name)
 console.log('Filtered count:', filtered.length)
-setStudents(filtered)
+setAllStudents(merged)
+setStudents(merged)
   setLoading(false)
 }
 function downloadTemplate() {
