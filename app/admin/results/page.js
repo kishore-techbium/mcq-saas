@@ -37,6 +37,13 @@ async function loadResults() {
     .select('id, title, exam_category, exam_type, target_year, created_at')
     .order('created_at', { ascending: false })
 
+  console.log('FIRST EXAM TARGET YEAR:', exams?.[0]?.target_year)
+  console.log('EXAMS RAW DATA:', exams)
+
+  const { data: students } = await supabase
+  .from('students')
+  .select('id, category, study_year')
+  console.log('STUDENTS:', students)
   // ✅ Get analytics data instead of sessions
   const { data: stats } = await supabase
     .from('student_exam_stats')
@@ -73,7 +80,17 @@ async function loadResults() {
   // 🔥 BUILD FINAL ROWS
   const finalRows = (exams || []).map((exam) => {
     const s = grouped[exam.id]
+// 🎯 Filter students based on exam
+const relatedStudents = (students || []).filter(st =>
+  st.category === exam.exam_category &&
+  st.study_year === exam.target_year
+)
 
+console.log('Exam:', exam.title)
+console.log('Target Year:', exam.target_year)
+console.log('Category:', exam.exam_category)
+console.log('Matched Students:', relatedStudents.length)
+    
     return {
       ...exam,
       year_label:
@@ -82,7 +99,7 @@ async function loadResults() {
     : exam.target_year === 2
     ? '2nd Year'
     : '-',
-      students: s ? s.students : 0,
+      students: relatedStudents.length,
       attempts: s ? s.attempts : 0,
       
       avg_score: s
@@ -95,9 +112,11 @@ async function loadResults() {
       efficiency: s && s.attempts > 0
   ? ((s.totalScore / s.attempts) / 60).toFixed(2)
   : '-',
-      participation: s
-  ? ((s.students / (exams.length || 1)) * 100).toFixed(1)
-  : '-',
+    participation:
+    relatedStudents.length > 0 && s
+      ? ((s.students / relatedStudents.length) * 100).toFixed(1)
+      : '0',
+      
       last_attempt: s ? s.last : null
     }
   })
