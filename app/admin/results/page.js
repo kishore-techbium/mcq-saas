@@ -34,7 +34,7 @@ async function loadResults() {
   // ✅ Get exams (same as before)
   const { data: exams } = await supabase
     .from('exams')
-    .select('id, title, exam_category, exam_type, created_at')
+    .select('id, title, exam_category, exam_type, target_year, created_at')
     .order('created_at', { ascending: false })
 
   // ✅ Get analytics data instead of sessions
@@ -76,6 +76,12 @@ async function loadResults() {
 
     return {
       ...exam,
+      year_label:
+  exam.target_year === 1
+    ? '1st Year'
+    : exam.target_year === 2
+    ? '2nd Year'
+    : '-',
       students: s ? s.students : 0,
       attempts: s ? s.attempts : 0,
       
@@ -114,6 +120,7 @@ async function loadResults() {
       Exam: r.title,
       Category: r.exam_category,
       ExamType: r.exam_type,
+      Year: r.year_label,
       Students: r.students,
       Attempts: r.attempts,
       
@@ -217,6 +224,7 @@ let filtered = rows.filter(r => {
               <th style={styles.left} onClick={()=>handleSort('title')}>Exam</th>
               <th style={styles.left}>Category</th>
               <th style={styles.left} onClick={()=>handleSort('exam_type')}>Exam Type</th>
+              <th style={styles.left}>Year</th>
               <th style={styles.right} onClick={()=>handleSort('students')}>Students</th>
               <th style={styles.right} onClick={()=>handleSort('attempts')}>Attempts</th>
               
@@ -240,6 +248,7 @@ let filtered = rows.filter(r => {
                 </td>
                 <td style={styles.left}>{r.exam_category}</td>
                 <td style={styles.left}>{r.exam_type}</td>
+                <td style={styles.left}>{r.year_label}</td>
                 <td style={styles.right}>{r.students}</td>
                 <td style={styles.right}>{r.attempts}</td>
                 
