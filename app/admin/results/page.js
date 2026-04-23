@@ -254,7 +254,7 @@ let filtered = rows.filter(r => {
               
               <th style={styles.right} onClick={()=>handleSort('avg_score')}>Avg</th>
               <th style={styles.right}>Efficiency</th>
-              <th style={styles.right}>% Participated</th>  
+              <th style={styles.right}>Participated</th>  
               <th style={styles.right}>Max score</th>
               
               <th></th>
@@ -277,7 +277,7 @@ let filtered = rows.filter(r => {
                 
                 <td style={styles.right}>{r.avg_score}</td>
                 <td style={styles.right}>{r.efficiency}</td>
-                <td style={styles.right}>{r.participation}</td>
+                <td style={styles.right}>{r.participation}%</td>
                 
                 <td style={styles.right}>{r.max_score}</td>                
                 
