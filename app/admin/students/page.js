@@ -12,6 +12,7 @@ export default function StudentListPage() {
   const [search, setSearch] = useState('')
   const [examCategory, setExamCategory] = useState('ALL')
   const [selectedStudents, setSelectedStudents] = useState([])
+  const [yearCounts, setYearCounts] = useState({ first: 0, second: 0 })
   const [studyYear, setStudyYear] = useState('ALL')
 useEffect(() => {
   fetchStudents()
@@ -111,11 +112,17 @@ const rankMap = {}
 ranked.forEach(([id], index) => {
   rankMap[id] = index + 1
 })
-const merged = (studentData || []).map(s => ({
-  ...s,
-  attempt_count: attemptMap[String(s.id)] || 0,
-  rank: rankMap[s.id] || '-'
-}))
+const merged = (studentData || [])
+  .filter(s => s.role !== 'admin')   // 🔥 ADD THIS
+  .map(s => ({
+    ...s,
+    attempt_count: attemptMap[String(s.id)] || 0,
+    rank: rankMap[s.id] || '-'
+  }))
+
+const firstYearCount = merged.filter(s => String(s.study_year) === '1').length
+const secondYearCount = merged.filter(s => String(s.study_year) === '2').length
+  
 let filtered = merged
 
 // 🔍 Search filter (name + email)
@@ -137,11 +144,12 @@ if (search) {
 if (studyYear !== 'ALL') {
   filtered = filtered.filter(s => String(s.study_year) === studyYear)
 }
-console.log('Search value:', search)
-console.log('First student name:', merged?.[0]?.first_name)
-console.log('Filtered count:', filtered.length)
 setAllStudents(merged)
 setStudents(merged)
+setYearCounts({
+  first: firstYearCount,
+  second: secondYearCount
+})  
   setLoading(false)
 }
 function downloadTemplate() {
@@ -189,7 +197,12 @@ function downloadTemplate() {
     
     <div style={styles.page}>
      <div style={{ marginBottom: 20 }}>
+  <div>
   <h1 style={styles.heading}>👨‍🎓 Registered Students</h1>
+  <p style={styles.subHeading}>
+    1st Year: {yearCounts.first} | 2nd Year: {yearCounts.second}
+  </p>
+</div>
 
   <div style={styles.controlsRow}>
     
@@ -454,6 +467,11 @@ const styles = {
   fontWeight: 600,
   cursor: 'pointer',
   opacity: 1
+},
+  subHeading: {
+  fontSize: 14,
+  color: '#6b7280',
+  marginTop: 4
 },
   controlsRow: {
   display: 'flex',
