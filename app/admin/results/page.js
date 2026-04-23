@@ -124,7 +124,7 @@ console.log('Matched Students:', relatedStudents.length)
   : '-',
     participation:
     relatedStudents.length > 0 && s
-      ? ((s.students / relatedStudents.length) * 100).toFixed(1)
+      ? ((s?.students || 0) / relatedStudents.length * 100).toFixed(1)
       : '0',
       
       last_attempt: s ? s.last : null
