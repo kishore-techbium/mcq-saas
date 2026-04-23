@@ -284,7 +284,7 @@ let filtered = rows.filter(r => {
                 <td>
                   <span style={styles.analytics}
                         onClick={()=>window.location.href=`/admin/results/${r.id}`}>
-                    Analytics →
+                    Analytics
                   </span>
                 </td>
               </tr>
