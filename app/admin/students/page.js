@@ -12,9 +12,9 @@ export default function StudentListPage() {
   const [examCategory, setExamCategory] = useState('ALL')
   const [selectedStudents, setSelectedStudents] = useState([])
   const [studyYear, setStudyYear] = useState('ALL')
-  useEffect(() => {
-    fetchStudents()
-  }, [])
+useEffect(() => {
+  fetchStudents()
+}, [search, examCategory, studyYear])
 
 async function fetchStudents() {
   setLoading(true)
