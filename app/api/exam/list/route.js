@@ -7,8 +7,8 @@ const supabase = createClient(
 
 export async function POST(req) {
   try {
-    const { collegeId, category } = await req.json()
-
+    
+const { collegeId, category, studyYear } = await req.json()
     if (!collegeId || !category) {
       return Response.json({ error: 'Missing data' }, { status: 400 })
     }
@@ -19,6 +19,7 @@ export async function POST(req) {
       .eq('college_id', collegeId)
       .eq('is_active', true)
       .eq('exam_category', category)
+      .eq('target_year', studyYear)  
       .order('created_at', { ascending: false })
 
     if (error) throw error
