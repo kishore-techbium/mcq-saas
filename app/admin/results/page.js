@@ -255,9 +255,8 @@ let filtered = rows.filter(r => {
               <th style={styles.right} onClick={()=>handleSort('avg_score')}>Avg</th>
               <th style={styles.right}>Efficiency</th>
               <th style={styles.right}>Participation %</th>  
-              <th style={styles.right}>Max</th>
-              
-              <th style={styles.left}>Last Attempt</th>
+                         
+              <th style={styles.left}>Score</th>
               <th></th>
             </tr>
           </thead>
@@ -279,7 +278,7 @@ let filtered = rows.filter(r => {
                 <td style={styles.right}>{r.avg_score}</td>
                 <td style={styles.right}>{r.efficiency}</td>
                 <td style={styles.right}>{r.participation}</td>
-                <td style={styles.right}>{r.max_score}</td>
+                
                 
                 <td style={styles.left}>
                   {r.last_attempt ? new Date(r.last_attempt).toLocaleString() : '-'}
