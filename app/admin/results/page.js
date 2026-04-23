@@ -40,10 +40,14 @@ async function loadResults() {
   console.log('FIRST EXAM TARGET YEAR:', exams?.[0]?.target_year)
   console.log('EXAMS RAW DATA:', exams)
 
-const { data: students } = await supabase
+const collegeIds = [...new Set((exams || []).map(e => e.college_id))]
+
+const { data: students, error: studentError } = await supabase
   .from('students')
-  .select('id, exam_preference, study_year')
-  .eq('college_id', exam.college_id)
+  .select('id, exam_preference, study_year, college_id')
+  .in('college_id', collegeIds)
+
+console.log('STUDENT ERROR:', studentError)
   console.log('STUDENTS:', students)
   // ✅ Get analytics data instead of sessions
   const { data: stats } = await supabase
