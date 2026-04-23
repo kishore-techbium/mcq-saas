@@ -42,7 +42,7 @@ async function loadResults() {
 
   const { data: students } = await supabase
   .from('students')
-  .select('id, category, study_year')
+  .select('id, exam_preference, study_year')
   console.log('STUDENTS:', students)
   // ✅ Get analytics data instead of sessions
   const { data: stats } = await supabase
@@ -82,13 +82,25 @@ async function loadResults() {
     const s = grouped[exam.id]
 // 🎯 Filter students based on exam
 const relatedStudents = (students || []).filter(st =>
-  st.category === exam.exam_category &&
-  st.study_year === exam.target_year
-)
+  const relatedStudents = (students || []).filter(st => {
+  const studentPref = String(st.exam_preference || '').toUpperCase()
+  const examCat = String(exam.exam_category || '').toUpperCase()
 
+  const categoryMatch =
+    (studentPref === 'JEE' && examCat.startsWith('JEE')) ||
+    (studentPref === 'NEET' && examCat === 'NEET')
+
+  const yearMatch =
+    Number(st.study_year) === Number(exam.target_year)
+
+  return categoryMatch && yearMatch
+}) &&
+  st.study_year === exam.target_year                                            
+)
+console.log('--- MATCH DEBUG ---')
 console.log('Exam:', exam.title)
-console.log('Target Year:', exam.target_year)
-console.log('Category:', exam.exam_category)
+console.log('Exam Category:', exam.exam_category)
+console.log('Student Pref Sample:', students?.[0]?.exam_preference)
 console.log('Matched Students:', relatedStudents.length)
     
     return {
