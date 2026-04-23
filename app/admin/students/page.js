@@ -269,9 +269,9 @@ function downloadTemplate() {
                 <th style={styles.th}>Last Name</th>
                 <th style={styles.th}>Email</th>
                 <th style={styles.th}>Phone</th>
-                <th style={styles.th}>College</th>
+                
                 <th style={styles.th}>Study Year</th>
-                <th style={styles.th}>Address</th>
+                
                 <th style={styles.th}>Created At</th>
                 <th style={styles.th}>Attempts</th>
                 <th style={styles.th}>Rank (Grand Test)</th>
@@ -307,15 +307,11 @@ function downloadTemplate() {
                   </td>
                   <td style={styles.td}>{student.email}</td>
                   <td style={styles.td}>{student.phone || '-'}</td>
-                  <td style={styles.td}>
-                    {student.college_name || '-'}
-                  </td>
+                  
                   <td style={styles.td}>
                     {student.study_year || '-'}
                   </td>
-                  <td style={styles.td}>
-                    {student.address || '-'}
-                  </td>
+
                   <td style={styles.td}>
                     {new Date(student.created_at).toLocaleDateString('en-IN')}
                   </td>
