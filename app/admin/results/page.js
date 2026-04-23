@@ -34,15 +34,16 @@ async function loadResults() {
   // ✅ Get exams (same as before)
   const { data: exams } = await supabase
     .from('exams')
-    .select('id, title, exam_category, exam_type, target_year, created_at')
+    .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
     .order('created_at', { ascending: false })
 
   console.log('FIRST EXAM TARGET YEAR:', exams?.[0]?.target_year)
   console.log('EXAMS RAW DATA:', exams)
 
-  const { data: students } = await supabase
+const { data: students } = await supabase
   .from('students')
   .select('id, exam_preference, study_year')
+  .eq('college_id', exam.college_id)
   console.log('STUDENTS:', students)
   // ✅ Get analytics data instead of sessions
   const { data: stats } = await supabase
@@ -106,9 +107,9 @@ console.log('Matched Students:', relatedStudents.length)
     return {
       ...exam,
       year_label:
-  exam.target_year === 1
+  Number(exam.target_year) === 1
     ? '1st Year'
-    : exam.target_year === 2
+    : Number(exam.target_year) === 2
     ? '2nd Year'
     : '-',
       students: relatedStudents.length,
