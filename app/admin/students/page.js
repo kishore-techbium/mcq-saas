@@ -188,116 +188,78 @@ function downloadTemplate() {
   return (
     
     <div style={styles.page}>
-      <div style={styles.header}>
-    <h1 style={styles.heading}>👨‍🎓 Registered Students</h1><br></br>
-    <div style={{ display: 'flex', gap: 10, marginBottom: 15 }}>
+     <div style={{ marginBottom: 20 }}>
+  <h1 style={styles.heading}>👨‍🎓 Registered Students</h1>
 
-  <input
-    type="text"
-    placeholder="Student first name..."
-    value={search}
-    onChange={(e) => setSearch(e.target.value)}
-    style={{
-      padding: 8,
-      borderRadius: 6,
-      border: '1px solid #ccc',
-      width: 200
-    }}
-  />
+  <div style={styles.controlsRow}>
+    
+    {/* SEARCH */}
+    <input
+      type="text"
+      placeholder="Search by first name..."
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      style={styles.input}
+    />
 
-  <select
-    value={examCategory}
-    onChange={(e) => setExamCategory(e.target.value)}
-    style={{ padding: 8, borderRadius: 6 }}
-  >
-    <option value="ALL">All Categories</option>
-    <option value="JEE">JEE</option>
-    <option value="NEET">NEET</option>
-  </select>
-<select
-  value={studyYear}
-  onChange={(e) => setStudyYear(e.target.value)}
-  style={{ padding: 8, borderRadius: 6 }}
->
-  <option value="ALL">All Years</option>
-  <option value="1">1st Year</option>
-  <option value="2">2nd Year</option>
-</select>
+    {/* CATEGORY */}
+    <select
+      value={examCategory}
+      onChange={(e) => setExamCategory(e.target.value)}
+      style={styles.input}
+    >
+      <option value="ALL">All Categories</option>
+      <option value="JEE">JEE</option>
+      <option value="NEET">NEET</option>
+    </select>
 
-<div style={{ display: 'flex', gap: 10 }}>
-  
-          <button
-            style={{
-              ...styles.createBtn,
-              opacity: selectedStudents.length > 0 ? 0.5 : 1,
-              cursor: selectedStudents.length > 0 ? 'not-allowed' : 'pointer'
-            }}
-            disabled={selectedStudents.length > 0}
-            onClick={() => window.location.href = '/admin/students/create'}
-          >
-            ➕ Create Student
-          </button>
+    {/* YEAR */}
+    <select
+      value={studyYear}
+      onChange={(e) => setStudyYear(e.target.value)}
+      style={styles.input}
+    >
+      <option value="ALL">All Years</option>
+      <option value="1">1st Year</option>
+      <option value="2">2nd Year</option>
+    </select>
 
-          <button
-            style={{
-              ...styles.templateBtn,
-              opacity: selectedStudents.length > 0 ? 0.5 : 1,
-              cursor: selectedStudents.length > 0 ? 'not-allowed' : 'pointer'
-            }}
-            disabled={selectedStudents.length > 0}
-            onClick={downloadTemplate}
-          >
-            📄 Download login template
-          </button>
+    {/* BUTTONS */}
+    <div style={styles.buttonGroup}>
+      <button style={styles.createBtn} onClick={() => window.location.href = '/admin/students/create'}>
+        ➕ Create
+      </button>
 
-          <button
-            style={{
-              ...styles.uploadBtn,
-              opacity: selectedStudents.length > 0 ? 0.5 : 1,
-              cursor: selectedStudents.length > 0 ? 'not-allowed' : 'pointer'
-            }}
-            
-            disabled={selectedStudents.length > 0}
-            onClick={() => window.location.href = '/admin/students/bulk-upload'}
-          >
-            ⬆ Upload logins
-          </button>
-          <button
-            style={{
-              ...styles.exportBtn,
-              opacity: selectedStudents.length > 0 ? 0.5 : 1,
-              cursor: selectedStudents.length > 0 ? 'not-allowed' : 'pointer'
-            }}
-            disabled={selectedStudents.length > 0}
-            onClick={exportToExcel}
-          >
-            ⬇ Download
-          </button>
+      <button style={styles.templateBtn} onClick={downloadTemplate}>
+        📄 Template
+      </button>
 
-        <button
+      <button style={styles.uploadBtn} onClick={() => window.location.href = '/admin/students/bulk-upload'}>
+        ⬆ Upload
+      </button>
+
+      <button style={styles.exportBtn} onClick={exportToExcel}>
+        ⬇ Export
+      </button>
+
+      <button
         style={styles.compareBtn}
         disabled={selectedStudents.length < 2}
         onClick={() => {
           if (selectedStudents.length > 5) {
-            alert('Maximum 5 students allowed for comparison')
+            alert('Maximum 5 students allowed')
             return
           }
-
-          if (selectedStudents.length < 2) {
-            alert('Select at least 2 students to compare')
-            return
-          }
-
           const ids = selectedStudents.join(',')
           window.location.href = `/admin/students/compare?ids=${ids}`
         }}
-        >
-        Compare Students
-        </button>
+      >
+        Compare
+      </button>
+    </div>
+
   </div>
 </div>
-</div>
-
       {loading && <p>Loading students...</p>}
 
       {!loading && students.length === 0 && (
@@ -492,5 +454,26 @@ const styles = {
   fontWeight: 600,
   cursor: 'pointer',
   opacity: 1
+},
+  controlsRow: {
+  display: 'flex',
+  gap: 10,
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  marginTop: 10
+},
+
+input: {
+  padding: 8,
+  borderRadius: 6,
+  border: '1px solid #ccc',
+  minWidth: 180
+},
+
+buttonGroup: {
+  display: 'flex',
+  gap: 10,
+  marginLeft: 'auto',
+  flexWrap: 'wrap'
 }
 }
