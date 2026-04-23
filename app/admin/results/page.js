@@ -82,9 +82,11 @@ async function loadResults() {
     const s = grouped[exam.id]
 // 🎯 Filter students based on exam
 
- const relatedStudents = (students || []).filter(st => {
-  const studentPref = String(st.exam_preference || '').toUpperCase()
-  const examCat = String(exam.exam_category || '').toUpperCase()
+const relatedStudents = (students || []).filter(st => {
+  if (!st.exam_preference || !st.study_year) return false
+
+  const studentPref = st.exam_preference.toUpperCase()
+  const examCat = exam.exam_category.toUpperCase()
 
   const categoryMatch =
     (studentPref === 'JEE' && examCat.startsWith('JEE')) ||
