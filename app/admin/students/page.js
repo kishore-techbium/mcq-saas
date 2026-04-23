@@ -14,7 +14,7 @@ export default function StudentListPage() {
   const [studyYear, setStudyYear] = useState('ALL')
 useEffect(() => {
   fetchStudents()
-}, [search, examCategory, studyYear])
+}, [])
 
 async function fetchStudents() {
   setLoading(true)
@@ -41,14 +41,7 @@ sessions?.forEach(s => {
   const key = String(s.student_id)
   attemptMap[key] = s.total_attempts || 0
 })
-// 🔍 Search filter
-if (search) {
-  filtered = filtered.filter(s =>
-    `${s.first_name} ${s.last_name}`
-      .toLowerCase()
-      .includes(search.toLowerCase())
-  )
-}
+
 
   // 🔥 FETCH GRAND TEST SCORES
 const { data: grandStats } = await supabase
@@ -120,7 +113,9 @@ if (search) {
 if (studyYear !== 'ALL') {
   filtered = filtered.filter(s => String(s.study_year) === studyYear)
 }
-
+console.log('Search value:', search)
+console.log('First student name:', merged?.[0]?.first_name)
+console.log('Filtered count:', filtered.length)
 setStudents(filtered)
   setLoading(false)
 }
