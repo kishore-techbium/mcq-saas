@@ -104,9 +104,11 @@ let filtered = merged
 // 🔍 Search filter (name + email)
 if (search) {
   filtered = filtered.filter(s =>
-    `${s.first_name || ''} ${s.last_name || ''} ${s.email || ''}`
+    (s.first_name || '')
+      .toString()
+      .trim()
       .toLowerCase()
-      .includes(search.toLowerCase())
+      .includes(search.toLowerCase().trim())
   )
 }
 // 🎯 Exam category filter
@@ -172,7 +174,7 @@ function downloadTemplate() {
 
   <input
     type="text"
-    placeholder="Search student name..."
+    placeholder="Student first name..."
     value={search}
     onChange={(e) => setSearch(e.target.value)}
     style={{
