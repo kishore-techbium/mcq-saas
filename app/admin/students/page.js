@@ -11,7 +11,7 @@ export default function StudentListPage() {
   const [search, setSearch] = useState('')
   const [examCategory, setExamCategory] = useState('ALL')
   const [selectedStudents, setSelectedStudents] = useState([])
-
+  const [studyYear, setStudyYear] = useState('ALL')
   useEffect(() => {
     fetchStudents()
   }, [])
@@ -100,9 +100,23 @@ const merged = (studentData || []).map(s => ({
   rank: rankMap[s.id] || '-'
 }))
 let filtered = merged
+
+// 🔍 Search filter (name + email)
+if (search) {
+  filtered = filtered.filter(s =>
+    `${s.first_name || ''} ${s.last_name || ''} ${s.email || ''}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  )
+}
 // 🎯 Exam category filter
-if (examCategory !== 'ALL') {
+  if (examCategory !== 'ALL') {
   filtered = filtered.filter(s => s.exam_preference === examCategory)
+}
+
+// 🎯 Study year filter
+if (studyYear !== 'ALL') {
+  filtered = filtered.filter(s => String(s.study_year) === studyYear)
 }
 
 setStudents(filtered)
@@ -178,6 +192,15 @@ function downloadTemplate() {
     <option value="JEE">JEE</option>
     <option value="NEET">NEET</option>
   </select>
+<select
+  value={studyYear}
+  onChange={(e) => setStudyYear(e.target.value)}
+  style={{ padding: 8, borderRadius: 6 }}
+>
+  <option value="ALL">All Years</option>
+  <option value="1">1st Year</option>
+  <option value="2">2nd Year</option>
+</select>
 
 <div style={{ display: 'flex', gap: 10 }}>
   
