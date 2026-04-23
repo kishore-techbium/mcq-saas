@@ -320,10 +320,10 @@ if (students && students.length > 0) {
           <tbody>
             {leaderboard.map((l, i) => (
               <tr key={i}>
-                <td style={{ fontWeight:'bold' }}>{i+1}</td>
-                <td>{studentsMap[l.student_id]?.name}</td>
-                <td>{l.score}</td>
-                <td>{l.rejected ? '⚠️' : 'OK'}</td>
+                <td style={{ ...styles.td, fontWeight:'bold' }}>{i+1}</td>
+                <td style={styles.td}>{studentsMap[l.student_id]?.name}</td>
+                <td style={styles.td}>{l.score}</td>
+                <td style={styles.td}>{l.rejected ? '⚠️' : 'OK'}</td>
               </tr>
             ))}
           </tbody>
