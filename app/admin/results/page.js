@@ -82,7 +82,7 @@ async function loadResults() {
     const s = grouped[exam.id]
 // 🎯 Filter students based on exam
 
-  const relatedStudents = (students || []).filter(st => {
+ const relatedStudents = (students || []).filter(st => {
   const studentPref = String(st.exam_preference || '').toUpperCase()
   const examCat = String(exam.exam_category || '').toUpperCase()
 
@@ -94,9 +94,7 @@ async function loadResults() {
     Number(st.study_year) === Number(exam.target_year)
 
   return categoryMatch && yearMatch
-}) &&
-  st.study_year === exam.target_year                                            
-)
+})
 console.log('--- MATCH DEBUG ---')
 console.log('Exam:', exam.title)
 console.log('Exam Category:', exam.exam_category)
