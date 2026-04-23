@@ -9,9 +9,9 @@ export async function POST(req) {
   try {
     
 const { collegeId, category, studyYear } = await req.json()
-    if (!collegeId || !category) {
-      return Response.json({ error: 'Missing data' }, { status: 400 })
-    }
+if (!collegeId || !category || !studyYear) {
+  return Response.json({ error: 'Missing data' }, { status: 400 })
+}
 
     const { data, error } = await supabase
       .from('exams')
