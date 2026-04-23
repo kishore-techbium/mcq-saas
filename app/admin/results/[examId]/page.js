@@ -310,11 +310,10 @@ if (students && students.length > 0) {
 
         <table style={styles.table}>
           <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Name</th>
-              <th>Score</th>
-              <th>Proctor</th>
+            <tr><th style={styles.th}>Rank</th>
+                <th style={styles.th}>Name</th>
+                <th style={styles.th}>Score</th>
+                <th style={styles.th}>Proctor</th>
             </tr>
           </thead>
 
@@ -362,8 +361,21 @@ const styles = {
 
   lbHeader:{ textAlign:'center', marginBottom:20 },
 
-  table:{
-    width:'100%',
-    borderCollapse:'collapse'
-  }
+table:{
+  width:'100%',
+  borderCollapse:'collapse',
+  tableLayout: 'fixed'
+},
+th:{
+  border:'1px solid #ccc',
+  padding:'10px',
+  background:'#f3f4f6',
+  textAlign:'center',
+  fontWeight:'bold'
+},
+td:{
+  border:'1px solid #ccc',
+  padding:'10px',
+  textAlign:'center'
+}
 }
