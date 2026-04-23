@@ -81,7 +81,7 @@ async function loadResults() {
   const finalRows = (exams || []).map((exam) => {
     const s = grouped[exam.id]
 // 🎯 Filter students based on exam
-const relatedStudents = (students || []).filter(st =>
+
   const relatedStudents = (students || []).filter(st => {
   const studentPref = String(st.exam_preference || '').toUpperCase()
   const examCat = String(exam.exam_category || '').toUpperCase()
