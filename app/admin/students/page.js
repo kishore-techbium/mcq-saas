@@ -210,7 +210,6 @@ async function toggleLogin(studentId, email, currentStatus) {
     return
   }
 
-  console.log('Updated row:', data)
 
   // UI update
   setStudents(prev =>
@@ -225,7 +224,25 @@ async function toggleLogin(studentId, email, currentStatus) {
     )
   )
 }
-  
+async function resetPassword(studentId) {
+  const newPassword = '1234'
+
+  const confirmReset = confirm('Reset password to 1234?')
+  if (!confirmReset) return
+
+  const { error } = await supabase
+    .from('students')
+    .update({ password: newPassword })
+    .eq('id', studentId)
+
+  if (error) {
+    console.error(error)
+    alert('Failed to reset password')
+    return
+  }
+
+  alert('Password reset successful')
+}  
   return (
     
     <div style={styles.page}>
@@ -329,6 +346,7 @@ async function toggleLogin(studentId, email, currentStatus) {
                 <th style={styles.th}>Attempts</th>
                 <th style={styles.th}>Grand Test Rank</th>
                 <th style={styles.th}>Login</th>
+                <th style={styles.th}>Reset Password</th>
                 <th style={styles.th}>Actions</th>
               </tr>
             </thead>
@@ -379,21 +397,29 @@ async function toggleLogin(studentId, email, currentStatus) {
                 {student.rank}
               </td>
                  <td style={styles.td}>
-  <button
-    onClick={() => toggleLogin(student.id, student.email, student.is_active)}
-    style={{
-  padding: '6px 12px',
-  borderRadius: 20,
-  border: 'none',
-  cursor: 'pointer',
-  fontWeight: 600,
-  backgroundColor: student.is_active ? '#2563eb' : '#ef4444', // 🔥 HERE
-  color: '#fff'
-}}
-  >
-    {student.is_active ? 'ON' : 'OFF'}
-  </button>
-</td>
+                  <button
+                    onClick={() => toggleLogin(student.id, student.email, student.is_active)}
+                    style={{
+                  padding: '6px 12px',
+                  borderRadius: 20,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  backgroundColor: student.is_active ? '#2563eb' : '#ef4444', // 🔥 HERE
+                  color: '#fff'
+                }}
+                  >
+                    {student.is_active ? 'ON' : 'OFF'}
+                  </button>
+                </td>
+                <td style={styles.td}>
+                  <button
+                    onClick={() => resetPassword(student.id)}
+                    style={styles.resetBtn}
+                  >
+                    Reset
+                  </button>
+                </td>
                   <td style={styles.td}>
                     <button
                       style={styles.viewBtn}
@@ -497,6 +523,15 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer'
   },
+  resetBtn: {
+  padding: '6px 12px',
+  background: '#f59e0b',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 6,
+  cursor: 'pointer',
+  fontSize: 12
+},
 
  uploadBtn: {
     padding: '10px 18px',
