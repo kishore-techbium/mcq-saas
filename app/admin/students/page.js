@@ -111,14 +111,18 @@ console.log('grandStats:', grandStats)
 console.log('studentData:', studentData)
 
 const examMap = {}
-;(grandExams || []).forEach(e => {
-  examMap[e.id] = e
-})
+if (grandExams) {
+  grandExams.forEach(e => {
+    examMap[e.id] = e
+  })
+}
 
 const studentMap = {}
-;(studentData || []).forEach(s => {
-  studentMap[s.id] = s
-})
+if (studentData) {
+  studentData.forEach(s => {
+    studentMap[s.id] = s
+  })
+}
 // 🔥 FILTER GRAND TEST STATS
 const grandFiltered = (grandStats || []).filter(s => {
   
