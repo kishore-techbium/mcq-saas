@@ -392,7 +392,7 @@ async function resetPassword(studentId) {
       {loading && <p>Loading students...</p>}
 
       {!loading && students.length === 0 && (
-        <p><p>No students in {segmentLabelMap[segment]}</p></p>
+        <p>No students in {segmentLabelMap[segment]}</p>
       )}
 
       {!loading && students.length > 0 && (
@@ -451,14 +451,21 @@ async function resetPassword(studentId) {
                   </td>
 
                   <td style={styles.td}>
-                    {new Date(student.created_at).toLocaleDateString('en-IN')}
+                    {student.created_at
+                    ? new Date(student.created_at).toLocaleDateString('en-IN')
+                    : '-'}
                   </td>
                   <td style={styles.td}>
-                  {student.attempt_count}
+                  {student.attempt_count || 0}
                 </td>
                 <td style={{
                 ...styles.td,
-                color: student.rank <= 3 ? '#16a34a' : student.rank <= 10 ? '#2563eb' : '#000'
+                const rankValue = Number(student.rank)
+                color:
+                  !rankValue ? '#000' :
+                  rankValue <= 3 ? '#16a34a' :
+                  rankValue <= 10 ? '#2563eb' :
+                  '#000'
               }}>
                 {student.rank === '-' ? '—' : student.rank}
               </td>
