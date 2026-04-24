@@ -101,12 +101,20 @@ export default function StudentDetailsPage() {
 
     // 🔹 group by exam_title (temporary, will change in next step)
     const groupedData = {}
-    enriched.forEach((s) => {
-      if (!groupedData[s.exam_title]) {
-        groupedData[s.exam_title] = []
-      }
-      groupedData[s.exam_title].push(s)
-    })
+
+enriched.forEach((s) => {
+  if (!groupedData[s.exam_type]) {
+    groupedData[s.exam_type] = []
+  }
+  groupedData[s.exam_type].push(s)
+})
+
+// 🔥 SORT each exam_type by latest
+Object.keys(groupedData).forEach((type) => {
+  groupedData[type].sort(
+    (a, b) => new Date(b.created_at) - new Date(a.created_at)
+  )
+})
 
     setStudent(studentData)
     setSessions(enriched)
@@ -191,71 +199,65 @@ export default function StudentDetailsPage() {
       </div>
 
       {/* 🔹 EXAMS */}
-      {Object.entries(grouped).map(([examTitle, attempts]) => {
-        const best = Math.max(...attempts.map((a) => a.percent || 0))
-        const examInfo = attempts[0]
+      <div style={styles.grid}>
+  {Object.entries(grouped).map(([examType, exams]) => {
+    const avg =
+      exams.reduce((sum, e) => sum + (e.percent || 0), 0) /
+      (exams.length || 1)
 
-        return (
-          <div key={examTitle} style={styles.examBlock}>
-            <h2>{examTitle}</h2>
+    const best = Math.max(...exams.map((e) => e.percent || 0))
 
-            <p style={styles.meta}>
-              Type: {examInfo.exam_type} | Category:{' '}
-              {examInfo.exam_category}
-            </p>
+    const latest = exams[0]?.percent || 0
+    const prev = exams[1]?.percent || 0
 
-            <p style={styles.meta}>
-              Exams: {attempts.length} | Best %: {best.toFixed(1)}%
-            </p>
+    let trend = '→'
+    if (latest > prev) trend = '↑'
+    if (latest < prev) trend = '↓'
 
-            <div style={styles.tableWrapper}>
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th style={styles.th}>Score</th>
-                    <th style={styles.th}>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attempts.map((a) => {
-                    const getStatus = (count) => {
-                      if (count === 0) return '✅'
-                      if (count <= 2) return '⚠️'
-                      return '🚨'
-                    }
+    return (
+      <div key={examType} style={styles.column}>
+        <h2 style={styles.columnTitle}>{examType}</h2>
 
-                    return (
-                      <>
-                        <tr key={a.id}>
-                          <td style={styles.td}>{a.percent}%</td>
-                          <td style={styles.td}>
-                            {new Date(a.created_at).toLocaleDateString(
-                              'en-IN'
-                            )}
-                          </td>
-                        </tr>
+        <div style={styles.summary}>
+          Avg: {avg.toFixed(1)}% <br />
+          Best: {best.toFixed(1)}% <br />
+          Latest: {latest}% <br />
+          Trend: {trend}
+        </div>
 
-                        <tr>
-                          <td colSpan="2" style={styles.integrity}>
-                            🔐 Tab switch: {a.tab_switch_count || 0}{' '}
-                            {getStatus(a.tab_switch_count || 0)} | Blur:{' '}
-                            {a.blur_count || 0}{' '}
-                            {getStatus(a.blur_count || 0)} | Exit:{' '}
-                            {a.fullscreen_exit_count || 0}{' '}
-                            {getStatus(a.fullscreen_exit_count || 0)} |
-                            Copy: {a.copy_attempts || 0}{' '}
-                            {getStatus(a.copy_attempts || 0)}
-                          </td>
-                        </tr>
-                      </>
-                    )
-                  })}
-                </tbody>
-              </table>
+        {exams.map((e) => {
+          const getStatus = (count) => {
+            if (count === 0) return '✅'
+            if (count <= 2) return '⚠️'
+            return '🚨'
+          }
+
+          return (
+            <div key={e.id} style={styles.card}>
+              <div style={styles.cardHeader}>
+                {e.exam_title}
+              </div>
+
+              <div style={styles.score}>
+                {e.percent}%
+              </div>
+
+              <div style={styles.date}>
+                {new Date(e.created_at).toLocaleDateString('en-IN')}
+              </div>
+
+              <div style={styles.integritySmall}>
+                🔐 TS:{e.tab_switch_count || 0} {getStatus(e.tab_switch_count || 0)} | 
+                BL:{e.blur_count || 0} {getStatus(e.blur_count || 0)} | 
+                EX:{e.fullscreen_exit_count || 0} {getStatus(e.fullscreen_exit_count || 0)}
+              </div>
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
+    )
+  })}
+</div>
     </div>
   )
 }
@@ -282,6 +284,59 @@ const styles = {
     background: '#f9fafb',
     borderRadius: 8
   },
+  grid: {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+  gap: 20
+},
+
+column: {
+  background: '#fff',
+  padding: 15,
+  borderRadius: 10,
+  border: '1px solid #e5e7eb'
+},
+
+columnTitle: {
+  fontSize: 18,
+  fontWeight: 600,
+  marginBottom: 10
+},
+
+summary: {
+  fontSize: 13,
+  marginBottom: 15,
+  color: '#444'
+},
+
+card: {
+  padding: 10,
+  marginBottom: 10,
+  borderRadius: 8,
+  background: '#f9fafb',
+  border: '1px solid #e5e7eb'
+},
+
+cardHeader: {
+  fontSize: 13,
+  fontWeight: 600
+},
+
+score: {
+  fontSize: 18,
+  fontWeight: 700
+},
+
+date: {
+  fontSize: 12,
+  color: '#666'
+},
+
+integritySmall: {
+  fontSize: 11,
+  marginTop: 5,
+  color: '#555'
+},
 
   exportBtn: {
     marginTop: 10,
