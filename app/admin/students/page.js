@@ -26,60 +26,7 @@ export default function StudentListPage() {
 useEffect(() => {
   fetchStudents()
 }, [])
-useEffect(() => {
-  if (!allStudents || allStudents.length === 0) return
 
-  let filtered = [...allStudents]
-
-  // 🔍 SEARCH
-  if (search) {
-    filtered = filtered.filter(s =>
-      (s.first_name || '')
-        .toLowerCase()
-        .includes(search.toLowerCase().trim())
-    )
-  }
-
-  // 🎯 SEGMENT FILTER (SAFE)
-  const cleanSegment = String(segment).trim().toUpperCase()
-
-  filtered = filtered.filter(s => {
-  const pref = String(s.exam_preference).trim().toUpperCase()
-  const year = String(s.study_year).trim()
-if (cleanSegment === 'JEE_1') return pref === 'JEE' && year === '1'
-if (cleanSegment === 'JEE_2') return pref === 'JEE' && year === '2'
-if (cleanSegment === 'NEET_1') return pref === 'NEET' && year === '1'
-if (cleanSegment === 'NEET_2') return pref === 'NEET' && year === '2'
-  
-  return false
-})
-console.log('RAW SEGMENT:', segment)
-console.log('CLEAN SEGMENT:', cleanSegment)
-
-  // 🔀 SORT
-  if (sortBy === 'first_name') {
-    filtered.sort((a, b) =>
-      (a.first_name || '').localeCompare(b.first_name || '')
-    )
-  }
-
-  if (sortBy === 'last_name') {
-    filtered.sort((a, b) =>
-      (a.last_name || '').localeCompare(b.last_name || '')
-    )
-  }
-
-  if (sortBy === 'rank') {
-    filtered.sort((a, b) => {
-      const rankA = a.rank === '-' ? 9999 : Number(a.rank)
-      const rankB = b.rank === '-' ? 9999 : Number(b.rank)
-      return rankA - rankB
-    })
-  }
-
-  console.log('Segment:', segment, 'Filtered:', filtered.length)
-
-}, [search, sortBy, segment, allStudents])
 
   async function fetchStudents() {
   setLoading(true)
@@ -254,7 +201,7 @@ function downloadTemplate() {
       return
     }
 
-    const worksheet = XLSX.utils.json_to_sheet(students)
+    const worksheet = XLSX.utils.json_to_sheet(filteredStudents)
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Students')
 
@@ -286,12 +233,7 @@ setAllStudents(prev => {
     s.id === studentId ? { ...s, is_active: newStatus } : s
   )
 
-  // 🔥 FORCE UI SYNC IMMEDIATELY
-  setStudents(current =>
-    current.map(s =>
-      s.id === studentId ? { ...s, is_active: newStatus } : s
-    )
-  )
+ 
 
   return updated
 })
