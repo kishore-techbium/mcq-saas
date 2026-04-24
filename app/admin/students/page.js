@@ -26,9 +26,11 @@ useEffect(() => {
   fetchStudents()
 }, [])
 useEffect(() => {
-  let filtered = allStudents
+  if (!allStudents || allStudents.length === 0) return
 
-  // 🔍 FIRST NAME SEARCH
+  let filtered = [...allStudents]
+
+  // 🔍 SEARCH
   if (search) {
     filtered = filtered.filter(s =>
       (s.first_name || '')
@@ -36,45 +38,39 @@ useEffect(() => {
         .includes(search.toLowerCase().trim())
     )
   }
-// 🎯 SEGMENT FILTER (MAIN LOGIC)
- filtered = filtered.filter(s => {
-  const pref = String(s.exam_preference).toUpperCase().trim()
-  const year = String(s.study_year).trim()
 
-  return `${pref}_${year}` === segment
-})
-  console.log('Segment:', segment)
-
-console.log(
-  'Matching students:',
-  allStudents.filter(s => {
+  // 🎯 SEGMENT FILTER (SAFE)
+  filtered = filtered.filter(s => {
     const pref = String(s.exam_preference).toUpperCase().trim()
     const year = String(s.study_year).trim()
     return `${pref}_${year}` === segment
-  }).length
-)
-  if (sortBy === 'first_name') {
-  filtered = [...filtered].sort((a, b) =>
-    (a.first_name || '').localeCompare(b.first_name || '')
-  )
-}
-
-if (sortBy === 'last_name') {
-  filtered = [...filtered].sort((a, b) =>
-    (a.last_name || '').localeCompare(b.last_name || '')
-  )
-}
-
-if (sortBy === 'rank') {
-  filtered = [...filtered].sort((a, b) => {
-    const rankA = a.rank === '-' ? 9999 : Number(a.rank)
-    const rankB = b.rank === '-' ? 9999 : Number(b.rank)
-    return rankA - rankB
   })
 
-}
+  // 🔀 SORT
+  if (sortBy === 'first_name') {
+    filtered.sort((a, b) =>
+      (a.first_name || '').localeCompare(b.first_name || '')
+    )
+  }
+
+  if (sortBy === 'last_name') {
+    filtered.sort((a, b) =>
+      (a.last_name || '').localeCompare(b.last_name || '')
+    )
+  }
+
+  if (sortBy === 'rank') {
+    filtered.sort((a, b) => {
+      const rankA = a.rank === '-' ? 9999 : Number(a.rank)
+      const rankB = b.rank === '-' ? 9999 : Number(b.rank)
+      return rankA - rankB
+    })
+  }
+
+  console.log('Segment:', segment, 'Filtered:', filtered.length)
+
   setStudents(filtered)
-}, [search, allStudents, sortBy, segment])
+}, [search, sortBy, segment, allStudents])
 
   async function fetchStudents() {
   setLoading(true)
@@ -341,7 +337,10 @@ async function resetPassword(studentId) {
   ].map(tab => (
     <button
       key={tab.value}
-      onClick={() => setSegment(tab.value)}
+        onClick={() => {
+          setStudents([])   // 🔥 force clear
+          setSegment(tab.value)
+        }}
       style={{
         ...styles.tabBtn,
         background: segment === tab.value ? '#2563eb' : '#e5e7eb',
