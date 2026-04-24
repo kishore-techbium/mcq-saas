@@ -201,6 +201,7 @@ async function toggleLogin(studentId, email, currentStatus) {
   console.log('STATUS:', status)
   console.log('ERROR:', error)
   console.log('DATA:', data)
+  console.log('EMAIL FROM UI:', email)
 }
   
   return (
