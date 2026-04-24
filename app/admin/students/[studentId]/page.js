@@ -9,6 +9,7 @@ import * as XLSX from 'xlsx'
 export default function StudentDetailsPage() {
   const { studentId } = useParams()
   const router = useRouter()
+
   const [student, setStudent] = useState(null)
   const [sessions, setSessions] = useState([])
   const [grouped, setGrouped] = useState({})
@@ -22,21 +23,24 @@ export default function StudentDetailsPage() {
 
   async function fetchData() {
     setLoading(true)
-const { data: overall } = await supabase
-  .from('student_overall_stats')
-  .select('*')
-  .eq('student_id', studentId)
-  .single()
 
-  setOverallStats(overall)
+    // 🔹 overall stats
+    const { data: overall } = await supabase
+      .from('student_overall_stats')
+      .select('*')
+      .eq('student_id', studentId)
+      .single()
 
+    setOverallStats(overall)
 
+    // 🔹 student
     const { data: studentData } = await supabase
       .from('students')
       .select('*')
       .eq('id', studentId)
       .single()
 
+    // 🔹 sessions (ONLY submitted)
     const { data: sessionData } = await supabase
       .from('exam_sessions')
       .select('*')
@@ -44,7 +48,7 @@ const { data: overall } = await supabase
       .eq('submitted', true)
       .order('created_at', { ascending: false })
 
-    // 🔥 FETCH AI INSIGHTS
+    // 🔹 insights
     const { data: insightsData } = await supabase
       .from('student_insights')
       .select('*')
@@ -57,11 +61,7 @@ const { data: overall } = await supabase
 
     if (sessionData?.length > 0) {
       const examIds = [
-        ...new Set(
-          sessionData
-            .filter((s) => s.exam_id)
-            .map((s) => s.exam_id)
-        )
+        ...new Set(sessionData.map((s) => s.exam_id).filter(Boolean))
       ]
 
       let examsMap = {}
@@ -78,31 +78,28 @@ const { data: overall } = await supabase
       }
 
       enriched = sessionData.map((session) => {
-        if (session.exam_id && examsMap[session.exam_id]) {
-          const exam = examsMap[session.exam_id]
-          return {
-            ...session,
-            exam_title: exam.title,
-            exam_created_at: exam.created_at,
-            exam_type: exam.exam_type,
-            exam_category: exam.exam_category
-          }
-        } else {
-          const meta = session.answers?.__meta
-          return {
-            ...session,
-            exam_title:
-              meta?.type === 'CUSTOM_TEST'
-                ? `Custom Test (${meta?.subject || ''})`
-                : 'Custom Test',
-            exam_created_at: null,
-            exam_type: 'CUSTOM',
-            exam_category: meta?.category || '-'
-          }
+        if (!session.exam_id || !examsMap[session.exam_id]) return null
+
+        const exam = examsMap[session.exam_id]
+
+        const totalQ = session.total_questions || 1
+        const maxScore = totalQ * 4
+        const percent = ((session.score || 0) / maxScore) * 100
+
+        return {
+          ...session,
+          exam_title: exam.title,
+          exam_created_at: exam.created_at,
+          exam_type: exam.exam_type,
+          exam_category: exam.exam_category,
+          percent: Number(percent.toFixed(1))
         }
       })
+
+      enriched = enriched.filter(Boolean)
     }
 
+    // 🔹 group by exam_title (temporary, will change in next step)
     const groupedData = {}
     enriched.forEach((s) => {
       if (!groupedData[s.exam_title]) {
@@ -125,8 +122,7 @@ const { data: overall } = await supabase
       Exam: s.exam_title,
       Type: s.exam_type,
       Category: s.exam_category,
-      Attempt: s.attempt_number,
-      Score: s.score,
+      Score: s.percent + '%',
       Attempt_Date: new Date(s.created_at).toLocaleString()
     }))
 
@@ -139,56 +135,33 @@ const { data: overall } = await supabase
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
   const totalAttempts = overallStats?.total_attempts || 0
-const totalExams = overallStats?.total_exams || 0
-const averageScore = overallStats?.avg_score?.toFixed(1) || 0
-const bestScore = overallStats?.best_score || 0
-const latestScore = overallStats?.last_score || 0
+  const totalExams = overallStats?.total_exams || 0
+  const averageScore = overallStats?.avg_score?.toFixed(1) || 0
+  const bestScore = overallStats?.best_score || 0
+  const latestScore = overallStats?.last_score || 0
 
-const bestPerExamAvg = (() => {
-  if (!sessions.length) return 0
-
-  const examMap = {}
-
-  sessions.forEach(s => {
-    const totalQ = s.total_questions || 1
-    const maxScore = totalQ * 4
-    const percent = ((s.score || 0) / maxScore) * 100
-    
-    if (!examMap[s.exam_title]) {
-      examMap[s.exam_title] = percent
-    } else {
-      examMap[s.exam_title] = Math.max(examMap[s.exam_title], percent)
-    }
-  })
-
-  const values = Object.values(examMap)
-
-  return values.length
-    ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)
-    : 0
-})()
+  const avgPercent = (() => {
+    if (!sessions.length) return 0
+    const values = sessions.map((s) => s.percent || 0)
+    return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)
+  })()
 
   return (
     <div style={styles.page}>
       <h1 style={styles.heading}>Student Performance</h1>
 
+      {/* 🔹 SUMMARY */}
       <div style={styles.analyticsBox}>
         <div>
-          <strong>Attempts(including repeated exams):</strong> {totalAttempts} |
-          <strong> Exams:</strong> {totalExams} |
-          <strong> Average of all attempts:</strong> {averageScore} |
-          <strong> Average of best score per exam:</strong> {bestPerExamAvg} |
-          <strong> Best score:</strong> {bestScore} |
-          <strong> Latest score:</strong> {latestScore}
+          <strong>Total Exams:</strong> {totalExams} |{' '}
+          <strong>Average Score:</strong> {averageScore}% |{' '}
+          <strong>Avg % (calculated):</strong> {avgPercent}% |{' '}
+          <strong>Best Score:</strong> {bestScore} |{' '}
+          <strong>Latest Score:</strong> {latestScore}
         </div>
 
-        {/* 🔥 AI INSIGHTS */}
-        <div style={{
-  marginTop: 15,
-  padding: 10,
-  background: '#f9fafb',
-  borderRadius: 8
-}}>
+        {/* 🔹 AI INSIGHTS */}
+        <div style={styles.insightBox}>
           <strong>🧠 Student Intelligence Report:</strong>
 
           {insights.length === 0 && <div>-</div>}
@@ -203,78 +176,80 @@ const bestPerExamAvg = (() => {
           ))}
         </div>
 
-<button
-  style={{ marginTop: 10 }}
-  onClick={() => router.push(`/admin/students/${studentId}/analysis`)}
->
-  View Detailed Analysis →
-</button>
+        <button
+          style={{ marginTop: 10 }}
+          onClick={() =>
+            router.push(`/admin/students/${studentId}/analysis`)
+          }
+        >
+          View Detailed Analysis →
+        </button>
 
         <button style={styles.exportBtn} onClick={exportExcel}>
           Download Excel
         </button>
       </div>
 
+      {/* 🔹 EXAMS */}
       {Object.entries(grouped).map(([examTitle, attempts]) => {
-        const best = Math.max(...attempts.map((a) => a.score || 0))
+        const best = Math.max(...attempts.map((a) => a.percent || 0))
         const examInfo = attempts[0]
 
         return (
           <div key={examTitle} style={styles.examBlock}>
-            <h2 style={{ marginBottom: 5 }}>{examTitle}</h2>
-            <p style={{ fontSize: 13, color: '#555' }}>
-              Type: {examInfo.exam_type} | Category: {examInfo.exam_category}
+            <h2>{examTitle}</h2>
+
+            <p style={styles.meta}>
+              Type: {examInfo.exam_type} | Category:{' '}
+              {examInfo.exam_category}
             </p>
-            <p style={{ fontSize: 13 }}>
-              Attempts: {attempts.length} | Best: {best}
+
+            <p style={styles.meta}>
+              Exams: {attempts.length} | Best %: {best.toFixed(1)}%
             </p>
 
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
                 <thead>
                   <tr>
-                    <th style={styles.th}>Attempt</th>
                     <th style={styles.th}>Score</th>
                     <th style={styles.th}>Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {attempts.map((a) => {
+                    const getStatus = (count) => {
+                      if (count === 0) return '✅'
+                      if (count <= 2) return '⚠️'
+                      return '🚨'
+                    }
 
-  const getStatus = (count) => {
-    if (count === 0) return '✅'
-    if (count <= 2) return '⚠️'
-    return '🚨'
-  }
+                    return (
+                      <>
+                        <tr key={a.id}>
+                          <td style={styles.td}>{a.percent}%</td>
+                          <td style={styles.td}>
+                            {new Date(a.created_at).toLocaleDateString(
+                              'en-IN'
+                            )}
+                          </td>
+                        </tr>
 
-  return (
-    <>
-      <tr key={a.id}>
-        <td style={styles.td}>{a.attempt_number}</td>
-        <td style={styles.td}>
-          {(() => {
-            const totalQ = a.total_questions || 1
-            const maxScore = totalQ * 4
-            return (((a.score || 0) / maxScore) * 100).toFixed(1) + '%'
-          })()}
-        </td>
-        <td style={styles.td}>
-          {new Date(a.created_at).toLocaleDateString('en-IN')}
-        </td>
-      </tr>
-
-      {/* 🔐 Integrity Row */}
-      <tr>
-        <td colSpan="3" style={{ padding: '6px 10px', fontSize: 13, color: '#444' }}>
-          🔐 Tab switch: {a.tab_switch_count || 0} {getStatus(a.tab_switch_count || 0)} | 
-          Blur screen: {a.blur_count || 0} {getStatus(a.blur_count || 0)} | 
-          Screen exit: {a.fullscreen_exit_count || 0} {getStatus(a.fullscreen_exit_count || 0)} | 
-          Copying: {a.copy_attempts || 0} {getStatus(a.copy_attempts || 0)}
-        </td>
-      </tr>
-    </>
-  )
-})}
+                        <tr>
+                          <td colSpan="2" style={styles.integrity}>
+                            🔐 Tab switch: {a.tab_switch_count || 0}{' '}
+                            {getStatus(a.tab_switch_count || 0)} | Blur:{' '}
+                            {a.blur_count || 0}{' '}
+                            {getStatus(a.blur_count || 0)} | Exit:{' '}
+                            {a.fullscreen_exit_count || 0}{' '}
+                            {getStatus(a.fullscreen_exit_count || 0)} |
+                            Copy: {a.copy_attempts || 0}{' '}
+                            {getStatus(a.copy_attempts || 0)}
+                          </td>
+                        </tr>
+                      </>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -289,46 +264,55 @@ const styles = {
   page: {
     padding: 40,
     background: '#f5f7fb',
-    minHeight: '100vh',
-    fontFamily: 'system-ui, sans-serif'
+    minHeight: '100vh'
   },
   heading: { fontSize: 26, fontWeight: 700, marginBottom: 25 },
+
   analyticsBox: {
-    background: '#ffffff',
+    background: '#fff',
     padding: 20,
     borderRadius: 10,
     marginBottom: 30,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-    border: '1px solid #e5e7eb',
-    fontSize: 14
+    border: '1px solid #e5e7eb'
   },
+
+  insightBox: {
+    marginTop: 15,
+    padding: 10,
+    background: '#f9fafb',
+    borderRadius: 8
+  },
+
   exportBtn: {
+    marginTop: 10,
     padding: '8px 14px',
     background: '#16a34a',
     color: '#fff',
     border: 'none',
-    borderRadius: 6,
-    cursor: 'pointer'
+    borderRadius: 6
   },
+
   examBlock: {
-    background: '#ffffff',
+    background: '#fff',
     padding: 20,
     borderRadius: 10,
     marginBottom: 25,
     border: '1px solid #e5e7eb'
   },
-  tableWrapper: { marginTop: 15, overflowX: 'auto' },
+
+  meta: { fontSize: 13, color: '#555' },
+
+  tableWrapper: { marginTop: 15 },
+
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: {
-    padding: 10,
-    background: '#f9fafb',
-    borderBottom: '1px solid #e5e7eb',
-    textAlign: 'left'
-  },
-  td: {
-    padding: 10,
-    borderBottom: '1px solid #f1f5f9'
+
+  th: { padding: 10, background: '#f9fafb' },
+
+  td: { padding: 10, borderBottom: '1px solid #f1f5f9' },
+
+  integrity: {
+    padding: '6px 10px',
+    fontSize: 13,
+    color: '#444'
   }
 }
