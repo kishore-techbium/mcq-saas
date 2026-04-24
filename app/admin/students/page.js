@@ -37,8 +37,8 @@ useEffect(() => {
     )
   }
 // 🎯 SEGMENT FILTER (MAIN LOGIC)
-filtered = filtered.filter(s =>
-  `${s.exam_preference}_${s.study_year}` === segment
+  filtered = filtered.filter(s =>
+  `${s.exam_preference}_${String(s.study_year)}` === segment
 )
   console.log('Segment:', segment)
 console.log('Student sample:', allStudents[0])
