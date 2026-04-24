@@ -44,7 +44,7 @@ useEffect(() => {
 
   filtered = filtered.filter(s => {
   const pref = String(s.exam_preference).trim().toUpperCase()
-  const year = Number(s.study_year)
+  const year = String(s.study_year).trim()
   if (segment === 'NEET_1') return pref === 'NEET' && year === 1
   if (segment === 'NEET_2') return pref === 'NEET' && year === 2
   if (segment === 'JEE_1') return pref === 'JEE' && year === 1
@@ -148,7 +148,7 @@ const grandFiltered = (grandStats || []).filter(s => {
   (student.exam_preference === 'NEET' && exam.exam_category === 'NEET') ||
   (student.exam_preference === 'JEE' && exam.exam_category.startsWith('JEE'))
 )&&
-    String(exam.target_year) === String(student.study_year)
+    String(exam.target_year) === {String(student.study_year).trim() === '1' ? '1st Year' : '2nd Year'}
   )
 })
 
@@ -338,12 +338,12 @@ async function resetPassword(studentId) {
   // SEGMENT FILTER
   filtered = filtered.filter(s => {
     const pref = String(s.exam_preference).trim().toUpperCase()
-    const year = Number(s.study_year)
+    const year = String(s.study_year).trim()
 
-    if (segment === 'JEE_1') return pref === 'JEE' && year === 1
-    if (segment === 'JEE_2') return pref === 'JEE' && year === 2
-    if (segment === 'NEET_1') return pref === 'NEET' && year === 1
-    if (segment === 'NEET_2') return pref === 'NEET' && year === 2
+if (segment === 'JEE_1') return pref === 'JEE' && year === '1'
+if (segment === 'JEE_2') return pref === 'JEE' && year === '2'
+if (segment === 'NEET_1') return pref === 'NEET' && year === '1'
+if (segment === 'NEET_2') return pref === 'NEET' && year === '2'
 
     return false
   })
