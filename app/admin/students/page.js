@@ -188,16 +188,16 @@ function downloadTemplate() {
 
     XLSX.writeFile(workbook, 'Students_List.xlsx')
   }
-async function toggleLogin(studentId, currentStatus) {
+
+  async function toggleLogin(studentId, email, currentStatus) {
   const newStatus = !(currentStatus ?? true)
 
-  console.log('Toggling:', studentId, currentStatus, '→', newStatus)
+  console.log('Toggling:', email, currentStatus, '→', newStatus)
 
   const { data, error } = await supabase
     .from('students')
     .update({ is_active: newStatus })
-    .eq('id', studentId)
-    .select()
+    .eq('email', email)   // 🔥 KEY FIX
 
   if (error) {
     console.error('Toggle error:', error)
@@ -207,7 +207,7 @@ async function toggleLogin(studentId, currentStatus) {
 
   console.log('Updated row:', data)
 
-  // update UI
+  // UI update
   setStudents(prev =>
     prev.map(s =>
       s.id === studentId ? { ...s, is_active: newStatus } : s
@@ -375,16 +375,16 @@ async function toggleLogin(studentId, currentStatus) {
               </td>
                  <td style={styles.td}>
   <button
-    onClick={() => toggleLogin(student.id, student.is_active)}
+    onClick={() => toggleLogin(student.id, student.email, student.is_active)}
     style={{
-      padding: '6px 12px',
-      borderRadius: 20,
-      border: 'none',
-      cursor: 'pointer',
-      fontWeight: 600,
-      backgroundColor: student.is_active ? '#2563eb' : '#e5e7eb',
-      color: student.is_active ? '#fff' : '#374151'
-    }}
+  padding: '6px 12px',
+  borderRadius: 20,
+  border: 'none',
+  cursor: 'pointer',
+  fontWeight: 600,
+  backgroundColor: student.is_active ? '#2563eb' : '#ef4444', // 🔥 HERE
+  color: '#fff'
+}}
   >
     {student.is_active ? 'ON' : 'OFF'}
   </button>
