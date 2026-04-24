@@ -164,18 +164,20 @@ const rankMap = {}
 // 🎯 Build segment groups
 const groups = {}
 
-(studentData || []).forEach(s => {
-  const key = `${s.exam_preference}_${s.study_year}`
+if (studentData) {
+  studentData.forEach(s => {
+    const key = `${s.exam_preference}_${s.study_year}`
 
-  if (!groups[key]) groups[key] = []
+    if (!groups[key]) groups[key] = []
 
-  if (avgScoreMap[s.id] !== undefined) {
-    groups[key].push({
-      id: s.id,
-      score: avgScoreMap[s.id]
-    })
-  }
-})
+    if (avgScoreMap[s.id] !== undefined) {
+      groups[key].push({
+        id: s.id,
+        score: avgScoreMap[s.id]
+      })
+    }
+  })
+}
 
 // 🎯 Rank inside each segment
 Object.keys(groups).forEach(key => {
