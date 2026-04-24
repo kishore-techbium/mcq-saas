@@ -9,12 +9,13 @@ export default function StudentListPage() {
   const [students, setStudents] = useState([])
   const [sortBy, setSortBy] = useState('first_name')
   const [loading, setLoading] = useState(true)
+  const [segment, setSegment] = useState('NEET_1')
   const [allStudents, setAllStudents] = useState([])
   const [search, setSearch] = useState('')
-  const [examCategory, setExamCategory] = useState('ALL')
+  
   const [selectedStudents, setSelectedStudents] = useState([])
   const [yearCounts, setYearCounts] = useState({ first: 0, second: 0 })
-  const [studyYear, setStudyYear] = useState('ALL')
+  
 useEffect(() => {
   fetchStudents()
 }, [])
@@ -29,16 +30,11 @@ useEffect(() => {
         .includes(search.toLowerCase().trim())
     )
   }
-
-  // 🎯 CATEGORY
-  if (examCategory !== 'ALL') {
-    filtered = filtered.filter(s => s.exam_preference === examCategory)
-  }
-
-  // 🎯 YEAR
-  if (studyYear !== 'ALL') {
-    filtered = filtered.filter(s => String(s.study_year) === studyYear)
-  }
+// 🎯 SEGMENT FILTER (MAIN LOGIC)
+filtered = filtered.filter(s =>
+  `${s.exam_preference}_${s.study_year}` === segment
+)
+  
   if (sortBy === 'first_name') {
   filtered = [...filtered].sort((a, b) =>
     (a.first_name || '').localeCompare(b.first_name || '')
@@ -57,9 +53,10 @@ if (sortBy === 'rank') {
     const rankB = b.rank === '-' ? 9999 : Number(b.rank)
     return rankA - rankB
   })
+
 }
   setStudents(filtered)
-}, [search, examCategory, studyYear, allStudents, sortBy])
+}, [search, allStudents, sortBy, segment])
 
   async function fetchStudents() {
   setLoading(true)
@@ -121,12 +118,31 @@ Object.keys(scoreMap).forEach(id => {
 })
 
 // 🔥 SORT + RANK
-const ranked = Object.entries(avgScoreMap)
-  .sort((a, b) => b[1] - a[1])
-
 const rankMap = {}
-ranked.forEach(([id], index) => {
-  rankMap[id] = index + 1
+
+// 🎯 Build segment groups
+const groups = {}
+
+studentData.forEach(s => {
+  const key = `${s.exam_preference}_${s.study_year}`
+
+  if (!groups[key]) groups[key] = []
+
+  if (avgScoreMap[s.id] !== undefined) {
+    groups[key].push({
+      id: s.id,
+      score: avgScoreMap[s.id]
+    })
+  }
+})
+
+// 🎯 Rank inside each segment
+Object.keys(groups).forEach(key => {
+  const sorted = groups[key].sort((a, b) => b.score - a.score)
+
+  sorted.forEach((student, index) => {
+    rankMap[student.id] = index + 1
+  })
 })
 const merged = (studentData || [])
   .filter(s => s.role !== 'admin')   // 🔥 ADD THIS
@@ -279,7 +295,28 @@ async function resetPassword(studentId) {
 </div>
 
   <div style={styles.controlsRow}>
-    
+
+    <div style={styles.tabs}>
+  {[
+    { label: 'NEET - 1st Year', value: 'NEET_1' },
+    { label: 'NEET - 2nd Year', value: 'NEET_2' },
+    { label: 'JEE - 1st Year', value: 'JEE_1' },
+    { label: 'JEE - 2nd Year', value: 'JEE_2' }
+  ].map(tab => (
+    <button
+      key={tab.value}
+      onClick={() => setSegment(tab.value)}
+      style={{
+        ...styles.tabBtn,
+        background: segment === tab.value ? '#2563eb' : '#e5e7eb',
+        color: segment === tab.value ? '#fff' : '#000'
+      }}
+    >
+      {tab.label}
+    </button>
+  ))}
+</div>
+
     {/* SEARCH */}
     <input
       type="text"
@@ -502,6 +539,20 @@ const styles = {
     fontWeight: 600,
     cursor: 'pointer'
   },
+  tabs: {
+  display: 'flex',
+  gap: 10,
+  marginBottom: 10,
+  flexWrap: 'wrap'
+},
+
+tabBtn: {
+  padding: '8px 14px',
+  borderRadius: 8,
+  border: 'none',
+  cursor: 'pointer',
+  fontWeight: 600
+},
     compareBtn: {
       padding: '10px 18px',
       background: '#7c3aed',
