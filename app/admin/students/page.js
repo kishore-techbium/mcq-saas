@@ -69,6 +69,7 @@ if (sortBy === 'rank') {
 
   // 1️⃣ Fetch students
   const studentData = await getStudentsWithCollege()
+    
 
 if (!studentData || studentData.length === 0) {
   setAllStudents([])
@@ -105,19 +106,21 @@ const { data: grandStats } = await supabase
   .from('exams')
   .select('id, exam_category, target_year')
   .eq('exam_type', 'GRAND_TEST')
-
+console.log('grandExams:', grandExams)
+console.log('grandStats:', grandStats)
+console.log('studentData:', studentData)
 
 const examMap = {}
-grandExams.forEach(e => {
+;(grandExams || []).forEach(e => {
   examMap[e.id] = e
 })
 
 const studentMap = {}
-(studentData || []).forEach(s => {
+;(studentData || []).forEach(s => {
   studentMap[s.id] = s
 })
 // 🔥 FILTER GRAND TEST STATS
-const grandFiltered = grandStats?.filter(s => {
+const grandFiltered = (grandStats || []).filter(s => {
   
   const exam = examMap[s.exam_id]
   const student = studentMap[s.student_id]
