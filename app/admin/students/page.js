@@ -7,10 +7,10 @@ import { getStudentsWithCollege } from '../../../lib/db'
 
 export default function StudentListPage() {
   const segmentLabelMap = {
-  NEET_1: 'NEET - 1st Year',
-  NEET_2: 'NEET - 2nd Year',
   JEE_1: 'JEE - 1st Year',
-  JEE_2: 'JEE - 2nd Year'
+  JEE_2: 'JEE - 2nd Year',
+  NEET_1: 'NEET - 1st Year',
+  NEET_2: 'NEET - 2nd Year'
 }
   const [students, setStudents] = useState([])
   const [sortBy, setSortBy] = useState('rank')
@@ -39,6 +39,8 @@ useEffect(() => {
 // 🎯 SEGMENT FILTER (MAIN LOGIC)
 filtered = filtered.filter(s =>
   `${s.exam_preference}_${s.study_year}` === segment
+console.log('Segment:', segment)
+console.log('Student sample:', allStudents[0])
 )
   
   if (sortBy === 'first_name') {
@@ -106,9 +108,6 @@ const { data: grandStats } = await supabase
   .from('exams')
   .select('id, exam_category, target_year')
   .eq('exam_type', 'GRAND_TEST')
-console.log('grandExams:', grandExams)
-console.log('grandStats:', grandStats)
-console.log('studentData:', studentData)
 
 const examMap = {}
 if (grandExams) {
@@ -249,7 +248,7 @@ function downloadTemplate() {
 async function toggleLogin(studentId, email, currentStatus) {
   const newStatus = !(currentStatus ?? true)
 
-  console.log('Toggling:', email, currentStatus, '→', newStatus)
+  
 
 
    const { data, error } = await supabase
@@ -266,17 +265,11 @@ async function toggleLogin(studentId, email, currentStatus) {
 
 
   // UI update
-  setStudents(prev =>
-    prev.map(s =>
-      s.id === studentId ? { ...s, is_active: newStatus } : s
-    )
+ setAllStudents(prev =>
+  prev.map(s =>
+    s.id === studentId ? { ...s, is_active: newStatus } : s
   )
-
-  setAllStudents(prev =>
-    prev.map(s =>
-      s.id === studentId ? { ...s, is_active: newStatus } : s
-    )
-  )
+)
 }
 async function resetPassword(studentId) {
   const newPassword = prompt('Enter new password')
