@@ -376,10 +376,10 @@ async function resetPassword(studentId) {
 
     <div style={styles.tabs}>
   {[
-    { label: 'JEE - 1st Year', value: 'JEE_1' },
-    { label: 'JEE - 2nd Year', value: 'JEE_2' },  
     { label: 'NEET - 1st Year', value: 'NEET_1' },
-    { label: 'NEET - 2nd Year', value: 'NEET_2' }
+    { label: 'NEET - 2nd Year', value: 'NEET_2' },    
+    { label: 'JEE - 1st Year', value: 'JEE_1' },
+    { label: 'JEE - 2nd Year', value: 'JEE_2' }
     
   ].map(tab => (
     <button
