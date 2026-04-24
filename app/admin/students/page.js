@@ -189,36 +189,18 @@ function downloadTemplate() {
     XLSX.writeFile(workbook, 'Students_List.xlsx')
   }
 
-  async function toggleLogin(studentId, email, currentStatus) {
+async function toggleLogin(studentId, email, currentStatus) {
   const newStatus = !(currentStatus ?? true)
 
-  console.log('Toggling:', email, currentStatus, '→', newStatus)
-
-  const { data, error } = await supabase
+  const { data, error, status } = await supabase
     .from('students')
     .update({ is_active: newStatus })
-    .eq('email', email)   // 🔥 KEY FIX
+    .eq('email', email)
+    .select()
 
-  if (error) {
-    console.error('Toggle error:', error)
-    alert('Failed to update login status')
-    return
-  }
-
-  console.log('Updated row:', data)
-
-  // UI update
-  setStudents(prev =>
-    prev.map(s =>
-      s.id === studentId ? { ...s, is_active: newStatus } : s
-    )
-  )
-
-  setAllStudents(prev =>
-    prev.map(s =>
-      s.id === studentId ? { ...s, is_active: newStatus } : s
-    )
-  )
+  console.log('STATUS:', status)
+  console.log('ERROR:', error)
+  console.log('DATA:', data)
 }
   
   return (
