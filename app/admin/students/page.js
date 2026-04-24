@@ -140,44 +140,7 @@ const grandFiltered = (grandStats || []).filter(s => {
   
   const exam = examMap[s.exam_id]
   const student = studentMap[s.student_id]
-  const filteredStudents = (() => {
-  if (!allStudents || allStudents.length === 0) return []
 
-  let filtered = [...allStudents]
-
-  // 🔍 SEARCH
-  if (search) {
-    filtered = filtered.filter(s =>
-      (s.first_name || '')
-        .toLowerCase()
-        .includes(search.toLowerCase().trim())
-    )
-  }
-
-  // 🎯 SEGMENT FILTER
-  filtered = filtered.filter(s => {
-    const pref = String(s.exam_preference).trim().toUpperCase()
-    const year = Number(s.study_year)
-
-    if (segment === 'JEE_1') return pref === 'JEE' && year === 1
-    if (segment === 'JEE_2') return pref === 'JEE' && year === 2
-    if (segment === 'NEET_1') return pref === 'NEET' && year === 1
-    if (segment === 'NEET_2') return pref === 'NEET' && year === 2
-
-    return false
-  })
-
-  // 🔀 SORT
-  if (sortBy === 'rank') {
-    filtered.sort((a, b) => {
-      const rankA = a.rank === '-' ? 9999 : Number(a.rank)
-      const rankB = b.rank === '-' ? 9999 : Number(b.rank)
-      return rankA - rankB
-    })
-  }
-
-  return filtered
-})()
   return (
     exam &&
     student &&
@@ -284,7 +247,7 @@ function downloadTemplate() {
   /* ================= EXPORT TO EXCEL ================= */
 
   function exportToExcel() {
-    if (students.length === 0) {
+    if (filteredStudents.length === 0) {
       alert('No student data to export')
       return
     }
@@ -357,6 +320,45 @@ async function resetPassword(studentId) {
 
   alert('Password updated successfully')
 }
+
+  const filteredStudents = (() => {
+  if (!allStudents || allStudents.length === 0) return []
+
+  let filtered = [...allStudents]
+
+  // SEARCH
+  if (search) {
+    filtered = filtered.filter(s =>
+      (s.first_name || '')
+        .toLowerCase()
+        .includes(search.toLowerCase().trim())
+    )
+  }
+
+  // SEGMENT FILTER
+  filtered = filtered.filter(s => {
+    const pref = String(s.exam_preference).trim().toUpperCase()
+    const year = Number(s.study_year)
+
+    if (segment === 'JEE_1') return pref === 'JEE' && year === 1
+    if (segment === 'JEE_2') return pref === 'JEE' && year === 2
+    if (segment === 'NEET_1') return pref === 'NEET' && year === 1
+    if (segment === 'NEET_2') return pref === 'NEET' && year === 2
+
+    return false
+  })
+
+  // SORT
+  if (sortBy === 'rank') {
+    filtered.sort((a, b) => {
+      const rankA = a.rank === '-' ? 9999 : Number(a.rank)
+      const rankB = b.rank === '-' ? 9999 : Number(b.rank)
+      return rankA - rankB
+    })
+  }
+
+  return filtered
+})()
   return (
     
     <div style={styles.page}>
@@ -457,7 +459,7 @@ async function resetPassword(studentId) {
   <p>No students in {segmentLabelMap[segment]}</p>
 )}
 
-      {!loading && students.length > 0 && (
+      {!loading && filteredStudents.length > 0 && (
         <div style={styles.tableWrapper}>
           <table style={styles.table}>
             <thead>
