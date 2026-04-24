@@ -313,7 +313,7 @@ async function resetPassword(studentId) {
   👨‍🎓 Registered Students 
 </h1>
   <p style={styles.subHeading}>
-    Total students-> 1st Year: {yearCounts.first} | 2nd Year: {yearCounts.second}
+    Total students in college  1st Year: {yearCounts.first} | 2nd Year: {yearCounts.second}
   </p>
 </div>
 
