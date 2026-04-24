@@ -6,8 +6,14 @@ import * as XLSX from 'xlsx'
 import { getStudentsWithCollege } from '../../../lib/db'
 
 export default function StudentListPage() {
+  const segmentLabelMap = {
+  NEET_1: 'NEET - 1st Year',
+  NEET_2: 'NEET - 2nd Year',
+  JEE_1: 'JEE - 1st Year',
+  JEE_2: 'JEE - 2nd Year'
+}
   const [students, setStudents] = useState([])
-  const [sortBy, setSortBy] = useState('first_name')
+  const [sortBy, setSortBy] = useState('rank')
   const [loading, setLoading] = useState(true)
   const [segment, setSegment] = useState('NEET_1')
   const [allStudents, setAllStudents] = useState([])
@@ -64,7 +70,14 @@ if (sortBy === 'rank') {
   // 1️⃣ Fetch students
   const studentData = await getStudentsWithCollege()
 
-  const collegeId = studentData[0]?.college_id
+if (!studentData || studentData.length === 0) {
+  setAllStudents([])
+  setStudents([])
+  setLoading(false)
+  return
+}
+
+const collegeId = studentData[0].college_id
 
   // ✅ FETCH DIRECTLY FROM student_overall_stats
 const { data: sessions } = await supabase
@@ -88,15 +101,36 @@ const { data: grandStats } = await supabase
   .in('student_id', studentData.map(s => s.id))
 
 // 🔥 GET GRAND TEST EXAM IDS
-const { data: grandExams } = await supabase
+  const { data: grandExams } = await supabase
   .from('exams')
-  .select('id')
+  .select('id, exam_category, target_year')
   .eq('exam_type', 'GRAND_TEST')
 
-const grandIds = grandExams?.map(e => e.id) || []
 
+const examMap = {}
+grandExams.forEach(e => {
+  examMap[e.id] = e
+})
+
+const studentMap = {}
+(studentData || []).forEach(s => {
+  studentMap[s.id] = s
+})
 // 🔥 FILTER GRAND TEST STATS
-const grandFiltered = grandStats?.filter(s => grandIds.includes(s.exam_id))
+const grandFiltered = grandStats?.filter(s => {
+  
+  const exam = examMap[s.exam_id]
+  const student = studentMap[s.student_id]
+  return (
+    exam &&
+    student &&
+    (
+  (student.exam_preference === 'NEET' && exam.exam_category === 'NEET') ||
+  (student.exam_preference === 'JEE' && exam.exam_category.startsWith('JEE'))
+)&&
+    String(exam.target_year) === String(student.study_year)
+  )
+})
 
 // 🔥 CALCULATE BEST SCORE PER STUDENT
 const scoreMap = {}
@@ -123,7 +157,7 @@ const rankMap = {}
 // 🎯 Build segment groups
 const groups = {}
 
-studentData.forEach(s => {
+(studentData || []).forEach(s => {
   const key = `${s.exam_preference}_${s.study_year}`
 
   if (!groups[key]) groups[key] = []
@@ -155,29 +189,7 @@ const merged = (studentData || [])
 const firstYearCount = merged.filter(s => String(s.study_year) === '1').length
 const secondYearCount = merged.filter(s => String(s.study_year) === '2').length
   
-let filtered = merged
-
-// 🔍 Search filter (name + email)
-if (search) {
-  filtered = filtered.filter(s =>
-    (s.first_name || '')
-      .toString()
-      .trim()
-      .toLowerCase()
-      .includes(search.toLowerCase().trim())
-  )
-}
-// 🎯 Exam category filter
-  if (examCategory !== 'ALL') {
-  filtered = filtered.filter(s => s.exam_preference === examCategory)
-}
-
-// 🎯 Study year filter
-if (studyYear !== 'ALL') {
-  filtered = filtered.filter(s => String(s.study_year) === studyYear)
-}
 setAllStudents(merged)
-setStudents(merged)
 setYearCounts({
   first: firstYearCount,
   second: secondYearCount
@@ -288,7 +300,9 @@ async function resetPassword(studentId) {
     <div style={styles.page}>
      <div style={{ marginBottom: 20 }}>
   <div>
-  <h1 style={styles.heading}>👨‍🎓 Registered Students</h1>
+  <h1 style={styles.heading}>
+  👨‍🎓 Registered Students ({segmentLabelMap[segment]})
+</h1>
   <p style={styles.subHeading}>
     1st Year: {yearCounts.first} | 2nd Year: {yearCounts.second}
   </p>
@@ -326,27 +340,7 @@ async function resetPassword(studentId) {
       style={styles.input}
     />
 
-    {/* CATEGORY */}
-    <select
-      value={examCategory}
-      onChange={(e) => setExamCategory(e.target.value)}
-      style={styles.input}
-    >
-      <option value="ALL">All Categories</option>
-      <option value="JEE">JEE</option>
-      <option value="NEET">NEET</option>
-    </select>
-
-    {/* YEAR */}
-    <select
-      value={studyYear}
-      onChange={(e) => setStudyYear(e.target.value)}
-      style={styles.input}
-    >
-      <option value="ALL">All Years</option>
-      <option value="1">1st Year</option>
-      <option value="2">2nd Year</option>
-    </select>
+ 
 <select
   value={sortBy}
   onChange={(e) => setSortBy(e.target.value)}
@@ -395,7 +389,7 @@ async function resetPassword(studentId) {
       {loading && <p>Loading students...</p>}
 
       {!loading && students.length === 0 && (
-        <p>No students registered yet.</p>
+        <p><p>No students in {segmentLabelMap[segment]}</p></p>
       )}
 
       {!loading && students.length > 0 && (
@@ -450,7 +444,7 @@ async function resetPassword(studentId) {
                   <td style={styles.td}>{student.phone || '-'}</td>
                   
                   <td style={styles.td}>
-                    {student.study_year || '-'}
+                    {student.study_year === '1' ? '1st Year' : '2nd Year'}
                   </td>
 
                   <td style={styles.td}>
@@ -461,9 +455,9 @@ async function resetPassword(studentId) {
                 </td>
                 <td style={{
                 ...styles.td,
-                color: student.rank <= 10 ? 'green' : 'black'
+                color: student.rank <= 3 ? '#16a34a' : student.rank <= 10 ? '#2563eb' : '#000'
               }}>
-                {student.rank}
+                {student.rank === '-' ? '—' : student.rank}
               </td>
                  <td style={styles.td}>
                   <button
