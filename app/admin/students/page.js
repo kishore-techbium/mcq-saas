@@ -288,8 +288,6 @@ async function resetPassword(studentId) {
   const year = String(s.study_year || '')
     .trim()
 
-  // DEBUG (temporary)
-  console.log('CHECK:', pref, year)
 
   if (segment === 'NEET_1') return pref === 'NEET' && year === '1'
   if (segment === 'NEET_2') return pref === 'NEET' && year === '2'
