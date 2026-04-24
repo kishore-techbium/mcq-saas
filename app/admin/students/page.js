@@ -192,7 +192,33 @@ function downloadTemplate() {
 
     XLSX.writeFile(workbook, 'Students_List.xlsx')
   }
+async function toggleLogin(studentId, currentStatus) {
+  const newStatus = !currentStatus
 
+  const { error } = await supabase
+    .from('students')
+    .update({ is_active: newStatus })
+    .eq('id', studentId)
+
+  if (error) {
+    alert('Failed to update login status')
+    return
+  }
+
+  // 🔄 Update UI instantly
+  setStudents(prev =>
+    prev.map(s =>
+      s.id === studentId ? { ...s, is_active: newStatus } : s
+    )
+  )
+
+  setAllStudents(prev =>
+    prev.map(s =>
+      s.id === studentId ? { ...s, is_active: newStatus } : s
+    )
+  )
+}
+  
   return (
     
     <div style={styles.page}>
@@ -294,7 +320,8 @@ function downloadTemplate() {
                 
                 <th style={styles.th}>Created At</th>
                 <th style={styles.th}>Attempts</th>
-                <th style={styles.th}>Rank (Grand Test)</th>
+                <th style={styles.th}>Grand Test Rank</th>
+                <th style={styles.th}>Login</th>
                 <th style={styles.th}>Actions</th>
               </tr>
             </thead>
@@ -344,6 +371,21 @@ function downloadTemplate() {
               }}>
                 {student.rank}
               </td>
+                  <td style={styles.td}>
+                    <label style={styles.switch}>
+                      <input
+                        type="checkbox"
+                        checked={student.is_active ?? true}
+                        onChange={() => toggleLogin(student.id, student.is_active)}
+                      />
+                        <span
+                        style={{
+                          ...styles.slider,
+                          backgroundColor: student.is_active ? '#22c55e' : '#ccc'
+                        }}
+                        ></span>
+                    </label>
+                  </td>
                   <td style={styles.td}>
                     <button
                       style={styles.viewBtn}
@@ -486,6 +528,23 @@ input: {
   borderRadius: 6,
   border: '1px solid #ccc',
   minWidth: 180
+},
+switch: {
+  position: 'relative',
+  display: 'inline-block',
+  width: 40,
+  height: 20
+},
+slider: {
+  position: 'absolute',
+  cursor: 'pointer',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: '#ccc',
+  borderRadius: 20,
+  transition: '.3s'
 },
 
 buttonGroup: {
