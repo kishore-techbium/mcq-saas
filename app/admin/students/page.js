@@ -310,10 +310,10 @@ async function resetPassword(studentId) {
      <div style={{ marginBottom: 20 }}>
   <div>
   <h1 style={styles.heading}>
-  👨‍🎓 Registered Students ({segmentLabelMap[segment]})
+  👨‍🎓 Registered Students 
 </h1>
   <p style={styles.subHeading}>
-    1st Year: {yearCounts.first} | 2nd Year: {yearCounts.second}
+    Total students-> 1st Year: {yearCounts.first} | 2nd Year: {yearCounts.second}
   </p>
 </div>
 
@@ -321,10 +321,11 @@ async function resetPassword(studentId) {
 
     <div style={styles.tabs}>
   {[
-    { label: 'NEET - 1st Year', value: 'NEET_1' },
-    { label: 'NEET - 2nd Year', value: 'NEET_2' },
     { label: 'JEE - 1st Year', value: 'JEE_1' },
-    { label: 'JEE - 2nd Year', value: 'JEE_2' }
+    { label: 'JEE - 2nd Year', value: 'JEE_2' },  
+    { label: 'NEET - 1st Year', value: 'NEET_1' },
+    { label: 'NEET - 2nd Year', value: 'NEET_2' }
+    
   ].map(tab => (
     <button
       key={tab.value}
