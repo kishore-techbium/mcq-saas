@@ -470,7 +470,7 @@ async function resetPassword(studentId) {
         <td style={styles.td}>{student.phone || '-'}</td>
 
         <td style={styles.td}>
-          {student.study_year === '1' ? '1st Year' : '2nd Year'}
+          {String(student.study_year).trim() === '1' ? '1st Year' : '2nd Year'}
         </td>
 
         <td style={styles.td}>
