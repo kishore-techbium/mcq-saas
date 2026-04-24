@@ -418,7 +418,8 @@ async function resetPassword(studentId) {
             </thead>
 
             <tbody>
-              {students.map((student) => (
+            {students.map((student) => {
+            const rankValue = Number(student.rank)
                 <tr key={student.id}>
                   <td style={styles.td}>
                       <input
@@ -460,7 +461,7 @@ async function resetPassword(studentId) {
                 </td>
                 <td style={{
                 ...styles.td,
-                const rankValue = Number(student.rank)
+                
                 color:
                   !rankValue ? '#000' :
                   rankValue <= 3 ? '#16a34a' :
@@ -503,8 +504,10 @@ async function resetPassword(studentId) {
                       View
                     </button>
                   </td>
+                        
                 </tr>
-              ))}
+                )
+})}
             </tbody>
           </table>
         </div>
