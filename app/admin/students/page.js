@@ -37,11 +37,22 @@ useEffect(() => {
     )
   }
 // 🎯 SEGMENT FILTER (MAIN LOGIC)
-  filtered = filtered.filter(s =>
-  `${s.exam_preference}_${String(s.study_year)}` === segment
-)
+ filtered = filtered.filter(s => {
+  const pref = String(s.exam_preference).toUpperCase().trim()
+  const year = String(s.study_year).trim()
+
+  return `${pref}_${year}` === segment
+})
   console.log('Segment:', segment)
-console.log('Student sample:', allStudents[0])
+
+console.log(
+  'Matching students:',
+  allStudents.filter(s => {
+    const pref = String(s.exam_preference).toUpperCase().trim()
+    const year = String(s.study_year).trim()
+    return `${pref}_${year}` === segment
+  }).length
+)
   if (sortBy === 'first_name') {
   filtered = [...filtered].sort((a, b) =>
     (a.first_name || '').localeCompare(b.first_name || '')
@@ -264,11 +275,20 @@ async function toggleLogin(studentId, email, currentStatus) {
 
 
   // UI update
- setAllStudents(prev =>
-  prev.map(s =>
+setAllStudents(prev => {
+  const updated = prev.map(s =>
     s.id === studentId ? { ...s, is_active: newStatus } : s
   )
-)
+
+  // 🔥 FORCE UI SYNC IMMEDIATELY
+  setStudents(current =>
+    current.map(s =>
+      s.id === studentId ? { ...s, is_active: newStatus } : s
+    )
+  )
+
+  return updated
+})
 }
 async function resetPassword(studentId) {
   const newPassword = prompt('Enter new password')
