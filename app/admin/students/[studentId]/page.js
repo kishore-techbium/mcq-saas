@@ -24,7 +24,6 @@ export default function StudentDetailsPage() {
   async function fetchData() {
     setLoading(true)
 
-    // 🔹 overall stats
     const { data: overall } = await supabase
       .from('student_overall_stats')
       .select('*')
@@ -33,14 +32,12 @@ export default function StudentDetailsPage() {
 
     setOverallStats(overall)
 
-    // 🔹 student
     const { data: studentData } = await supabase
       .from('students')
       .select('*')
       .eq('id', studentId)
       .single()
 
-    // 🔹 sessions (ONLY submitted)
     const { data: sessionData } = await supabase
       .from('exam_sessions')
       .select('*')
@@ -48,7 +45,6 @@ export default function StudentDetailsPage() {
       .eq('submitted', true)
       .order('created_at', { ascending: false })
 
-    // 🔹 insights
     const { data: insightsData } = await supabase
       .from('student_insights')
       .select('*')
@@ -89,7 +85,6 @@ export default function StudentDetailsPage() {
         return {
           ...session,
           exam_title: exam.title,
-          exam_created_at: exam.created_at,
           exam_type: exam.exam_type,
           exam_category: exam.exam_category,
           percent: Number(percent.toFixed(1))
@@ -99,22 +94,22 @@ export default function StudentDetailsPage() {
       enriched = enriched.filter(Boolean)
     }
 
-    // 🔹 group by exam_title (temporary, will change in next step)
+    // 🔥 GROUP BY EXAM TYPE
     const groupedData = {}
 
-enriched.forEach((s) => {
-  if (!groupedData[s.exam_type]) {
-    groupedData[s.exam_type] = []
-  }
-  groupedData[s.exam_type].push(s)
-})
+    enriched.forEach((s) => {
+      if (!groupedData[s.exam_type]) {
+        groupedData[s.exam_type] = []
+      }
+      groupedData[s.exam_type].push(s)
+    })
 
-// 🔥 SORT each exam_type by latest
-Object.keys(groupedData).forEach((type) => {
-  groupedData[type].sort(
-    (a, b) => new Date(b.created_at) - new Date(a.created_at)
-  )
-})
+    // sort latest first
+    Object.keys(groupedData).forEach((type) => {
+      groupedData[type].sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      )
+    })
 
     setStudent(studentData)
     setSessions(enriched)
@@ -131,7 +126,7 @@ Object.keys(groupedData).forEach((type) => {
       Type: s.exam_type,
       Category: s.exam_category,
       Score: s.percent + '%',
-      Attempt_Date: new Date(s.created_at).toLocaleString()
+      Date: new Date(s.created_at).toLocaleString()
     }))
 
     const ws = XLSX.utils.json_to_sheet(exportData)
@@ -142,46 +137,95 @@ Object.keys(groupedData).forEach((type) => {
 
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
-  const totalAttempts = overallStats?.total_attempts || 0
   const totalExams = overallStats?.total_exams || 0
   const averageScore = overallStats?.avg_score?.toFixed(1) || 0
   const bestScore = overallStats?.best_score || 0
   const latestScore = overallStats?.last_score || 0
 
-  const avgPercent = (() => {
-    if (!sessions.length) return 0
-    const values = sessions.map((s) => s.percent || 0)
-    return (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1)
+  // 🔥 TYPE-WISE STATS
+  const typeStats = (() => {
+    const map = {}
+
+    sessions.forEach((s) => {
+      if (!map[s.exam_type]) map[s.exam_type] = []
+      map[s.exam_type].push(s.percent || 0)
+    })
+
+    const result = {}
+
+    Object.keys(map).forEach((type) => {
+      const arr = map[type]
+
+      const avg =
+        arr.reduce((a, b) => a + b, 0) / (arr.length || 1)
+
+      const latest = arr[0] || 0
+      const prev = arr[1] || 0
+
+      let trend = '→'
+      if (latest > prev) trend = '↑'
+      if (latest < prev) trend = '↓'
+
+      result[type] = {
+        avg: avg.toFixed(1),
+        latest,
+        trend
+      }
+    })
+
+    return result
   })()
 
   return (
     <div style={styles.page}>
-      <h1 style={styles.heading}>Student Performance</h1>
+      <h1 style={styles.heading}>Student Intelligence Dashboard</h1>
 
-      {/* 🔹 SUMMARY */}
+      {/* 🔥 TOP INTELLIGENCE */}
       <div style={styles.analyticsBox}>
         <div>
           <strong>Total Exams:</strong> {totalExams} |{' '}
-          <strong>Average Score:</strong> {averageScore}% |{' '}
-          <strong>Avg % (calculated):</strong> {avgPercent}% |{' '}
-          <strong>Best Score:</strong> {bestScore} |{' '}
-          <strong>Latest Score:</strong> {latestScore}
+          <strong>Avg:</strong> {averageScore}% |{' '}
+          <strong>Best:</strong> {bestScore} |{' '}
+          <strong>Latest:</strong> {latestScore}
         </div>
 
-        {/* 🔹 AI INSIGHTS */}
-        <div style={styles.insightBox}>
-          <strong>🧠 Student Intelligence Report:</strong>
-
-          {insights.length === 0 && <div>-</div>}
-
-          {insights.slice(0, 3).map((i, index) => (
-            <div key={index} style={{ fontSize: 13, marginTop: 5 }}>
-              {i.severity === 'high' && '🔴 '}
-              {i.severity === 'medium' && '🟠 '}
-              {i.severity === 'low' && '🟢 '}
-              {i.message}
+        <div style={styles.compareBox}>
+          <strong>📊 Performance by Type:</strong>
+          {Object.entries(typeStats).map(([type, val]) => (
+            <div key={type}>
+              {type} → Avg: {val.avg}% | Trend: {val.trend}
             </div>
           ))}
+        </div>
+
+        <div style={styles.intelBox}>
+          <strong>🧠 Intelligence:</strong>
+
+          {(() => {
+            const entries = Object.entries(typeStats)
+            if (!entries.length) return <div>-</div>
+
+            let weak = entries[0]
+            let strong = entries[0]
+
+            entries.forEach((e) => {
+              if (Number(e[1].avg) < Number(weak[1].avg)) weak = e
+              if (Number(e[1].avg) > Number(strong[1].avg)) strong = e
+            })
+
+            return (
+              <>
+                <div>🔴 Weakest: {weak[0]}</div>
+                <div>🟢 Strongest: {strong[0]}</div>
+                {entries.map(([type, val]) => (
+                  <div key={type}>
+                    {val.trend === '↑' && `🟢 Improving in ${type}`}
+                    {val.trend === '↓' && `🔴 Declining in ${type}`}
+                  </div>
+                ))}
+              </>
+            )
+          })()}
         </div>
 
         <button
@@ -198,66 +242,47 @@ Object.keys(groupedData).forEach((type) => {
         </button>
       </div>
 
-      {/* 🔹 EXAMS */}
+      {/* 🔥 GRID */}
       <div style={styles.grid}>
-  {Object.entries(grouped).map(([examType, exams]) => {
-    const avg =
-      exams.reduce((sum, e) => sum + (e.percent || 0), 0) /
-      (exams.length || 1)
+        {Object.entries(grouped).map(([type, exams]) => {
+          const avg =
+            exams.reduce((a, b) => a + b.percent, 0) /
+            (exams.length || 1)
 
-    const best = Math.max(...exams.map((e) => e.percent || 0))
+          const best = Math.max(...exams.map((e) => e.percent))
 
-    const latest = exams[0]?.percent || 0
-    const prev = exams[1]?.percent || 0
+          const latest = exams[0]?.percent || 0
+          const prev = exams[1]?.percent || 0
 
-    let trend = '→'
-    if (latest > prev) trend = '↑'
-    if (latest < prev) trend = '↓'
-
-    return (
-      <div key={examType} style={styles.column}>
-        <h2 style={styles.columnTitle}>{examType}</h2>
-
-        <div style={styles.summary}>
-          Avg: {avg.toFixed(1)}% <br />
-          Best: {best.toFixed(1)}% <br />
-          Latest: {latest}% <br />
-          Trend: {trend}
-        </div>
-
-        {exams.map((e) => {
-          const getStatus = (count) => {
-            if (count === 0) return '✅'
-            if (count <= 2) return '⚠️'
-            return '🚨'
-          }
+          let trend = '→'
+          if (latest > prev) trend = '↑'
+          if (latest < prev) trend = '↓'
 
           return (
-            <div key={e.id} style={styles.card}>
-              <div style={styles.cardHeader}>
-                {e.exam_title}
+            <div key={type} style={styles.column}>
+              <h2 style={styles.columnTitle}>{type}</h2>
+
+              <div style={styles.summary}>
+                Avg: {avg.toFixed(1)}% <br />
+                Best: {best.toFixed(1)}% <br />
+                Trend: {trend}
               </div>
 
-              <div style={styles.score}>
-                {e.percent}%
-              </div>
-
-              <div style={styles.date}>
-                {new Date(e.created_at).toLocaleDateString('en-IN')}
-              </div>
-
-              <div style={styles.integritySmall}>
-                🔐 TS:{e.tab_switch_count || 0} {getStatus(e.tab_switch_count || 0)} | 
-                BL:{e.blur_count || 0} {getStatus(e.blur_count || 0)} | 
-                EX:{e.fullscreen_exit_count || 0} {getStatus(e.fullscreen_exit_count || 0)}
-              </div>
+              {exams.map((e) => (
+                <div key={e.id} style={styles.card}>
+                  <div style={styles.cardHeader}>
+                    {e.exam_title}
+                  </div>
+                  <div style={styles.score}>{e.percent}%</div>
+                  <div style={styles.date}>
+                    {new Date(e.created_at).toLocaleDateString('en-IN')}
+                  </div>
+                </div>
+              ))}
             </div>
           )
         })}
       </div>
-    )
-  })}
-</div>
     </div>
   )
 }
@@ -265,78 +290,37 @@ Object.keys(groupedData).forEach((type) => {
 const styles = {
   page: {
     padding: 40,
-    background: '#f5f7fb',
+    background: '#f3f4f6',
     minHeight: '100vh'
   },
-  heading: { fontSize: 26, fontWeight: 700, marginBottom: 25 },
+
+  heading: {
+    fontSize: 26,
+    fontWeight: 700,
+    marginBottom: 20
+  },
 
   analyticsBox: {
     background: '#fff',
     padding: 20,
     borderRadius: 10,
-    marginBottom: 30,
+    marginBottom: 25,
     border: '1px solid #e5e7eb'
   },
 
-  insightBox: {
-    marginTop: 15,
+  compareBox: {
+    marginTop: 10,
     padding: 10,
-    background: '#f9fafb',
+    background: '#eef2ff',
     borderRadius: 8
   },
-  grid: {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-  gap: 20
-},
 
-column: {
-  background: '#fff',
-  padding: 15,
-  borderRadius: 10,
-  border: '1px solid #e5e7eb'
-},
-
-columnTitle: {
-  fontSize: 18,
-  fontWeight: 600,
-  marginBottom: 10
-},
-
-summary: {
-  fontSize: 13,
-  marginBottom: 15,
-  color: '#444'
-},
-
-card: {
-  padding: 10,
-  marginBottom: 10,
-  borderRadius: 8,
-  background: '#f9fafb',
-  border: '1px solid #e5e7eb'
-},
-
-cardHeader: {
-  fontSize: 13,
-  fontWeight: 600
-},
-
-score: {
-  fontSize: 18,
-  fontWeight: 700
-},
-
-date: {
-  fontSize: 12,
-  color: '#666'
-},
-
-integritySmall: {
-  fontSize: 11,
-  marginTop: 5,
-  color: '#555'
-},
+  intelBox: {
+    marginTop: 10,
+    padding: 10,
+    background: '#fef9c3',
+    borderRadius: 8
+  },
 
   exportBtn: {
     marginTop: 10,
@@ -347,27 +331,53 @@ integritySmall: {
     borderRadius: 6
   },
 
-  examBlock: {
-    background: '#fff',
-    padding: 20,
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: 20
+  },
+
+  column: {
+    background: '#ffffff',
     borderRadius: 10,
-    marginBottom: 25,
+    padding: 15,
+    border: '2px solid #e5e7eb'
+  },
+
+  columnTitle: {
+    fontSize: 18,
+    fontWeight: 600,
+    marginBottom: 10,
+    borderBottom: '1px solid #ddd',
+    paddingBottom: 5
+  },
+
+  summary: {
+    fontSize: 13,
+    marginBottom: 10,
+    color: '#444'
+  },
+
+  card: {
+    padding: 10,
+    marginBottom: 10,
+    background: '#f9fafb',
+    borderRadius: 8,
     border: '1px solid #e5e7eb'
   },
 
-  meta: { fontSize: 13, color: '#555' },
-
-  tableWrapper: { marginTop: 15 },
-
-  table: { width: '100%', borderCollapse: 'collapse' },
-
-  th: { padding: 10, background: '#f9fafb' },
-
-  td: { padding: 10, borderBottom: '1px solid #f1f5f9' },
-
-  integrity: {
-    padding: '6px 10px',
+  cardHeader: {
     fontSize: 13,
-    color: '#444'
+    fontWeight: 600
+  },
+
+  score: {
+    fontSize: 18,
+    fontWeight: 700
+  },
+
+  date: {
+    fontSize: 12,
+    color: '#666'
   }
 }
