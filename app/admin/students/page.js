@@ -141,15 +141,15 @@ const grandFiltered = (grandStats || []).filter(s => {
   const exam = examMap[s.exam_id]
   const student = studentMap[s.student_id]
 
-  return (
-    exam &&
-    student &&
-    (
-  (student.exam_preference === 'NEET' && exam.exam_category === 'NEET') ||
-  (student.exam_preference === 'JEE' && exam.exam_category.startsWith('JEE'))
-)&&
-    String(exam.target_year) === {String(student.study_year).trim() === '1' ? '1st Year' : '2nd Year'}
-  )
+ return (
+  exam &&
+  student &&
+  (
+    (student.exam_preference === 'NEET' && exam.exam_category === 'NEET') ||
+    (student.exam_preference === 'JEE' && exam.exam_category.startsWith('JEE'))
+  ) &&
+  String(exam.target_year) === String(student.study_year).trim()
+)
 })
 
 // 🔥 CALCULATE BEST SCORE PER STUDENT
