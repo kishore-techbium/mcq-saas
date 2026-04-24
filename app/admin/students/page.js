@@ -225,10 +225,17 @@ async function toggleLogin(studentId, email, currentStatus) {
   )
 }
 async function resetPassword(studentId) {
-  const newPassword = '1234'
+  const newPassword = prompt('Enter new password')
 
-  const confirmReset = confirm('Reset password to 1234?')
-  if (!confirmReset) return
+  if (!newPassword) {
+    alert('Password cannot be empty')
+    return
+  }
+
+  if (newPassword.length < 4) {
+    alert('Password must be at least 4 characters')
+    return
+  }
 
   const { error } = await supabase
     .from('students')
@@ -237,12 +244,12 @@ async function resetPassword(studentId) {
 
   if (error) {
     console.error(error)
-    alert('Failed to reset password')
+    alert('Failed to update password')
     return
   }
 
-  alert('Password reset successful')
-}  
+  alert('Password updated successfully')
+}
   return (
     
     <div style={styles.page}>
@@ -413,12 +420,12 @@ async function resetPassword(studentId) {
                   </button>
                 </td>
                 <td style={styles.td}>
-                  <button
-                    onClick={() => resetPassword(student.id)}
-                    style={styles.resetBtn}
-                  >
-                    Reset
-                  </button>
+               <button
+                  onClick={() => resetPassword(student.id)}
+                  style={styles.resetBtn}
+                >
+                  Set Password
+                </button>
                 </td>
                   <td style={styles.td}>
                     <button
