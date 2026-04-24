@@ -39,10 +39,9 @@ useEffect(() => {
 // 🎯 SEGMENT FILTER (MAIN LOGIC)
 filtered = filtered.filter(s =>
   `${s.exam_preference}_${s.study_year}` === segment
-console.log('Segment:', segment)
-console.log('Student sample:', allStudents[0])
 )
-  
+  console.log('Segment:', segment)
+console.log('Student sample:', allStudents[0])
   if (sortBy === 'first_name') {
   filtered = [...filtered].sort((a, b) =>
     (a.first_name || '').localeCompare(b.first_name || '')
