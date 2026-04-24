@@ -192,16 +192,33 @@ function downloadTemplate() {
 async function toggleLogin(studentId, email, currentStatus) {
   const newStatus = !(currentStatus ?? true)
 
-  const { data, error, status } = await supabase
+  console.log('Toggling:', email, currentStatus, '→', newStatus)
+
+  const { data, error } = await supabase
     .from('students')
     .update({ is_active: newStatus })
-    .eq('email', email)
-    .select()
+    
 
-  console.log('STATUS:', status)
-  console.log('ERROR:', error)
-  console.log('DATA:', data)
-  console.log('EMAIL FROM UI:', email)
+  if (error) {
+    console.error('Toggle error:', error)
+    alert('Failed to update login status')
+    return
+  }
+
+  console.log('Updated row:', data)
+
+  // UI update
+  setStudents(prev =>
+    prev.map(s =>
+      s.id === studentId ? { ...s, is_active: newStatus } : s
+    )
+  )
+
+  setAllStudents(prev =>
+    prev.map(s =>
+      s.id === studentId ? { ...s, is_active: newStatus } : s
+    )
+  )
 }
   
   return (
