@@ -7,12 +7,13 @@ import { getStudentsWithCollege } from '../../../lib/db'
 
 export default function StudentListPage() {
   const segmentLabelMap = {
-  JEE_1: 'JEE - 1st Year',
-  JEE_2: 'JEE - 2nd Year',
   NEET_1: 'NEET - 1st Year',
-  NEET_2: 'NEET - 2nd Year'
+  NEET_2: 'NEET - 2nd Year',
+  JEE_1: 'JEE - 1st Year',
+  JEE_2: 'JEE - 2nd Year'
+  
 }
-  const [students, setStudents] = useState([])
+  
   const [sortBy, setSortBy] = useState('rank')
   const [loading, setLoading] = useState(true)
   const [segment, setSegment] = useState('NEET_1')
@@ -76,7 +77,6 @@ useEffect(() => {
 
   console.log('Segment:', segment, 'Filtered:', filtered.length)
 
-  setStudents(filtered)
 }, [search, sortBy, segment, allStudents])
 
   async function fetchStudents() {
@@ -88,7 +88,7 @@ useEffect(() => {
 
 if (!studentData || studentData.length === 0) {
   setAllStudents([])
-  setStudents([])
+  
   setLoading(false)
   return
 }
@@ -140,6 +140,44 @@ const grandFiltered = (grandStats || []).filter(s => {
   
   const exam = examMap[s.exam_id]
   const student = studentMap[s.student_id]
+  const filteredStudents = (() => {
+  if (!allStudents || allStudents.length === 0) return []
+
+  let filtered = [...allStudents]
+
+  // 🔍 SEARCH
+  if (search) {
+    filtered = filtered.filter(s =>
+      (s.first_name || '')
+        .toLowerCase()
+        .includes(search.toLowerCase().trim())
+    )
+  }
+
+  // 🎯 SEGMENT FILTER
+  filtered = filtered.filter(s => {
+    const pref = String(s.exam_preference).trim().toUpperCase()
+    const year = Number(s.study_year)
+
+    if (segment === 'JEE_1') return pref === 'JEE' && year === 1
+    if (segment === 'JEE_2') return pref === 'JEE' && year === 2
+    if (segment === 'NEET_1') return pref === 'NEET' && year === 1
+    if (segment === 'NEET_2') return pref === 'NEET' && year === 2
+
+    return false
+  })
+
+  // 🔀 SORT
+  if (sortBy === 'rank') {
+    filtered.sort((a, b) => {
+      const rankA = a.rank === '-' ? 9999 : Number(a.rank)
+      const rankB = b.rank === '-' ? 9999 : Number(b.rank)
+      return rankA - rankB
+    })
+  }
+
+  return filtered
+})()
   return (
     exam &&
     student &&
@@ -415,9 +453,9 @@ async function resetPassword(studentId) {
 </div>
       {loading && <p>Loading students...</p>}
 
-      {!loading && students.length === 0 && (
-        <p>No students in {segmentLabelMap[segment]}</p>
-      )}
+{!loading && filteredStudents.length === 0 && (
+  <p>No students in {segmentLabelMap[segment]}</p>
+)}
 
       {!loading && students.length > 0 && (
         <div style={styles.tableWrapper}>
@@ -441,7 +479,7 @@ async function resetPassword(studentId) {
               </tr>
             </thead>
 <tbody>
-  {students.map((student) => {
+  {filteredStudents.map((student) => {
     const rankValue = Number(student.rank)
 
     return (
