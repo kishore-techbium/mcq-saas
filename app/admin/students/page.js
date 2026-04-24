@@ -416,99 +416,117 @@ async function resetPassword(studentId) {
                 <th style={styles.th}>Actions</th>
               </tr>
             </thead>
+<tbody>
+  {students.map((student) => {
+    const rankValue = Number(student.rank)
 
-            <tbody>
-            {students.map((student) => {
-            const rankValue = Number(student.rank)
-                <tr key={student.id}>
-                  <td style={styles.td}>
-                      <input
-                        type="checkbox"
-                        checked={selectedStudents.includes(student.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            if (selectedStudents.length >= 5) {
-                              alert('You can compare maximum 5 students only')
-                              return
-                            }
-                            setSelectedStudents([...selectedStudents, student.id])
-                          } else {
-                            setSelectedStudents(selectedStudents.filter(id => id !== student.id))
-                          }
-                        }}
-                      />
-                  </td>
-                  <td style={styles.td}>
-                    {student.first_name || '-'}
-                  </td>
-                  <td style={styles.td}>
-                    {student.last_name || '-'}
-                  </td>
-                  <td style={styles.td}>{student.email}</td>
-                  <td style={styles.td}>{student.phone || '-'}</td>
-                  
-                  <td style={styles.td}>
-                    {student.study_year === '1' ? '1st Year' : '2nd Year'}
-                  </td>
-
-                  <td style={styles.td}>
-                    {student.created_at
-                    ? new Date(student.created_at).toLocaleDateString('en-IN')
-                    : '-'}
-                  </td>
-                  <td style={styles.td}>
-                  {student.attempt_count || 0}
-                </td>
-                <td style={{
-                ...styles.td,
-                
-                color:
-                  !rankValue ? '#000' :
-                  rankValue <= 3 ? '#16a34a' :
-                  rankValue <= 10 ? '#2563eb' :
-                  '#000'
-              }}>
-                {student.rank === '-' ? '—' : student.rank}
-              </td>
-                 <td style={styles.td}>
-                  <button
-                    onClick={() => toggleLogin(student.id, student.email, student.is_active)}
-                    style={{
-                  padding: '6px 12px',
-                  borderRadius: 20,
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  backgroundColor: student.is_active ? '#2563eb' : '#ef4444', // 🔥 HERE
-                  color: '#fff'
-                }}
-                  >
-                    {student.is_active ? 'ON' : 'OFF'}
-                  </button>
-                </td>
-                <td style={styles.td}>
-               <button
-                  onClick={() => resetPassword(student.id)}
-                  style={styles.resetBtn}
-                >
-                  Set Password
-                </button>
-                </td>
-                  <td style={styles.td}>
-                    <button
-                      style={styles.viewBtn}
-                      onClick={() =>
-                        (window.location.href = `/admin/students/${student.id}`)
-                      }
-                    >
-                      View
-                    </button>
-                  </td>
-                        
-                </tr>
+    return (
+      <tr key={student.id}>
+        <td style={styles.td}>
+          <input
+            type="checkbox"
+            checked={selectedStudents.includes(student.id)}
+            onChange={(e) => {
+              if (e.target.checked) {
+                if (selectedStudents.length >= 5) {
+                  alert('You can compare maximum 5 students only')
+                  return
+                }
+                setSelectedStudents([...selectedStudents, student.id])
+              } else {
+                setSelectedStudents(
+                  selectedStudents.filter(id => id !== student.id)
                 )
-})}
-            </tbody>
+              }
+            }}
+          />
+        </td>
+
+        <td style={styles.td}>
+          {student.first_name || '-'}
+        </td>
+
+        <td style={styles.td}>
+          {student.last_name || '-'}
+        </td>
+
+        <td style={styles.td}>{student.email}</td>
+
+        <td style={styles.td}>{student.phone || '-'}</td>
+
+        <td style={styles.td}>
+          {student.study_year === '1' ? '1st Year' : '2nd Year'}
+        </td>
+
+        <td style={styles.td}>
+          {student.created_at
+            ? new Date(student.created_at).toLocaleDateString('en-IN')
+            : '-'}
+        </td>
+
+        <td style={styles.td}>
+          {student.attempt_count || 0}
+        </td>
+
+        <td
+          style={{
+            ...styles.td,
+            color:
+              !rankValue
+                ? '#000'
+                : rankValue <= 3
+                ? '#16a34a'
+                : rankValue <= 10
+                ? '#2563eb'
+                : '#000'
+          }}
+        >
+          {student.rank === '-' ? '—' : student.rank}
+        </td>
+
+        <td style={styles.td}>
+          <button
+            onClick={() =>
+              toggleLogin(student.id, student.email, student.is_active)
+            }
+            style={{
+              padding: '6px 12px',
+              borderRadius: 20,
+              border: 'none',
+              cursor: 'pointer',
+              fontWeight: 600,
+              backgroundColor: student.is_active ? '#2563eb' : '#ef4444',
+              color: '#fff'
+            }}
+          >
+            {student.is_active ? 'ON' : 'OFF'}
+          </button>
+        </td>
+
+        <td style={styles.td}>
+          <button
+            onClick={() => resetPassword(student.id)}
+            style={styles.resetBtn}
+          >
+            Set Password
+          </button>
+        </td>
+
+        <td style={styles.td}>
+          <button
+            style={styles.viewBtn}
+            onClick={() =>
+              (window.location.href = `/admin/students/${student.id}`)
+            }
+          >
+            View
+          </button>
+        </td>
+      </tr>
+    )
+  })}
+</tbody>
+            
           </table>
         </div>
       )}
