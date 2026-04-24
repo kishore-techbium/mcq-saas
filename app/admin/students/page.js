@@ -41,18 +41,20 @@ useEffect(() => {
   }
 
   // 🎯 SEGMENT FILTER (SAFE)
+  const cleanSegment = String(segment).trim().toUpperCase()
 
   filtered = filtered.filter(s => {
   const pref = String(s.exam_preference).trim().toUpperCase()
   const year = String(s.study_year).trim()
-  if (segment === 'NEET_1') return pref === 'NEET' && year === 1
-  if (segment === 'NEET_2') return pref === 'NEET' && year === 2
-  if (segment === 'JEE_1') return pref === 'JEE' && year === 1
-  if (segment === 'JEE_2') return pref === 'JEE' && year === 2
+if (cleanSegment === 'JEE_1') return pref === 'JEE' && year === '1'
+if (cleanSegment === 'JEE_2') return pref === 'JEE' && year === '2'
+if (cleanSegment === 'NEET_1') return pref === 'NEET' && year === '1'
+if (cleanSegment === 'NEET_2') return pref === 'NEET' && year === '2'
   
   return false
 })
-
+console.log('RAW SEGMENT:', segment)
+console.log('CLEAN SEGMENT:', cleanSegment)
 
   // 🔀 SORT
   if (sortBy === 'first_name') {
