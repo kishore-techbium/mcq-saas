@@ -194,10 +194,12 @@ async function toggleLogin(studentId, email, currentStatus) {
 
   console.log('Toggling:', email, currentStatus, '→', newStatus)
 
-  const { data, error } = await supabase
+
+   const { data, error } = await supabase
     .from('students')
     .update({ is_active: newStatus })
-    
+    .eq('id', studentId)
+    .select()   
 
   if (error) {
     console.error('Toggle error:', error)
