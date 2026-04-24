@@ -7,6 +7,7 @@ import { getStudentsWithCollege } from '../../../lib/db'
 
 export default function StudentListPage() {
   const [students, setStudents] = useState([])
+  const [sortBy, setSortBy] = useState('first_name')
   const [loading, setLoading] = useState(true)
   const [allStudents, setAllStudents] = useState([])
   const [search, setSearch] = useState('')
@@ -38,11 +39,27 @@ useEffect(() => {
   if (studyYear !== 'ALL') {
     filtered = filtered.filter(s => String(s.study_year) === studyYear)
   }
+  if (sortBy === 'first_name') {
   filtered = [...filtered].sort((a, b) =>
     (a.first_name || '').localeCompare(b.first_name || '')
   )
+}
+
+if (sortBy === 'last_name') {
+  filtered = [...filtered].sort((a, b) =>
+    (a.last_name || '').localeCompare(b.last_name || '')
+  )
+}
+
+if (sortBy === 'rank') {
+  filtered = [...filtered].sort((a, b) => {
+    const rankA = a.rank === '-' ? 9999 : Number(a.rank)
+    const rankB = b.rank === '-' ? 9999 : Number(b.rank)
+    return rankA - rankB
+  })
+}
   setStudents(filtered)
-}, [search, examCategory, studyYear, allStudents])
+}, [search, examCategory, studyYear, allStudents, sortBy])
 
   async function fetchStudents() {
   setLoading(true)
@@ -293,7 +310,15 @@ async function resetPassword(studentId) {
       <option value="1">1st Year</option>
       <option value="2">2nd Year</option>
     </select>
-
+<select
+  value={sortBy}
+  onChange={(e) => setSortBy(e.target.value)}
+  style={styles.input}
+>
+  <option value="first_name">Sort: First Name</option>
+  <option value="last_name">Sort: Last Name</option>
+  <option value="rank">Sort: Rank</option>
+</select>
     {/* BUTTONS */}
     <div style={styles.buttonGroup}>
       <button style={styles.createBtn} onClick={() => window.location.href = '/admin/students/create'}>
