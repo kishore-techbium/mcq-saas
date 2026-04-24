@@ -189,19 +189,25 @@ function downloadTemplate() {
     XLSX.writeFile(workbook, 'Students_List.xlsx')
   }
 async function toggleLogin(studentId, currentStatus) {
-  const newStatus = !currentStatus
+  const newStatus = !(currentStatus ?? true)
 
-  const { error } = await supabase
+  console.log('Toggling:', studentId, currentStatus, '→', newStatus)
+
+  const { data, error } = await supabase
     .from('students')
     .update({ is_active: newStatus })
     .eq('id', studentId)
+    .select()
 
   if (error) {
+    console.error('Toggle error:', error)
     alert('Failed to update login status')
     return
   }
 
-  // 🔄 Update UI instantly
+  console.log('Updated row:', data)
+
+  // update UI
   setStudents(prev =>
     prev.map(s =>
       s.id === studentId ? { ...s, is_active: newStatus } : s
@@ -367,21 +373,22 @@ async function toggleLogin(studentId, currentStatus) {
               }}>
                 {student.rank}
               </td>
-                  <td style={styles.td}>
-                    <label style={styles.switch}>
-                      <input
-                        type="checkbox"
-                        checked={student.is_active ?? true}
-                        onChange={() => toggleLogin(student.id, student.is_active)}
-                      />
-                        <span
-                        style={{
-                          ...styles.slider,
-                          backgroundColor: student.is_active ? '#22c55e' : '#ccc'
-                        }}
-                        ></span>
-                    </label>
-                  </td>
+                 <td style={styles.td}>
+  <button
+    onClick={() => toggleLogin(student.id, student.is_active)}
+    style={{
+      padding: '6px 12px',
+      borderRadius: 20,
+      border: 'none',
+      cursor: 'pointer',
+      fontWeight: 600,
+      backgroundColor: student.is_active ? '#2563eb' : '#e5e7eb',
+      color: student.is_active ? '#fff' : '#374151'
+    }}
+  >
+    {student.is_active ? 'ON' : 'OFF'}
+  </button>
+</td>
                   <td style={styles.td}>
                     <button
                       style={styles.viewBtn}
