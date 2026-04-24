@@ -40,11 +40,24 @@ useEffect(() => {
   }
 
   // 🎯 SEGMENT FILTER (SAFE)
+
   filtered = filtered.filter(s => {
-    const pref = String(s.exam_preference).toUpperCase().trim()
-    const year = String(s.study_year).trim()
-    return `${pref}_${year}` === segment
-  })
+  const pref = String(s.exam_preference).trim().toUpperCase()
+  const year = Number(s.study_year)
+
+  if (segment === 'JEE_1') return pref === 'JEE' && year === 1
+  if (segment === 'JEE_2') return pref === 'JEE' && year === 2
+  if (segment === 'NEET_1') return pref === 'NEET' && year === 1
+  if (segment === 'NEET_2') return pref === 'NEET' && year === 2
+
+  return false
+})
+  allStudents.forEach(s => {
+  const pref = String(s.exam_preference)
+  const year = String(s.study_year)
+
+  console.log('RAW:', pref, year, '→', `${pref}_${year}`)
+})
 
   // 🔀 SORT
   if (sortBy === 'first_name') {
