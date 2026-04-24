@@ -38,10 +38,13 @@ useEffect(() => {
   if (studyYear !== 'ALL') {
     filtered = filtered.filter(s => String(s.study_year) === studyYear)
   }
-
+  filtered = [...filtered].sort((a, b) =>
+    (a.first_name || '').localeCompare(b.first_name || '')
+  )
   setStudents(filtered)
 }, [search, examCategory, studyYear, allStudents])
-async function fetchStudents() {
+
+  async function fetchStudents() {
   setLoading(true)
 
   // 1️⃣ Fetch students
