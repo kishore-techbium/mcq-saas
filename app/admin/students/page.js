@@ -49,10 +49,6 @@ async function fetchStudents() {
 
   const collegeId = studentData[0]?.college_id
 
-  // ❌ REMOVE API CALL
-  // const res = await fetch(...)
-  // const attemptMap = await res.json()
-
   // ✅ FETCH DIRECTLY FROM student_overall_stats
 const { data: sessions } = await supabase
   .from('student_overall_stats')
