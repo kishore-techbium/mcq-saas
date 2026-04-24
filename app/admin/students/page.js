@@ -352,7 +352,7 @@ async function resetPassword(studentId) {
                 <th style={styles.th}>Created At</th>
                 <th style={styles.th}>Attempts</th>
                 <th style={styles.th}>Grand Test Rank</th>
-                <th style={styles.th}>Login</th>
+                <th style={styles.th}>Access</th>
                 <th style={styles.th}>Reset Password</th>
                 <th style={styles.th}>Actions</th>
               </tr>
