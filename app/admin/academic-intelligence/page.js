@@ -256,8 +256,7 @@ Object.values(studentAgg).forEach(s => {
   }
 })
 
-const subtopicInsights = []
-
+const subtopicInsightsMap = {}
 Object.entries(groupedSubtopics).forEach(([subject, chapters]) => {
   Object.entries(chapters).forEach(([chapter, subs]) => {
     Object.entries(subs).forEach(([sub, exams]) => {
@@ -274,24 +273,42 @@ Object.entries(groupedSubtopics).forEach(([subject, chapters]) => {
 
       // 🔴 Weak concept
       if (acc < 40 && percent < 40) {
-        subtopicInsights.push(
-          `🔴 ${subject} → ${sub}: Only ${studentsUnderstood}/${totalStudentsCount} students (${format2(percent)}%) understand this concept.`
-        )
+        if (!subtopicInsightsMap[subject]) {
+            subtopicInsightsMap[subject] = []
+          }
+          
+          subtopicInsightsMap[subject].push(
+            `🔴 ${subject} → ${sub}: Only ${studentsUnderstood}/${totalStudentsCount} students (${format2(percent)}%) understand this concept.`
+          )
       }
 
       // 🟡 Practice issue
       else if (acc < 60 && percent >= 40) {
-        subtopicInsights.push(
-          `🟡 ${subject} → ${sub}: Students partially understand but make mistakes. Needs more practice.`
+        if (!subtopicInsightsMap[subject]) {
+          subtopicInsightsMap[subject] = []
+        }
+
+        subtopicInsightsMap[subject].push(
+          `🔴 ${subject} → ${sub}: Only ${studentsUnderstood}/${totalStudentsCount} students (${format2(percent)}%) understand this concept. Needs reteaching.`
         )
       }
 
       // ⚠️ Misleading high score
       else if (acc >= 70 && percent < 40) {
-        subtopicInsights.push(
-          `⚠️ ${subject} → ${sub}: High accuracy but only few students performing well. Others need attention.`
-        )
-      }
+        if (!subtopicInsightsMap[subject]) {
+          subtopicInsightsMap[subject] = []
+        }
+
+        subtopicInsightsMap[subject].push(
+          `🔴 ${subject} → ${sub}: Only ${studentsUnderstood}/${totalStudentsCount} students (${format2(percent)}%) understand this concept. Needs reteaching.`
+)
+
+const subtopicInsights = []
+
+Object.values(subtopicInsightsMap).forEach(list => {
+  subtopicInsights.push(...list.slice(0, 2)) // max 2 per subject
+})
+     }
 
     })
   })
