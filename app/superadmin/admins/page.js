@@ -43,22 +43,27 @@ export default function Admins() {
       return
     }
 
-  const selectedCollege = colleges.find(c => c.id === collegeId)
+const selectedCollege = colleges.find(c => c.id === collegeId)
 
-await supabase.from('students').insert({
+if (!selectedCollege) {
+  alert('Invalid college selected')
+  return
+}
+
+const { error } = await supabase.from('students').insert({
   email,
   role: 'admin',
   college_id: collegeId,
-  college_name: selectedCollege?.name || null,  // ✅ ADD THIS
+  college_name: selectedCollege.name,
   first_name: firstName || null,
   last_name: lastName || null,
   phone: phone || null
 })
 
-    if (error) {
-      alert(error.message)
-      return
-    }
+if (error) {
+  alert(error.message)
+  return
+}
 
     setEmail('')
     setCollegeId('')
