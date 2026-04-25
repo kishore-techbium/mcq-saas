@@ -3,28 +3,30 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  ScatterChart, Scatter
 } from 'recharts'
 
-function format2(n){ return Number(n||0).toFixed(2) }
+function f(n){ return Number(n||0).toFixed(1) }
 
 export default function AcademicIntelligence(){
 
   const [loading,setLoading]=useState(true)
 
-  const [examCategory,setExamCategory]=useState('JEE_MAINS') // ✅ DEFAULT
-  const [targetYear,setTargetYear]=useState('1') // ✅ DEFAULT
+  const [examCategory,setExamCategory]=useState('JEE')
+  const [year,setYear]=useState('1')
 
   const [summary,setSummary]=useState({})
   const [examTypeStats,setExamTypeStats]=useState([])
   const [subjects,setSubjects]=useState([])
-  const [weakSubtopics,setWeakSubtopics]=useState({})
+  const [heatmap,setHeatmap]=useState({})
   const [trend,setTrend]=useState([])
   const [risk,setRisk]=useState([])
   const [performers,setPerformers]=useState({})
+  const [effort,setEffort]=useState([])
   const [insights,setInsights]=useState([])
 
-  useEffect(()=>{ init() },[examCategory,targetYear])
+  useEffect(()=>{ init() },[examCategory,year])
 
   async function init(){
     setLoading(true)
@@ -44,19 +46,18 @@ export default function AcademicIntelligence(){
 
   async function loadData(college_id){
 
-    // ================= STUDENTS =================
+    // ===== STUDENTS =====
     let studentQuery = supabase
       .from('students')
-      .select('id, study_year, exam_preference')
+      .select('id, first_name, last_name, study_year, exam_preference')
       .eq('college_id', college_id)
 
     if(examCategory !== 'ALL'){
-      studentQuery = studentQuery.eq('exam_preference',
-        examCategory === 'JEE_MAINS' ? 'JEE' : 'NEET')
+      studentQuery = studentQuery.eq('exam_preference', examCategory)
     }
 
-    if(targetYear !== 'ALL'){
-      studentQuery = studentQuery.eq('study_year', String(targetYear))
+    if(year !== 'ALL'){
+      studentQuery = studentQuery.eq('study_year', year)
     }
 
     const { data: students=[] } = await studentQuery
@@ -64,20 +65,23 @@ export default function AcademicIntelligence(){
     const totalStudents = students.length
     const studentIds = students.map(s=>s.id)
 
-    // ================= EXAM STATS =================
-    let examStatsQuery = supabase
+    const studentMap = {}
+    students.forEach(s=>{
+      studentMap[s.id] = `${s.first_name} ${s.last_name}`
+    })
+
+    // ===== EXAM STATS =====
+    const { data: examStats=[] } = await supabase
       .from('student_exam_stats')
       .select('*')
       .eq('college_id', college_id)
 
-    const { data: examStats=[] } = await examStatsQuery
+    const filtered = examStats.filter(s=>studentIds.includes(s.student_id))
 
-    const filtered = examStats.filter(s=> studentIds.includes(s.student_id))
+    const activeIds = [...new Set(filtered.map(s=>s.student_id))]
+    const activeStudents = activeIds.length
 
-    const activeStudentIds = [...new Set(filtered.map(s=>s.student_id))]
-    const activeStudents = activeStudentIds.length
-
-    // ================= SUMMARY =================
+    // ===== SUMMARY =====
     let totalScore=0,totalAttempts=0
 
     filtered.forEach(s=>{
@@ -87,30 +91,28 @@ export default function AcademicIntelligence(){
 
     const avgScore = totalAttempts? totalScore/totalAttempts : 0
 
-    // ================= EXAM TYPE =================
+    // ===== EXAM TYPE =====
     const typeAgg={}
-
     filtered.forEach(s=>{
       const t=s.exam_type
       if(!typeAgg[t]) typeAgg[t]={score:0,count:0}
-
       typeAgg[t].score += s.avg_score||0
       typeAgg[t].count++
     })
 
-    const examTypeArray = Object.keys(typeAgg).map(t=>({
+    const examTypes = Object.keys(typeAgg).map(t=>({
       type:t,
       avg: typeAgg[t].count ? typeAgg[t].score/typeAgg[t].count : 0,
       count:typeAgg[t].count
     }))
 
-    // ================= SUBJECT =================
+    // ===== SUBJECT + HEATMAP =====
     const { data: subStats=[] } = await supabase
       .from('student_subtopic_stats')
       .select('*')
       .eq('college_id', college_id)
 
-    const subFiltered = subStats.filter(s=> studentIds.includes(s.student_id))
+    const subFiltered = subStats.filter(s=>studentIds.includes(s.student_id))
 
     const subjectAgg={}
     const subMap={}
@@ -134,44 +136,41 @@ export default function AcademicIntelligence(){
 
     const subjectArray = Object.keys(subjectAgg).map(sub=>{
       const d=subjectAgg[sub]
-      return{
+      return {
         subject:sub,
         accuracy: d.total? (d.correct/d.total)*100:0
       }
     }).sort((a,b)=>a.accuracy-b.accuracy)
 
-    // ================= WEAK SUBTOPICS =================
-    const weakMap={}
-
+    // ===== HEATMAP (TOP 5 WEAK) =====
+    const heat={}
     Object.values(subMap).forEach(s=>{
-      const acc=s.total? (s.correct/s.total)*100:0
+      const acc = s.total? (s.correct/s.total)*100:0
 
-      if(!weakMap[s.subject]) weakMap[s.subject]=[]
-
-      weakMap[s.subject].push({
+      if(!heat[s.subject]) heat[s.subject]=[]
+      heat[s.subject].push({
         subtopic:s.subtopic,
         accuracy:acc
       })
     })
 
-    Object.keys(weakMap).forEach(k=>{
-      weakMap[k]=weakMap[k]
+    Object.keys(heat).forEach(k=>{
+      heat[k]=heat[k]
         .sort((a,b)=>a.accuracy-b.accuracy)
         .slice(0,5)
     })
 
-    // ================= TREND =================
+    // ===== TREND =====
     const trendData = [...filtered]
-      .sort((a,b)=> new Date(a.created_at)-new Date(b.created_at))
+      .sort((a,b)=>new Date(a.created_at)-new Date(b.created_at))
       .slice(-10)
       .map((s,i)=>({
         name:`T${i+1}`,
         score:s.avg_score
       }))
 
-    // ================= RISK =================
+    // ===== RISK =====
     const riskMap={}
-
     filtered.forEach(s=>{
       if(!riskMap[s.student_id]){
         riskMap[s.student_id]={scores:[],attempts:0}
@@ -180,52 +179,68 @@ export default function AcademicIntelligence(){
       riskMap[s.student_id].attempts++
     })
 
-    const riskList = Object.values(riskMap)
-      .map(s=>{
-        const avg = s.scores.reduce((a,b)=>a+b,0)/s.scores.length
-        return {avg, attempts:s.attempts}
+    const riskList = Object.entries(riskMap)
+      .map(([id,s])=>{
+        const avg=s.scores.reduce((a,b)=>a+b,0)/s.scores.length
+
+        let issue=''
+        if(avg<40 && s.attempts<2) issue='Low participation + low score'
+        else if(avg<40) issue='Low accuracy'
+        else if(s.attempts<2) issue='Low participation'
+
+        return {
+          name:studentMap[id],
+          avg,
+          attempts:s.attempts,
+          issue
+        }
       })
-      .filter(s=> s.avg<40 || s.attempts<2)
+      .filter(s=>s.issue)
 
-    // ================= PERFORMERS =================
-    const perfMap={}
-
+    // ===== PERFORMERS =====
+    const perf={}
     filtered.forEach(s=>{
       const t=s.exam_type
-      if(!perfMap[t]) perfMap[t]=[]
+      if(!perf[t]) perf[t]={}
 
-      perfMap[t].push({id:s.student_id,score:s.avg_score})
+      if(!perf[t][s.student_id]) perf[t][s.student_id]=[]
+      perf[t][s.student_id].push(s.avg_score)
     })
 
-    Object.keys(perfMap).forEach(t=>{
-      const map={}
-      perfMap[t].forEach(s=>{
-        if(!map[s.id]) map[s.id]=[]
-        map[s.id].push(s.score)
-      })
-
-      perfMap[t]=Object.values(map)
-        .map(arr=> arr.reduce((a,b)=>a+b,0)/arr.length)
-        .sort((a,b)=>b-a)
+    Object.keys(perf).forEach(t=>{
+      perf[t]=Object.entries(perf[t])
+        .map(([id,scores])=>({
+          name:studentMap[id],
+          score:scores.reduce((a,b)=>a+b,0)/scores.length,
+          attempts:scores.length
+        }))
+        .sort((a,b)=>b.score-a.score)
         .slice(0,5)
     })
 
-    // ================= INSIGHTS =================
+    // ===== EFFORT =====
+    const effortData = filtered.map(s=>({
+      effort:s.total_time_spent||0,
+      score:s.avg_score||0
+    }))
+
+    // ===== INSIGHTS =====
     const ins=[]
 
     if(activeStudents < totalStudents*0.5){
-      ins.push('🔴 Low participation detected')
+      ins.push(`🔴 Only ${activeStudents}/${totalStudents} students active`)
     }
 
     if(subjectArray[0]?.accuracy < 50){
       ins.push(`🔴 Weak subject: ${subjectArray[0].subject}`)
     }
 
-    if(examTypeArray.find(t=>t.type==='GRAND_TEST')?.avg < 50){
-      ins.push('🔴 Grand test performance is low')
+    const grand = examTypes.find(t=>t.type==='GRAND_TEST')
+    if(grand && grand.avg < 50){
+      ins.push('🔴 Grand test performance low')
     }
 
-    // ================= FINAL =================
+    // ===== FINAL =====
     setSummary({
       totalStudents,
       activeStudents,
@@ -233,12 +248,13 @@ export default function AcademicIntelligence(){
       avgScore
     })
 
-    setExamTypeStats(examTypeArray)
+    setExamTypeStats(examTypes)
     setSubjects(subjectArray)
-    setWeakSubtopics(weakMap)
+    setHeatmap(heat)
     setTrend(trendData)
     setRisk(riskList)
-    setPerformers(perfMap)
+    setPerformers(perf)
+    setEffort(effortData)
     setInsights(ins)
   }
 
@@ -250,11 +266,11 @@ export default function AcademicIntelligence(){
       {/* FILTERS */}
       <div style={{display:'flex',gap:10}}>
         <select value={examCategory} onChange={e=>setExamCategory(e.target.value)}>
-          <option value="JEE_MAINS">JEE</option>
+          <option value="JEE">JEE</option>
           <option value="NEET">NEET</option>
         </select>
 
-        <select value={targetYear} onChange={e=>setTargetYear(e.target.value)}>
+        <select value={year} onChange={e=>setYear(e.target.value)}>
           <option value="1">1st Year</option>
           <option value="2">2nd Year</option>
         </select>
@@ -264,28 +280,28 @@ export default function AcademicIntelligence(){
       <h2>Summary</h2>
       <p>Total: {summary.totalStudents}</p>
       <p>Active: {summary.activeStudents}</p>
-      <p>Participation: {format2(summary.participation)}%</p>
-      <p>Avg Score: {format2(summary.avgScore)}%</p>
+      <p>Participation: {f(summary.participation)}%</p>
+      <p>Avg Score: {f(summary.avgScore)}%</p>
 
       {/* EXAM TYPE */}
       <h2>Exam Type Performance</h2>
       {examTypeStats.map(t=>(
-        <p key={t.type}>{t.type}: {format2(t.avg)}%</p>
+        <p key={t.type}>{t.type}: {f(t.avg)}%</p>
       ))}
 
       {/* SUBJECT */}
       <h2>Subjects (Weak First)</h2>
       {subjects.map(s=>(
-        <p key={s.subject}>{s.subject}: {format2(s.accuracy)}%</p>
+        <p key={s.subject}>{s.subject}: {f(s.accuracy)}%</p>
       ))}
 
-      {/* WEAK SUBTOPICS */}
+      {/* HEATMAP */}
       <h2>Weak Subtopics</h2>
-      {Object.entries(weakSubtopics).map(([sub,arr])=>(
+      {Object.entries(heatmap).map(([sub,arr])=>(
         <div key={sub}>
           <strong>{sub}</strong>
           {arr.map((a,i)=>(
-            <p key={i}>{a.subtopic} - {format2(a.accuracy)}%</p>
+            <p key={i}>{a.subtopic} - {f(a.accuracy)}%</p>
           ))}
         </div>
       ))}
@@ -301,10 +317,21 @@ export default function AcademicIntelligence(){
         </LineChart>
       </ResponsiveContainer>
 
+      {/* EFFORT */}
+      <h2>Effort vs Performance</h2>
+      <ResponsiveContainer width="100%" height={250}>
+        <ScatterChart>
+          <XAxis dataKey="effort"/>
+          <YAxis dataKey="score"/>
+          <Tooltip/>
+          <Scatter data={effort}/>
+        </ScatterChart>
+      </ResponsiveContainer>
+
       {/* RISK */}
       <h2>At Risk</h2>
       {risk.map((r,i)=>(
-        <p key={i}>{format2(r.avg)}%</p>
+        <p key={i}>{r.name} → {f(r.avg)}% | {r.issue}</p>
       ))}
 
       {/* PERFORMERS */}
@@ -313,7 +340,7 @@ export default function AcademicIntelligence(){
         <div key={type}>
           <strong>{type}</strong>
           {list.map((s,i)=>(
-            <p key={i}>{format2(s)}%</p>
+            <p key={i}>{i+1}. {s.name} – {f(s.score)}%</p>
           ))}
         </div>
       ))}
