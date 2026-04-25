@@ -29,9 +29,9 @@ export default function AcademicIntelligence() {
   const [loading, setLoading] = useState(true)
   
   const [examCategory, setExamCategory] = useState('JEE_MAINS')
-  const [targetYear, setTargetYear] = useState('2')
+  const [targetYear, setTargetYear] = useState('1')
   const [summary, setSummary] = useState({})
-  const [topPerformers, setTopPerformers] = useState([])
+  const [topPerformers, setTopPerformers] = useState({})
   const [subjects, setSubjects] = useState([])
   const [subtopics, setSubtopics] = useState([])
   const [riskStudents, setRiskStudents] = useState([])
@@ -248,16 +248,33 @@ const risk = Object.values(riskMap)
     score: s.avg_score || 0
   }))
 
-  // ================= STEP 12: TOP PERFORMERS =================
-  const performers = filteredExamStats
-    .map(s => ({
-      name: studentMap[s.student_id] || 'Unknown',
-      score: s.avg_score || 0
+// ================= STEP 12: TOP PERFORMERS (GROUPED) =================
+const performersMap = {}
+
+filteredExamStats.forEach(s => {
+  const type = s.exam_type || 'OTHER'
+
+  if (!performersMap[type]) {
+    performersMap[type] = {}
+  }
+
+  if (!performersMap[type][s.student_id]) {
+    performersMap[type][s.student_id] = []
+  }
+
+  performersMap[type][s.student_id].push(s.avg_score || 0)
+})
+
+Object.keys(performersMap).forEach(type => {
+  performersMap[type] = Object.entries(performersMap[type])
+    .map(([id, scores]) => ({
+      name: studentMap[id] || 'Unknown',
+      score: scores.reduce((a, b) => a + b, 0) / scores.length
     }))
     .filter(s => s.score >= 70)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 10)
-
+    .slice(0, 5)
+})
   // ================= STEP 13: RECOMMENDATIONS =================
   const recs = subjectArray.map(s => ({
     subject: s.subject,
@@ -306,7 +323,7 @@ const risk = Object.values(riskMap)
   setTrendData(trend)
   setRecommendations(recs)
   setAiInsights(insights)
-  setTopPerformers(performers)
+ setTopPerformers(performersMap)
 }
 
             const groupedSubtopics = Object.values(subtopics).reduce((acc, s) => {
