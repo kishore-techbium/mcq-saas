@@ -21,7 +21,7 @@ function getHeatColor(val) {
 
 export default function AcademicIntelligence() {
 
-  
+  const [groupedSubtopics, setGroupedSubtopics] = useState({})
   const summaryRef = useRef(null)
   const subjectRef = useRef(null)
   const performanceRef = useRef(null)
@@ -40,6 +40,8 @@ export default function AcademicIntelligence() {
   const [trendData, setTrendData] = useState([])
   const [recommendations, setRecommendations] = useState([])
   const [aiInsights, setAiInsights] = useState([])
+  const MIN_QUESTIONS = 2
+  const ACC_THRESHOLD = 50
 
   useEffect(() => { init() }, [examCategory, targetYear])
 
@@ -192,7 +194,7 @@ const subArray = filteredSubStats.map(s => ({
   correct: s.correct || 0,
   total: s.total_questions || 0
 }))
-
+// ================= STEP 7A: STUDENT AGG =================
 const studentAgg = {}
 
 subArray.forEach(s => {
@@ -212,6 +214,46 @@ subArray.forEach(s => {
 
   studentAgg[key].correct += s.correct
   studentAgg[key].total += s.total
+})
+// ================= STEP 7B: FINAL GROUPING =================
+const groupedSubtopics = {}
+
+Object.values(studentAgg).forEach(s => {
+
+  const subject = s.subject
+  const chapter = s.chapter
+  const subtopic = s.subtopic
+  const type = s.exam_type
+
+  if (!groupedSubtopics[subject]) groupedSubtopics[subject] = {}
+  if (!groupedSubtopics[subject][chapter]) groupedSubtopics[subject][chapter] = {}
+  if (!groupedSubtopics[subject][chapter][subtopic]) {
+    groupedSubtopics[subject][chapter][subtopic] = {}
+  }
+
+  if (!groupedSubtopics[subject][chapter][subtopic][type]) {
+    groupedSubtopics[subject][chapter][subtopic][type] = {
+      correct: 0,
+      total: 0,
+      studentsAttempted: new Set(),
+      studentsCorrect: new Set()
+    }
+  }
+
+  const entry = groupedSubtopics[subject][chapter][subtopic][type]
+
+  entry.correct += s.correct
+  entry.total += s.total
+
+  if (s.total >= MIN_QUESTIONS) {
+    entry.studentsAttempted.add(s.student_id)
+
+    const acc = (s.correct / s.total) * 100
+
+    if (acc >= ACC_THRESHOLD) {
+      entry.studentsCorrect.add(s.student_id)
+    }
+  }
 })
   // ================= STEP 8: RISK =================
 const riskMap = {}
@@ -337,7 +379,7 @@ Object.keys(performersMap).forEach(type => {
   risk: risk.length
 })
   setSubjects(subjectArray)
-  setSubtopics(subArray)
+  
   setRiskStudents(risk)
   setEffortData(effort)
   setEfficiencyData(efficiency)
@@ -345,49 +387,9 @@ Object.keys(performersMap).forEach(type => {
   setRecommendations(recs)
   setAiInsights(insights)
  setTopPerformers(performersMap)
+ setGroupedSubtopics(groupedSubtopics)
 }
-const groupedSubtopics = {}
 
-const MIN_QUESTIONS = 2
-const ACC_THRESHOLD = 50
-
-Object.values(studentAgg).forEach(s => {
-
-  const subject = s.subject
-  const chapter = s.chapter
-  const subtopic = s.subtopic
-  const type = s.exam_type
-
-  if (!groupedSubtopics[subject]) groupedSubtopics[subject] = {}
-  if (!groupedSubtopics[subject][chapter]) groupedSubtopics[subject][chapter] = {}
-  if (!groupedSubtopics[subject][chapter][subtopic]) {
-    groupedSubtopics[subject][chapter][subtopic] = {}
-  }
-
-  if (!groupedSubtopics[subject][chapter][subtopic][type]) {
-    groupedSubtopics[subject][chapter][subtopic][type] = {
-      correct: 0,
-      total: 0,
-      studentsAttempted: new Set(),
-      studentsCorrect: new Set()
-    }
-  }
-
-  const entry = groupedSubtopics[subject][chapter][subtopic][type]
-
-  entry.correct += s.correct
-  entry.total += s.total
-
-  if (s.total >= MIN_QUESTIONS) {
-    entry.studentsAttempted.add(s.student_id)
-
-    const acc = (s.correct / s.total) * 100
-
-    if (acc >= ACC_THRESHOLD) {
-      entry.studentsCorrect.add(s.student_id)
-    }
-  }
-})
 
   async function downloadPDF() {
 
@@ -480,7 +482,7 @@ Object.values(studentAgg).forEach(s => {
   </div>
 
   <div>
-    <b>👥 % (students)</b> → % of students who scored ≥ 80% in that subtopic
+    <b>👥 % (students)</b> → % of students scoring ≥ {ACC_THRESHOLD}%
   </div>
 
   <div style={{ marginTop: 6 }}>
@@ -553,7 +555,7 @@ Object.values(studentAgg).forEach(s => {
                   </div>
             
                   <div style={{ fontSize: 11, opacity: 0.9 }}>
-                    👥 {format2(studentPercent)}%
+                    👥 {format2(studentPercent)}% ({d.studentsCorrect.size})
                   </div>
             
                 </div>
