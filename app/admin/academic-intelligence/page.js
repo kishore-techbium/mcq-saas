@@ -202,33 +202,37 @@ filteredExamStats.forEach(s => {
     riskMap[id] = {
       name: studentMap[id] || 'Unknown',
       scores: [],
-      times: []
+      attempts: 0
     }
   }
 
   riskMap[id].scores.push(s.avg_score || 0)
-  riskMap[id].times.push(s.avg_time_per_exam || 0)
+  riskMap[id].attempts += (s.attempts || 1)
 })
 
 const risk = Object.values(riskMap)
   .map(s => {
-    const avgScore =
+    const avg =
       s.scores.reduce((a, b) => a + b, 0) / s.scores.length
 
-    const avgTime =
-      s.times.reduce((a, b) => a + b, 0) / s.times.length
+    let issue = ''
 
-    const riskScore =
-      (avgScore < 40 ? 2 : 0) +
-      (avgTime > 90 ? 1 : 0)
+    if (avg < 40 && s.attempts < 2) {
+      issue = 'Low participation + low score'
+    } else if (avg < 40) {
+      issue = 'Low accuracy'
+    } else if (s.attempts < 2) {
+      issue = 'Low participation'
+    }
 
     return {
       name: s.name,
-      score: avgScore,
-      risk: riskScore
+      score: avg,
+      attempts: s.attempts,
+      issue
     }
   })
-  .filter(s => s.risk >= 2)
+  .filter(s => s.issue)   // only meaningful ones
 
   // ================= STEP 9: EFFICIENCY =================
   const efficiency = filteredExamStats.map(s => ({
@@ -464,8 +468,14 @@ const risk = Object.values(riskMap)
       </Section>
 
       <Section title="At Risk" desc="Students needing attention">
+        {riskStudents.length === 0 && <p>No risk students</p>}
+
         {riskStudents.map((r,i)=>(
-          <Row key={i} left={r.name} right={`${format2(r.score)}%`} />
+          <Row
+            key={i}
+            left={r.name}
+            right={`${format2(r.score)}% | ${r.issue}`}
+          />
         ))}
       </Section>
 
