@@ -248,7 +248,7 @@ export default function StudentDetailsPage() {
         >
           View Detailed Analysis →
         </button>
-
+<br></br>
         <button style={styles.exportBtn} onClick={exportExcel}>
           Download Excel
         </button>
