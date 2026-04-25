@@ -20,7 +20,7 @@ function getHeatColor(val) {
 }
 
 export default function AcademicIntelligence() {
-
+  const totalStudents = students.length
   const [groupedSubtopics, setGroupedSubtopics] = useState({})
   const summaryRef = useRef(null)
   const subjectRef = useRef(null)
@@ -474,22 +474,35 @@ Object.keys(performersMap).forEach(type => {
   <strong>How to read this:</strong>
 
   <div style={{ marginTop: 6 }}>
-    <b>% (big number)</b> → Overall accuracy for that subtopic
+    <b>% (big number)</b> → Overall accuracy of students in this subtopic  
+    (how well questions were answered)
   </div>
 
   <div>
-    <b>Correct/Total (e.g., 38/60)</b> → Total correct answers out of all attempts
+    <b>Correct / Total (e.g., 38 / 60)</b> → Total correct answers out of all attempts  
+    across all students and exams
   </div>
 
   <div>
-    <b>👥 % (students)</b> → % of students scoring ≥ {ACC_THRESHOLD}%
+    <b>👥 Students (e.g., 5 / 12)</b> → Number of students who understood the concept  
+    (scored ≥ {ACC_THRESHOLD}%)
   </div>
 
   <div style={{ marginTop: 6 }}>
-    🔴 &lt;40% = Weak &nbsp;&nbsp;
-    🟡 40–70% = Moderate &nbsp;&nbsp;
-    🟢 &gt;70% = Strong
+    <b>What it means:</b>
   </div>
+<div style={{ marginTop: 6 }}>
+  <b>Example:</b>  
+  43% | 10/23 | 👥 5/12 → Only 5 out of 12 students understood the topic,  
+  and overall performance is weak → Needs more practice and revision
+</div>
+  <div>🔴 <b>Low % + Low 👥</b> → Most students don’t understand → Re-teach the concept</div>
+
+  <div>🟡 <b>Medium % + High 👥</b> → Students understand but make mistakes → Practice needed</div>
+
+  <div>🟢 <b>High % + High 👥</b> → Strong topic → No action needed</div>
+
+  <div>⚠️ <b>High % + Low 👥</b> → Only few students are performing well → Focus on weak students</div>
 </div>
 
 {Object.entries(groupedSubtopics).map(([subject, chapters]) => (
@@ -524,10 +537,9 @@ Object.keys(performersMap).forEach(type => {
               const acc = (d.correct / d.total) * 100
             
               const studentPercent =
-                d.studentsAttempted.size > 0
-                  ? (d.studentsCorrect.size / d.studentsAttempted.size) * 100
-                  : 0
-            
+              totalStudents > 0
+                ? (d.studentsCorrect.size / totalStudents) * 100
+                : 0
               return (
                 <div style={{
                   width: '100%',
@@ -555,7 +567,7 @@ Object.keys(performersMap).forEach(type => {
                   </div>
             
                   <div style={{ fontSize: 11, opacity: 0.9 }}>
-                    👥 {format2(studentPercent)}% ({d.studentsCorrect.size})
+                    👥 {d.studentsCorrect.size} / {totalStudents} ({format2(studentPercent)}%)
                   </div>
             
                 </div>
