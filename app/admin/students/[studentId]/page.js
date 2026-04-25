@@ -9,16 +9,7 @@ import * as XLSX from 'xlsx'
 export default function StudentDetailsPage() {
   const { studentId } = useParams()
   const router = useRouter()
-const typeCounts = (() => {
-  const counts = {}
 
-  sessions.forEach((s) => {
-    if (!counts[s.exam_type]) counts[s.exam_type] = 0
-    counts[s.exam_type]++
-  })
-
-  return counts
-})()
   const [student, setStudent] = useState(null)
   const [sessions, setSessions] = useState([])
   const [grouped, setGrouped] = useState({})
@@ -150,7 +141,17 @@ const typeCounts = (() => {
   const averageScore = overallStats?.avg_score?.toFixed(1) || 0
   const bestScore = overallStats?.best_score || 0
   const latestScore = overallStats?.last_score || 0
+  
+  const typeCounts = (() => {
+  const counts = {}
 
+  sessions.forEach((s) => {
+    if (!counts[s.exam_type]) counts[s.exam_type] = 0
+    counts[s.exam_type]++
+  })
+
+  return counts
+})()
   // 🔥 TYPE-WISE STATS
   const typeStats = (() => {
     const map = {}
