@@ -532,11 +532,6 @@ const subjectInsights = subjectArray.map(s => {
 
 const studentInsights = []
 
-if (risk.length > 0) {
-  studentInsights.push(
-    `⚠️ ${risk.length} students are scoring below 70%. Focus on mentoring them.`
-  )
-}
 const insights = [
   ...subtopicInsights,
   ...subjectInsights,
@@ -582,25 +577,44 @@ if (risk.length > 0) {
 
 
   async function downloadPDF() {
+  try {
+    const pdf = new jsPDF('p', 'mm', 'a4')
+    const img = canvas.toDataURL('image/png')
 
-      const pdf = new jsPDF('p', 'mm', 'a4')
+const imgProps = pdf.getImageProperties(img)
+const pdfWidth = pdf.internal.pageSize.getWidth()
+const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
 
-      const addPage = async (ref, isFirst = false) => {
-        const canvas = await html2canvas(ref.current, { scale: 2 })
-        const img = canvas.toDataURL('image/png')
-
-        if (!isFirst) pdf.addPage()
-
-        pdf.addImage(img, 'PNG', 0, 0, 210, 297)
+    const addPage = async (ref, isFirst = false) => {
+      if (!ref.current) {
+        console.warn('Missing ref:', ref)
+        return
       }
 
-      await addPage(summaryRef, true)
-      await addPage(subjectRef)
-      await addPage(performanceRef)
-      await addPage(leaderboardRef)
+      const canvas = await html2canvas(ref.current, {
+        scale: 2,
+        useCORS: true
+      })
 
-      pdf.save('academic-intelligence.pdf')
+      const img = canvas.toDataURL('image/png')
+
+      if (!isFirst) pdf.addPage()
+
+      pdf.addImage(img, 'PNG', 0, 0, pdfWidth, pdfHeight)
     }
+
+    await addPage(summaryRef, true)
+    await addPage(subjectRef)
+    await addPage(performanceRef)
+    await addPage(leaderboardRef)
+
+    pdf.save('academic-intelligence.pdf')
+
+  } catch (err) {
+    console.error('PDF error:', err)
+    alert('Failed to download PDF. Check console.')
+  }
+}
 const zoneColor = {
   low: '#ef4444',        // red
   struggle: '#f59e0b',   // yellow
@@ -984,51 +998,56 @@ const getNames = (arr, key) => {
 
 </Section>
 
-      <div style={{ display: 'flex', gap: 20, marginTop: 20 }}>
+      <div ref={leaderboardRef} style={styles.pageBlock}>
 
-  {/* AT RISK */}
-  <div style={{ flex: 1 }}>
-    <Section
-      title="At Risk"
-      desc="Students below 70% performance"
-    >
-      {riskStudents.length === 0 && <p>No risk students</p>}
+        <div style={{ display: 'flex', gap: 20, marginTop: 20 }}>
 
-      {riskStudents.map((r,i)=>(
-        <Row
-          key={i}
-          left={r.name}
-          right={`${format2(r.score)}%`}
-        />
-      ))}
-    </Section>
-  </div>
+          {/* AT RISK */}
+          <div style={{ flex: 1 }}>
+            <Section
+              title="At Risk"
+              desc="Students below 70% performance"
+            >
+              {riskStudents.length === 0 && <p>No risk students</p>}
 
-  {/* TOP PERFORMERS */}
-  <div style={{ flex: 1 }}>
-    <Section
-      title="Top Performers"
-      desc="Students above 70%"
-    >
-      {Object.entries(topPerformers).map(([type,list])=>(
-        <div key={type} style={{ marginBottom: 10 }}>
-          <strong>{type.replace('_TEST','')}</strong>
-
-          {list.map((s,i)=>(
-            <Row
-              key={i}
-              left={`${i+1}. ${s.name}`}
-              right={`${format2(s.score)}%`}
-            />
-          ))}
-        </div>
-      ))}
-    </Section>
-  </div>
-</div>
-</div>
-     
+              {riskStudents.map((r, i) => (
+                <Row
+                  key={i}
+                  left={r.name}
+                  right={`${format2(r.score)}%`}
+                />
+              ))}
+            </Section>
           </div>
+
+          {/* TOP PERFORMERS */}
+          <div style={{ flex: 1 }}>
+            <Section
+              title="Top Performers"
+              desc="Students above 70%"
+            >
+              {Object.entries(topPerformers).map(([type, list]) => (
+                <div key={type} style={{ marginBottom: 10 }}>
+                  <strong>{type.replace('_TEST','')}</strong>
+
+                  {list.map((s, i) => (
+                    <Row
+                      key={i}
+                      left={`${i + 1}. ${s.name}`}
+                      right={`${format2(s.score)}%`}
+                    />
+                  ))}
+                </div>
+              ))}
+            </Section>
+          </div>
+
+        </div>
+
+      </div>
+  </div>
+     
+</div>
         )
   }
 
