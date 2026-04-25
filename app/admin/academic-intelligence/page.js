@@ -786,7 +786,7 @@ const topNames = (arr) =>
         ))}
       </Section>
 
-      <Section title="Effort vs Performance" desc="Student behavior analysis for overall exams">
+      <Section title="Effort vs Performance" desc="Student behavior analysis on overall exams">
         <div style={styles.infoBox}>
   <strong>How to read this:</strong>
 
