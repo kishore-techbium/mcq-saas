@@ -459,7 +459,7 @@ if (studentAccuracy >= 50) {
   </div>
 
   <div>
-    <b>👥 65%</b> → % of students who understood this concept
+    <b>👥 65% → % of students scoring ≥ 50% in this subtopic
   </div>
 
   <div style={{ marginTop: 6 }}>
