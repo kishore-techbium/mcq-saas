@@ -393,11 +393,15 @@ effort.forEach(e => {
   if (e.zone === 'potential') effortZones.potential.push(e)
 })
 
+// ✅ ADD HERE
+const topNames = (arr) =>
+  arr.slice(0, 3).map(s => s.name).join(', ')
+
 const effortInsights = []
 
 if (effortZones.low.length > 0) {
   effortInsights.push(
-    `🔴 ${effortZones.low.length} students are not putting enough effort and scoring low. Need strict monitoring.`
+    `🔴 ${effortZones.low.length} students are not putting enough effort and scoring low. Need monitoring.`
   )
 }
 
@@ -407,15 +411,15 @@ if (effortZones.struggle.length > 0) {
   )
 }
 
-if (effortZones.ideal.length > 0) {
-  effortInsights.push(
-    `🟢 ${effortZones.ideal.length} students are performing well with good effort.`
-  )
-}
-
 if (effortZones.potential.length > 0) {
   effortInsights.push(
     `⚠️ ${effortZones.potential.length} students have high potential but are not putting enough effort.`
+  )
+}
+
+if (effortZones.ideal.length > 0) {
+  effortInsights.push(
+    `🟢 ${effortZones.ideal.length} students are performing well with good effort.`
   )
 }
 // ================= STEP 12: TOP PERFORMERS (GROUPED) =================
@@ -465,12 +469,11 @@ if (risk.length > 0) {
     `⚠️ ${risk.length} students are scoring below 70%. Focus on mentoring them.`
   )
 }
-
 const insights = [
   ...subtopicInsights,
   ...subjectInsights,
   ...studentInsights,
-  ...effortInsights  
+  ...effortInsights
 ].sort((a, b) => {
   const priority = (txt) =>
     txt.startsWith('🔴') ? 1 :
@@ -478,8 +481,7 @@ const insights = [
     txt.startsWith('🟡') ? 3 : 4
 
   return priority(a) - priority(b)
-}).slice(0, 7)
-
+}).slice(0, 8)
 
 if (risk.length > 0) {
   studentInsights.push(
@@ -757,14 +759,57 @@ const zoneColor = {
 
       <Section title="Effort vs Performance" desc="Student behavior analysis">
 
-  <div style={{ display: 'flex', gap: 20 }}>
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20 }}>
 
-    <Card title="🔴 Low Effort & Low Score" value={effortZones.low.length} />
-    <Card title="🟡 High Effort & Low Score" value={effortZones.struggle.length} />
-    <Card title="🟢 High Effort & High Score" value={effortZones.ideal.length} />
-    <Card title="⚠️ Low Effort & High Score" value={effortZones.potential.length} />
-
+  {/* 🔴 LOW */}
+  <div style={{ ...styles.card, borderLeft: '4px solid #ef4444' }}>
+    <div style={{ fontWeight: 600 }}>🔴 Low Effort & Low Score</div>
+    <div style={{ fontSize: 22 }}>{effortZones.low.length}</div>
+    <div style={{ fontSize: 12, color: '#64748b' }}>
+      Not engaged students
+    </div>
+    <div style={{ fontSize: 12, marginTop: 6 }}>
+      {topNames(effortZones.low) || '—'}
+    </div>
   </div>
+
+  {/* 🟡 STRUGGLE */}
+  <div style={{ ...styles.card, borderLeft: '4px solid #f59e0b' }}>
+    <div style={{ fontWeight: 600 }}>🟡 High Effort & Low Score</div>
+    <div style={{ fontSize: 22 }}>{effortZones.struggle.length}</div>
+    <div style={{ fontSize: 12, color: '#64748b' }}>
+      Working hard but struggling
+    </div>
+    <div style={{ fontSize: 12, marginTop: 6 }}>
+      {topNames(effortZones.struggle) || '—'}
+    </div>
+  </div>
+
+  {/* 🟢 IDEAL */}
+  <div style={{ ...styles.card, borderLeft: '4px solid #10b981' }}>
+    <div style={{ fontWeight: 600 }}>🟢 High Effort & High Score</div>
+    <div style={{ fontSize: 22 }}>{effortZones.ideal.length}</div>
+    <div style={{ fontSize: 12, color: '#64748b' }}>
+      Top performing students
+    </div>
+    <div style={{ fontSize: 12, marginTop: 6 }}>
+      {topNames(effortZones.ideal) || '—'}
+    </div>
+  </div>
+
+  {/* ⚠️ POTENTIAL */}
+  <div style={{ ...styles.card, borderLeft: '4px solid #3b82f6' }}>
+    <div style={{ fontWeight: 600 }}>⚠️ Low Effort & High Score</div>
+    <div style={{ fontSize: 22 }}>{effortZones.potential.length}</div>
+    <div style={{ fontSize: 12, color: '#64748b' }}>
+      High potential students
+    </div>
+    <div style={{ fontSize: 12, marginTop: 6 }}>
+      {topNames(effortZones.potential) || '—'}
+    </div>
+  </div>
+
+</div>
 
 </Section>
 
