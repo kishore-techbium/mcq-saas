@@ -176,7 +176,7 @@ const totalStudentsCount = allStudents.length
 
     const subjectArray = Object.keys(subjectAgg).map(sub => {
     const d = subjectAgg[sub]
-    const totalStudents = summary.totalStudents || 0
+    
     return {
       subject: sub,
       accuracy: d.total > 0 ? (d.correct / d.total) * 100 : 0,
@@ -412,8 +412,8 @@ Object.keys(performersMap).forEach(type => {
       pdf.save('academic-intelligence.pdf')
     }
 
-      if (loading) return <p>Loading...</p>
-
+  if (loading) return <p>Loading...</p>
+  const totalStudents = summary.totalStudents || 0
       return (
         <div style={styles.page}>
 
