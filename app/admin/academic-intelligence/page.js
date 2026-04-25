@@ -480,38 +480,55 @@ if ((s.correct || 0) > 0) {
         <table style={styles.table}>
 
           <thead>
-            <tr>
-              <th>Subtopic</th>
-              <th>Weekly</th>
-              <th>Monthly</th>
-              <th>Grand</th>
-            </tr>
-          </thead>
+  <tr>
+    <th style={{ width: '40%', textAlign: 'left' }}>Subtopic</th>
+    <th style={{ width: '20%' }}>Weekly</th>
+    <th style={{ width: '20%' }}>Monthly</th>
+    <th style={{ width: '20%' }}>Grand</th>
+  </tr>
+</thead>
 
           <tbody>
             {Object.entries(subtopics).map(([sub, exams]) => {
 
               const getCell = (type) => {
                 const d = exams[type]
-            
                 if (!d || d.total === 0) return '—'
-              const studentPercent =
-              d.studentsAttempted.size > 0
-              ? (d.studentsCorrect.size / d.studentsAttempted.size) * 100
-              : 0
+
                 const acc = (d.correct / d.total) * 100
+
+                const studentPercent =
+                  d.studentsAttempted.size > 0
+                    ? (d.studentsCorrect.size / d.studentsAttempted.size) * 100
+                    : 0
+
                 return (
-                  <span style={{
+                  <div style={{
+                    display: 'inline-flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 8,
+                    borderRadius: 10,
                     color: '#fff',
-                    padding: '4px 8px',
-                    borderRadius: 6,
+                    minWidth: 70,
                     background:
                       acc < 40 ? '#ef4444' :
                       acc < 70 ? '#f59e0b' :
                       '#10b981'
                   }}>
-                    {d.correct}/{d.total}
-                  </span>
+                    
+                    {/* BIG ACCURACY */}
+                    <div style={{ fontSize: 16, fontWeight: 'bold' }}>
+                      {format2(acc)}%
+                    </div>
+
+                    {/* SMALL DETAILS */}
+                    <div style={{ fontSize: 11 }}>
+                      {d.correct}/{d.total} &nbsp; 👥 {format2(studentPercent)}%
+                    </div>
+
+                  </div>
                 )
               }
 
@@ -703,19 +720,22 @@ if ((s.correct || 0) > 0) {
 table: {
   width: '100%',
   borderCollapse: 'collapse',
-  marginBottom: 10
+  tableLayout: 'fixed'   // ⭐ THIS FIXES ALIGNMENT
 },
 
 th: {
-  textAlign: 'left',
-  padding: 8,
-  borderBottom: '1px solid #ddd'
+  padding: 10,
+  textAlign: 'center',
+  borderBottom: '2px solid #e5e7eb',
+  fontWeight: 'bold'
 },
 
 td: {
-  padding: 8,
-  borderBottom: '1px solid #eee'
-},
+  padding: 10,
+  textAlign: 'center',
+  borderBottom: '1px solid #f1f5f9',
+  verticalAlign: 'middle'
+}
 
 heatCardNew: {
   borderRadius: 10,
