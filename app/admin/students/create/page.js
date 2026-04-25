@@ -62,7 +62,7 @@ async function handleSubmit(e) {
     return
   }
 
-  console.log("ADMIN:", admin) // debug
+  
 
 const { data } = await supabase.auth.getSession()
 
