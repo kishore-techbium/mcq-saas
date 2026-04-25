@@ -16,7 +16,7 @@ export default function CreateExamPage() {
   const [examDate, setExamDate] = useState('')
   const [examTime, setExamTime] = useState('')
   const [saving, setSaving] = useState(false)
-  const [targetYear, setTargetYear] = useState('ALL')
+  const [targetYear, setTargetYear] = useState('1')
 
 useEffect(() => {
   checkAdmin()
