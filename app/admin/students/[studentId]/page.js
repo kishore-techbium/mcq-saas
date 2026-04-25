@@ -191,18 +191,14 @@ const typeCounts = (() => {
 
       {/* 🔥 TOP INTELLIGENCE */}
       <div style={styles.analyticsBox}>
-       <div>
-        <strong>Exam Distribution:</strong>{' '}
-        {Object.entries(typeCounts).map(([type, count]) => (
-          <span key={type} style={{ marginRight: 15 }}>
-         {type
-          .replace('_TEST', '')
-          .replace('WEEKLY', 'Weekly')
-          .replace('MONTHLY', 'Monthly')
-          .replace('GRAND', 'Grand'))}: {count}
-          </span>
-        ))}
-      </div>
+     <div>
+  <strong>Exam Distribution:</strong>{' '}
+  {Object.entries(typeCounts).map(([type, count]) => (
+    <span key={type} style={{ marginRight: 15 }}>
+      {type.replace('_TEST', '')}: {count}
+    </span>
+  ))}
+</div>
 
         <div style={styles.compareBox}>
           <strong>📊 Performance by Type:</strong>
