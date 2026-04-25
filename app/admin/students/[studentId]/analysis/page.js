@@ -200,7 +200,13 @@ const strongest =
             <div style={{ height: 250 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>
-                  <XAxis dataKey="name" />
+                 <XAxis
+                    dataKey="name"
+                    interval={0}
+                    angle={-35}
+                    textAnchor="end"
+                    height={80}
+                  />
                   <YAxis />
                   <Tooltip />
                   <Bar dataKey="accuracy">
