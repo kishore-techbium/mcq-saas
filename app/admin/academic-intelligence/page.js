@@ -328,19 +328,27 @@ Object.keys(performersMap).forEach(type => {
   setAiInsights(insights)
  setTopPerformers(performersMap)
 }
-      const groupedSubtopics = subtopics.reduce((acc, s) => {
+     const groupedSubtopics = {}
 
-        if (!acc[s.subject]) acc[s.subject] = {}
+subtopics.forEach(s => {
+  const subject = s.subject
+  const chapter = s.chapter || 'General'
+  const subtopic = s.subtopic
+  const type = s.exam_type || 'OTHER'
 
-        if (!acc[s.subject][s.exam_type]) {
-          acc[s.subject][s.exam_type] = []
-        }
+  if (!groupedSubtopics[subject]) groupedSubtopics[subject] = {}
+  if (!groupedSubtopics[subject][chapter]) groupedSubtopics[subject][chapter] = {}
+  if (!groupedSubtopics[subject][chapter][subtopic]) {
+    groupedSubtopics[subject][chapter][subtopic] = {}
+  }
 
-        acc[s.subject][s.exam_type].push(s)
+  if (!groupedSubtopics[subject][chapter][subtopic][type]) {
+    groupedSubtopics[subject][chapter][subtopic][type] = { correct: 0, total: 0 }
+  }
 
-        return acc
-
-      }, {})
+  groupedSubtopics[subject][chapter][subtopic][type].correct += s.correct
+  groupedSubtopics[subject][chapter][subtopic][type].total += s.total
+})
 
   async function downloadPDF() {
 
@@ -418,68 +426,75 @@ Object.keys(performersMap).forEach(type => {
       </Section>
 
       <Section
-  title="Subtopic Heatmap"
-  desc="Performance by Exam Type | 🔴 Weak | 🟡 Moderate | 🟢 Strong"
+  title="Subtopic Analysis"
+  desc="Chapter-wise comparison across exam types"
 >
 
-{Object.entries(groupedSubtopics).map(([subject, examTypes]) => (
+{Object.entries(groupedSubtopics).map(([subject, chapters]) => (
 
   <div key={subject} style={{ marginBottom: 40 }}>
 
-    <h3 style={{ marginBottom: 15 }}>{subject}</h3>
+    <h2>{subject}</h2>
 
-    <div style={styles.examTypeRow}>
+    {Object.entries(chapters).map(([chapter, subtopics]) => (
 
-      {Object.entries(examTypes).map(([type, items]) => {
+      <div key={chapter} style={{ marginBottom: 20 }}>
 
-        const sorted = [...items].sort((a,b)=>a.accuracy-b.accuracy)
+        <h4 style={{ marginBottom: 10 }}>{chapter}</h4>
 
-        return (
-          <div key={type} style={styles.examTypeColumn}>
+        <table style={styles.table}>
 
-            <h4 style={styles.examTypeTitle}>
-              {type.replace('_TEST','')}
-            </h4>
+          <thead>
+            <tr>
+              <th>Subtopic</th>
+              <th>Weekly</th>
+              <th>Monthly</th>
+              <th>Grand</th>
+            </tr>
+          </thead>
 
-            <div style={styles.heatGrid4}>
+          <tbody>
+            {Object.entries(subtopics).map(([sub, exams]) => {
 
-              {sorted.map((s, i) => {
+              const getCell = (type) => {
+                const d = exams[type]
+                if (!d || d.total === 0) return '—'
 
-                let bg = '#9ca3af'
-
-                if (s.total === 0) bg = '#9ca3af'
-                else if (s.accuracy < 40) bg = '#ef4444'
-                else if (s.accuracy < 70) bg = '#f59e0b'
-                else bg = '#10b981'
-
+                const acc = (d.correct / d.total) * 100
                 return (
-                  <div key={i} style={{ ...styles.heatCardNew, background: bg }}>
-
-                    <div style={styles.heatSubtopic}>
-                      {s.subtopic}
-                    </div>
-
-                    <div style={styles.heatPercent}>
-                      {s.correct}/{s.total}
-                    </div>
-
-                    <div style={styles.heatQs}>
-                      {format2(s.accuracy)}%
-                    </div>
-
-                  </div>
+                  <span style={{
+                    color: '#fff',
+                    padding: '4px 8px',
+                    borderRadius: 6,
+                    background:
+                      acc < 40 ? '#ef4444' :
+                      acc < 70 ? '#f59e0b' :
+                      '#10b981'
+                  }}>
+                    {d.correct}/{d.total}
+                  </span>
                 )
-              })}
+              }
 
-            </div>
+              return (
+                <tr key={sub}>
+                  <td>{sub}</td>
+                  <td>{getCell('WEEKLY_TEST')}</td>
+                  <td>{getCell('MONTHLY_TEST')}</td>
+                  <td>{getCell('GRAND_TEST')}</td>
+                </tr>
+              )
+            })}
+          </tbody>
 
-          </div>
-        )
-      })}
+        </table>
 
-    </div>
+      </div>
+
+    ))}
 
   </div>
+
 ))}
 
 </Section>
@@ -645,6 +660,22 @@ Object.keys(performersMap).forEach(type => {
   display: 'grid',
   gridTemplateColumns: 'repeat(4, 1fr)',
   gap: 12
+},
+table: {
+  width: '100%',
+  borderCollapse: 'collapse',
+  marginBottom: 10
+},
+
+th: {
+  textAlign: 'left',
+  padding: 8,
+  borderBottom: '1px solid #ddd'
+},
+
+td: {
+  padding: 8,
+  borderBottom: '1px solid #eee'
 },
 
 heatCardNew: {
