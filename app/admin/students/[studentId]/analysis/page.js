@@ -69,7 +69,15 @@ const { data: stats } = await query
 
   grouped[row.subject][row.chapter].totalAccuracy += row.accuracy * (row.attempts || 1)
 grouped[row.subject][row.chapter].count += (row.attempts || 1)
-    grouped[row.subject][row.chapter].subtopics.push(row)
+    const attempts = row.attempts || 0
+const correct = Math.round((row.accuracy / 100) * attempts)
+const wrong = attempts - correct
+
+grouped[row.subject][row.chapter].subtopics.push({
+  ...row,
+  correct,
+  wrong
+})
   })
 
   setData(grouped)
@@ -243,15 +251,12 @@ const strongest =
 
                     {value.subtopics.map((s, i) => (
                       <div key={i} style={styles.subtopicRow}>
-                        {s.subtopic} –{' '}
-                        <span
-                          style={{
-                            color: getColor(s.accuracy)
-                          }}
-                        >
+                       {s.subtopic} – 
+                        <span style={{ color: getColor(s.accuracy) }}>
                           {s.accuracy.toFixed(1)}%
                         </span>{' '}
-                        ({s.attempts} attempts)
+                        <span style={{ color: '#16a34a' }}>{s.correct}✓</span> /
+                        <span style={{ color: '#dc2626' }}>{s.wrong}✗</span>
                       </div>
                     ))}
                   </div>
