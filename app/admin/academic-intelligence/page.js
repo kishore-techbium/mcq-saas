@@ -735,7 +735,7 @@ td: {
   textAlign: 'center',
   borderBottom: '1px solid #f1f5f9',
   verticalAlign: 'middle'
-}
+},
 
 heatCardNew: {
   borderRadius: 10,
