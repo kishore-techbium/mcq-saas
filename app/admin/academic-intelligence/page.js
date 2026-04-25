@@ -354,38 +354,48 @@ const risk = Object.values(riskMap)
   .sort((a, b) => a.score - b.score) // weakest first
 
   
-  // ================= STEP 10: TREND (FIXED) =================
-  // ================= STEP 10: TREND (BY EXAM TYPE) =================
+// ================= STEP 10: TREND (CORRECT FOR YOUR DB) =================
 
 const trendMap = {
-  WEEKLY_TEST: [],
-  MONTHLY_TEST: [],
-  GRAND_TEST: []
+  WEEKLY_TEST: {},
+  MONTHLY_TEST: {},
+  GRAND_TEST: {}
 }
 
-// group by exam type
+// Step 1: group by exam_id
 filteredExamStats.forEach(s => {
   const type = s.exam_type || 'OTHER'
+  const examId = s.exam_id
 
-  if (!trendMap[type]) trendMap[type] = []
+  if (!trendMap[type][examId]) {
+    trendMap[type][examId] = {
+      totalScore: 0,
+      totalStudents: 0,
+      date: s.exam_date || s.created_at   // use exam_date if available
+    }
+  }
 
-  trendMap[type].push({
-    date: s.created_at,
-    score: s.avg_score || 0
-  })
+  trendMap[type][examId].totalScore += s.avg_score || 0
+  trendMap[type][examId].totalStudents += 1
 })
 
-// sort + take last 10 for each
+
+// Step 2: convert to trend points
 Object.keys(trendMap).forEach(type => {
-  trendMap[type] = trendMap[type]
+  trendMap[type] = Object.values(trendMap[type])
+    .map(e => ({
+      date: e.date,
+      score: e.totalStudents > 0
+        ? e.totalScore / e.totalStudents
+        : 0
+    }))
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .slice(-10)
     .map((s, i) => ({
       name: `Test ${i + 1}`,
       score: Number(format2(s.score))
     }))
-})
-
+})  
 
 // ================= STEP 11: EFFORT (STUDENT LEVEL) =================
 
