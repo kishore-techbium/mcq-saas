@@ -27,7 +27,12 @@ export default function AcademicIntelligence() {
   const performanceRef = useRef(null)
   const leaderboardRef = useRef(null)
   const [loading, setLoading] = useState(true)
-  
+  const [effortZonesState, setEffortZonesState] = useState({
+  low: [],
+  struggle: [],
+  ideal: [],
+  potential: []
+})
   const [examCategory, setExamCategory] = useState('JEE_MAINS')
   const [targetYear, setTargetYear] = useState('1')
   const [summary, setSummary] = useState({})
@@ -387,15 +392,12 @@ const effortZones = {
 }
 
 effort.forEach(e => {
-  if (e.zone === 'low') effortZones.low.push(e)
-  if (e.zone === 'struggle') effortZones.struggle.push(e)
-  if (e.zone === 'ideal') effortZones.ideal.push(e)
-  if (e.zone === 'potential') effortZones.potential.push(e)
+  if (e.zone === 'low') effortZonesState.low.push(e)
+  if (e.zone === 'struggle') effortZonesState.struggle.push(e)
+  if (e.zone === 'ideal') effortZonesState.ideal.push(e)
+  if (e.zone === 'potential') effortZonesState.potential.push(e)
 })
-
-// ✅ ADD HERE
-const topNames = (arr) =>
-  arr.slice(0, 3).map(s => s.name).join(', ')
+setEffortZonesState(effortZones)
 
 const effortInsights = []
 
@@ -541,6 +543,9 @@ const zoneColor = {
   ideal: '#10b981',      // green
   potential: '#3b82f6'   // blue
 }
+const topNames = (arr) =>
+  arr.slice(0, 3).map(s => s.name).join(', ')
+
   if (loading) return <p>Loading...</p>
   const totalStudents = summary.totalStudents || 0
       return (
@@ -764,48 +769,48 @@ const zoneColor = {
   {/* 🔴 LOW */}
   <div style={{ ...styles.card, borderLeft: '4px solid #ef4444' }}>
     <div style={{ fontWeight: 600 }}>🔴 Low Effort & Low Score</div>
-    <div style={{ fontSize: 22 }}>{effortZones.low.length}</div>
+    <div style={{ fontSize: 22 }}>{effortZonesState.low.length}</div>
     <div style={{ fontSize: 12, color: '#64748b' }}>
       Not engaged students
     </div>
     <div style={{ fontSize: 12, marginTop: 6 }}>
-      {topNames(effortZones.low) || '—'}
+      {topNames(effortZonesState.low) || '—'}
     </div>
   </div>
 
   {/* 🟡 STRUGGLE */}
   <div style={{ ...styles.card, borderLeft: '4px solid #f59e0b' }}>
     <div style={{ fontWeight: 600 }}>🟡 High Effort & Low Score</div>
-    <div style={{ fontSize: 22 }}>{effortZones.struggle.length}</div>
+    <div style={{ fontSize: 22 }}>{effortZonesState.struggle.length}</div>
     <div style={{ fontSize: 12, color: '#64748b' }}>
       Working hard but struggling
     </div>
     <div style={{ fontSize: 12, marginTop: 6 }}>
-      {topNames(effortZones.struggle) || '—'}
+      {topNames(effortZonesState.struggle) || '—'}
     </div>
   </div>
 
   {/* 🟢 IDEAL */}
   <div style={{ ...styles.card, borderLeft: '4px solid #10b981' }}>
     <div style={{ fontWeight: 600 }}>🟢 High Effort & High Score</div>
-    <div style={{ fontSize: 22 }}>{effortZones.ideal.length}</div>
+    <div style={{ fontSize: 22 }}>{effortZonesState.ideal.length}</div>
     <div style={{ fontSize: 12, color: '#64748b' }}>
       Top performing students
     </div>
     <div style={{ fontSize: 12, marginTop: 6 }}>
-      {topNames(effortZones.ideal) || '—'}
+      {topNames(effortZonesState.ideal) || '—'}
     </div>
   </div>
 
   {/* ⚠️ POTENTIAL */}
   <div style={{ ...styles.card, borderLeft: '4px solid #3b82f6' }}>
     <div style={{ fontWeight: 600 }}>⚠️ Low Effort & High Score</div>
-    <div style={{ fontSize: 22 }}>{effortZones.potential.length}</div>
+    <div style={{ fontSize: 22 }}>{effortZonesState.potential.length}</div>
     <div style={{ fontSize: 12, color: '#64748b' }}>
       High potential students
     </div>
     <div style={{ fontSize: 12, marginTop: 6 }}>
-      {topNames(effortZones.potential) || '—'}
+      {topNames(effortZonesState.potential) || '—'}
     </div>
   </div>
 
