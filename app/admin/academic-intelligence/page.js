@@ -360,11 +360,24 @@ const risk = Object.values(riskMap)
     }))
 
   // ================= STEP 11: EFFORT =================
-  const effort = filteredExamStats.map(s => ({
-    effort: s.total_time_spent || 0,
-    score: s.avg_score || 0
-  }))
+const effort = filteredExamStats.map(s => {
+  const effortVal = s.total_time_spent || 0
+  const scoreVal = s.avg_score || 0
 
+  let zone = 'neutral'
+
+  if (effortVal < 300 && scoreVal < 50) zone = 'low'
+  else if (effortVal >= 300 && scoreVal < 50) zone = 'struggle'
+  else if (effortVal >= 300 && scoreVal >= 70) zone = 'ideal'
+  else if (effortVal < 300 && scoreVal >= 70) zone = 'potential'
+
+  return {
+    effort: effortVal,
+    score: scoreVal,
+    name: studentMap[s.student_id] || 'Unknown',
+    zone
+  }
+})
 // ================= STEP 12: TOP PERFORMERS (GROUPED) =================
 const performersMap = {}
 
@@ -601,7 +614,12 @@ if (risk.length > 0) {
               if (!d || d.total === 0) return <span style={{ color:'#9ca3af' }}>—</span>
             
               const acc = (d.correct / d.total) * 100
-            
+            const zoneColor = {
+  low: '#ef4444',        // red
+  struggle: '#f59e0b',   // yellow
+  ideal: '#10b981',      // green
+  potential: '#3b82f6'   // blue
+}
               const studentPercent =
               totalStudents > 0
                 ? (d.studentsCorrect.size / totalStudents) * 100
@@ -672,6 +690,12 @@ if (risk.length > 0) {
     <div ref={performanceRef} style={styles.pageBlock}>
 
       <Section title="Trend" desc="Performance over recent tests">
+        <div style={{ marginBottom: 10, fontSize: 12 }}>
+  🔴 Low effort + Low score |  
+  🟡 High effort + Low score |  
+  🟢 High effort + High score |  
+  🔵 Low effort + High score
+</div>
         <Chart>
           <LineChart data={trendData}>
             <XAxis dataKey="name"/>
@@ -691,11 +715,26 @@ if (risk.length > 0) {
       <Section title="Effort vs Performance" desc="Time vs score comparison">
         <Chart>
           <ScatterChart>
-            <XAxis dataKey="effort"/>
-            <YAxis dataKey="score"/>
-            <Tooltip/>
-            <Scatter data={effortData}/>
-          </ScatterChart>
+  <XAxis dataKey="effort" name="Effort (Time)" />
+  <YAxis dataKey="score" name="Score (%)" />
+  
+  <Tooltip
+    formatter={(value, name) =>
+      name === 'score'
+        ? `${format2(value)}%`
+        : `${format2(value)} sec`
+    }
+  />
+
+  {['low', 'struggle', 'ideal', 'potential'].map(zone => (
+    <Scatter
+      key={zone}
+      name={zone}
+      data={effortData.filter(d => d.zone === zone)}
+      fill={zoneColor[zone]}
+    />
+  ))}
+</ScatterChart>
         </Chart>
       </Section>
 
