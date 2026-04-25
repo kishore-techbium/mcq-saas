@@ -215,24 +215,15 @@ const risk = Object.values(riskMap)
     const avg =
       s.scores.reduce((a, b) => a + b, 0) / s.scores.length
 
-    let issue = ''
-
-    if (avg < 40 && s.attempts < 2) {
-      issue = 'Low participation + low score'
-    } else if (avg < 40) {
-      issue = 'Low accuracy'
-    } else if (s.attempts < 2) {
-      issue = 'Low participation'
-    }
-
     return {
       name: s.name,
       score: avg,
       attempts: s.attempts,
-      issue
+      issue: avg < 70 ? 'Below 70% performance' : null
     }
   })
-  .filter(s => s.issue)   // only meaningful ones
+  .filter(s => s.score < 70)
+  .sort((a, b) => a.score - b.score) // weakest first
 
   // ================= STEP 9: EFFICIENCY =================
   const efficiency = filteredExamStats.map(s => ({
@@ -263,6 +254,7 @@ const risk = Object.values(riskMap)
       name: studentMap[s.student_id] || 'Unknown',
       score: s.avg_score || 0
     }))
+    .filter(s => s.score >= 70)
     .sort((a, b) => b.score - a.score)
     .slice(0, 10)
 
@@ -467,35 +459,50 @@ const risk = Object.values(riskMap)
         </Chart>
       </Section>
 
-      <Section title="At Risk" desc="Students needing attention">
-        {riskStudents.length === 0 && <p>No risk students</p>}
+      <div style={{ display: 'flex', gap: 20, marginTop: 20 }}>
 
-        {riskStudents.map((r,i)=>(
-          <Row
-            key={i}
-            left={r.name}
-            right={`${format2(r.score)}% | ${r.issue}`}
-          />
-        ))}
-      </Section>
+  {/* AT RISK */}
+  <div style={{ flex: 1 }}>
+    <Section
+      title="At Risk"
+      desc="Students below 70% performance"
+    >
+      {riskStudents.length === 0 && <p>No risk students</p>}
 
-    </div>
+      {riskStudents.map((r,i)=>(
+        <Row
+          key={i}
+          left={r.name}
+          right={`${format2(r.score)}%`}
+        />
+      ))}
+    </Section>
+  </div>
 
+  {/* TOP PERFORMERS */}
+  <div style={{ flex: 1 }}>
+    <Section
+      title="Top Performers"
+      desc="Students above 70%"
+    >
+      {Object.entries(topPerformers).map(([type,list])=>(
+        <div key={type} style={{ marginBottom: 10 }}>
+          <strong>{type.replace('_TEST','')}</strong>
 
-      {/* ================= PAGE 4 ================= */}
-      <div ref={leaderboardRef} style={styles.pageBlock}>
-
-        <Section title="🏆 Top Performers" desc="Top students based on performance">
-          {topPerformers.map((s, i) => (
+          {list.map((s,i)=>(
             <Row
               key={i}
-              left={`${i + 1}. ${s.name}`}
+              left={`${i+1}. ${s.name}`}
               right={`${format2(s.score)}%`}
             />
           ))}
-        </Section>
-
-      </div>
+        </div>
+      ))}
+    </Section>
+  </div>
+</div>
+</div>
+     
           </div>
         )
   }
