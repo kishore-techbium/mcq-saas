@@ -69,15 +69,7 @@ const { data: stats } = await query
 
   grouped[row.subject][row.chapter].totalAccuracy += row.accuracy * (row.attempts || 1)
 grouped[row.subject][row.chapter].count += (row.attempts || 1)
-    const attempts = row.attempts || 0
-const correct = Math.round((row.accuracy / 100) * attempts)
-const wrong = attempts - correct
-
-grouped[row.subject][row.chapter].subtopics.push({
-  ...row,
-  correct,
-  wrong
-})
+    grouped[row.subject][row.chapter].subtopics.push(row)
   })
 
   setData(grouped)
@@ -168,7 +160,8 @@ Student: {student ? `${student.first_name} ${student.last_name}` : '-'}
       {Object.entries(data).map(([subject, chapters], index) => {
         const chartData = Object.entries(chapters).map(
           ([chapter, value]) => ({
-            name: chapter,
+            name: chapter.length > 15 ? chapter.slice(0, 15) + '...' : chapter,
+            fullName: chapter,
             accuracy:
               value.count > 0
                 ? value.totalAccuracy / value.count
@@ -205,18 +198,24 @@ const strongest =
             <div style={styles.card}>
             <h2>{subject}</h2>
 
-            <div style={{ height: 250 }}>
+            <div style={{ height: 350 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>
-                 <XAxis
+                  <XAxis
                     dataKey="name"
                     interval={0}
-                    angle={-35}
+                    angle={-45}
                     textAnchor="end"
-                    height={80}
+                    height={120}
+                    tick={{ fontSize: 12 }}
                   />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip
+                  formatter={(value, name, props) => [
+                    `${value.toFixed(1)}%`,
+                    props.payload.fullName
+                  ]}
+                />
                   <Bar dataKey="accuracy">
                     {chartData.map((entry, index) => (
                       <Cell
@@ -251,12 +250,15 @@ const strongest =
 
                     {value.subtopics.map((s, i) => (
                       <div key={i} style={styles.subtopicRow}>
-                       {s.subtopic} – 
-                        <span style={{ color: getColor(s.accuracy) }}>
+                        {s.subtopic} –{' '}
+                        <span
+                          style={{
+                            color: getColor(s.accuracy)
+                          }}
+                        >
                           {s.accuracy.toFixed(1)}%
                         </span>{' '}
-                        <span style={{ color: '#16a34a' }}>{s.correct}✓</span> /
-                        <span style={{ color: '#dc2626' }}>{s.wrong}✗</span>
+                        ({s.attempts} attempts)
                       </div>
                     ))}
                   </div>
