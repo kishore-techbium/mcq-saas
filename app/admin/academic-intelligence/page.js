@@ -332,8 +332,8 @@ Object.keys(performersMap).forEach(type => {
 
 subtopics.forEach(s => {
 
-  const MIN_QUESTIONS = 5   // ✅ MOVE HERE (TOP)
-
+  const MIN_QUESTIONS = 2
+  const ACC_THRESHOLD = 50
   const subject = s.subject
   const chapter = s.chapter || 'General'
   const subtopic = s.subtopic
@@ -367,12 +367,12 @@ subtopics.forEach(s => {
   const studentAccuracy =
     (s.total || 0) > 0 ? (s.correct / s.total) * 100 : 0
 
-  if (
-    s.total >= MIN_QUESTIONS &&
-    studentAccuracy >= 60
-  ) {
-    entry.studentsCorrect.add(s.student_id)
-  }
+ if (
+  s.total >= MIN_QUESTIONS &&
+  studentAccuracy >= ACC_THRESHOLD
+) {
+  entry.studentsCorrect.add(s.student_id)
+}
 })
 
   async function downloadPDF() {
