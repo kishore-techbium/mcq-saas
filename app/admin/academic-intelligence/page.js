@@ -59,7 +59,7 @@ export default function AcademicIntelligence() {
     setLoading(false)
   }
 
-  async function loadData(college_id) {async function loadData(college_id) {
+  async function loadData(college_id) {
 
   // ================= STEP 1: GET EXAMS =================
   let examQuery = supabase.from('exams').select('id')
