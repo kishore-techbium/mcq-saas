@@ -216,6 +216,7 @@ subArray.forEach(s => {
   studentAgg[key].total += s.total
 })
 // ================= STEP 7B: FINAL GROUPING =================
+// ================= STEP 7B: FINAL GROUPING =================
 const groupedSubtopics = {}
 
 Object.values(studentAgg).forEach(s => {
@@ -235,7 +236,6 @@ Object.values(studentAgg).forEach(s => {
     groupedSubtopics[subject][chapter][subtopic][type] = {
       correct: 0,
       total: 0,
-      studentsAttempted: new Set(),
       studentsCorrect: new Set()
     }
   }
@@ -246,8 +246,6 @@ Object.values(studentAgg).forEach(s => {
   entry.total += s.total
 
   if (s.total >= MIN_QUESTIONS) {
-    
-
     const acc = (s.correct / s.total) * 100
 
     if (acc >= ACC_THRESHOLD) {
@@ -256,7 +254,10 @@ Object.values(studentAgg).forEach(s => {
   }
 })
 
+
+// ================= STEP 7C: SUBTOPIC INSIGHTS =================
 const subtopicInsightsMap = {}
+
 Object.entries(groupedSubtopics).forEach(([subject, chapters]) => {
   Object.entries(chapters).forEach(([chapter, subs]) => {
     Object.entries(subs).forEach(([sub, exams]) => {
@@ -267,51 +268,46 @@ Object.entries(groupedSubtopics).forEach(([subject, chapters]) => {
       const acc = (weekly.correct / weekly.total) * 100
       const studentsUnderstood = weekly.studentsCorrect.size
 
-      const percent = totalStudentsCount > 0
-        ? (studentsUnderstood / totalStudentsCount) * 100
-        : 0
+      const percent =
+        totalStudentsCount > 0
+          ? (studentsUnderstood / totalStudentsCount) * 100
+          : 0
+
+      if (!subtopicInsightsMap[subject]) {
+        subtopicInsightsMap[subject] = []
+      }
 
       // 🔴 Weak concept
       if (acc < 40 && percent < 40) {
-        if (!subtopicInsightsMap[subject]) {
-            subtopicInsightsMap[subject] = []
-          }
-          
-          subtopicInsightsMap[subject].push(
-            `🔴 ${subject} → ${sub}: Only ${studentsUnderstood}/${totalStudentsCount} students (${format2(percent)}%) understand this concept.`
-          )
+        subtopicInsightsMap[subject].push(
+          `🔴 ${subject} → ${sub}: Only ${studentsUnderstood}/${totalStudentsCount} students (${format2(percent)}%) understand this concept.`
+        )
       }
 
       // 🟡 Practice issue
       else if (acc < 60 && percent >= 40) {
-        if (!subtopicInsightsMap[subject]) {
-          subtopicInsightsMap[subject] = []
-        }
-
         subtopicInsightsMap[subject].push(
-          `🔴 ${subject} → ${sub}: Only ${studentsUnderstood}/${totalStudentsCount} students (${format2(percent)}%) understand this concept. Needs reteaching.`
+          `🟡 ${subject} → ${sub}: Students partially understand but make mistakes. Needs more practice.`
         )
       }
 
       // ⚠️ Misleading high score
       else if (acc >= 70 && percent < 40) {
-        if (!subtopicInsightsMap[subject]) {
-          subtopicInsightsMap[subject] = []
-        }
-
         subtopicInsightsMap[subject].push(
-          `🔴 ${subject} → ${sub}: Only ${studentsUnderstood}/${totalStudentsCount} students (${format2(percent)}%) understand this concept. Needs reteaching.`
-)
+          `⚠️ ${subject} → ${sub}: High accuracy but only few students performing well. Others need attention.`
+        )
+      }
 
+    })
+  })
+})
+
+
+// ================= STEP 7D: BALANCED OUTPUT =================
 const subtopicInsights = []
 
 Object.values(subtopicInsightsMap).forEach(list => {
   subtopicInsights.push(...list.slice(0, 2)) // max 2 per subject
-})
-     }
-
-    })
-  })
 })
   // ================= STEP 8: RISK =================
 const riskMap = {}
