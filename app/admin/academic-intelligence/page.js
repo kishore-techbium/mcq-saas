@@ -246,7 +246,7 @@ Object.values(studentAgg).forEach(s => {
   entry.total += s.total
 
   if (s.total >= MIN_QUESTIONS) {
-    entry.studentsAttempted.add(s.student_id)
+    
 
     const acc = (s.correct / s.total) * 100
 
@@ -254,6 +254,47 @@ Object.values(studentAgg).forEach(s => {
       entry.studentsCorrect.add(s.student_id)
     }
   }
+})
+
+const subtopicInsights = []
+
+Object.entries(groupedSubtopics).forEach(([subject, chapters]) => {
+  Object.entries(chapters).forEach(([chapter, subs]) => {
+    Object.entries(subs).forEach(([sub, exams]) => {
+
+      const weekly = exams['WEEKLY_TEST']
+      if (!weekly || weekly.total === 0) return
+
+      const acc = (weekly.correct / weekly.total) * 100
+      const studentsUnderstood = weekly.studentsCorrect.size
+
+      const percent = totalStudentsCount > 0
+        ? (studentsUnderstood / totalStudentsCount) * 100
+        : 0
+
+      // 🔴 Weak concept
+      if (acc < 40 && percent < 40) {
+        subtopicInsights.push(
+          `🔴 ${subject} → ${sub}: Only ${studentsUnderstood}/${totalStudentsCount} students (${format2(percent)}%) understand this concept.`
+        )
+      }
+
+      // 🟡 Practice issue
+      else if (acc < 60 && percent >= 40) {
+        subtopicInsights.push(
+          `🟡 ${subject} → ${sub}: Students partially understand but make mistakes. Needs more practice.`
+        )
+      }
+
+      // ⚠️ Misleading high score
+      else if (acc >= 70 && percent < 40) {
+        subtopicInsights.push(
+          `⚠️ ${subject} → ${sub}: High accuracy but only few students performing well. Others need attention.`
+        )
+      }
+
+    })
+  })
 })
   // ================= STEP 8: RISK =================
 const riskMap = {}
@@ -338,32 +379,37 @@ Object.keys(performersMap).forEach(type => {
     .sort((a, b) => b.score - a.score)
     .slice(0, 5)
 })
-  // ================= STEP 13: RECOMMENDATIONS =================
-  const recs = subjectArray.map(s => ({
-    subject: s.subject,
-    msg:
-      s.accuracy < 40
-        ? '🔴 Strong intervention needed'
-        : s.accuracy < 60
-        ? '🟡 Improve practice'
-        : '🟢 Good performance'
-  }))
-
+  
+// ================= STEP 13: SUBJECT INSIGHTS =================
+const subjectInsights = subjectArray.map(s => {
+  if (s.accuracy < 40) {
+    return `🔴 ${s.subject} is weak (${format2(s.accuracy)}%). Immediate intervention required.`
+  }
+  if (s.accuracy < 60) {
+    return `🟡 ${s.subject} needs improvement (${format2(s.accuracy)}%). Increase practice.`
+  }
+  return `🟢 ${s.subject} is strong (${format2(s.accuracy)}%).`
+})
   // ================= STEP 14: AI INSIGHTS =================
-  const insights = []
 
-  if (subjectArray.some(s => s.accuracy < 40)) {
-    insights.push('🔴 Some subjects have very low accuracy')
-  }
+const studentInsights = []
+const insights = [
+  ...subtopicInsights,
+  ...subjectInsights,
+  ...studentInsights
+].sort((a, b) => {
+  const priority = (txt) =>
+    txt.startsWith('🔴') ? 1 :
+    txt.startsWith('⚠️') ? 2 :
+    txt.startsWith('🟡') ? 3 : 4
 
-  if (risk.length > 0) {
-    insights.push(`⚠️ ${risk.length} students are at risk`)
-  }
-
-  if (efficiency.some(e => e.efficiency < 1)) {
-    insights.push('⚡ Low efficiency observed in students')
-  }
-
+  return priority(a) - priority(b)
+}).slice(0, 7)
+if (risk.length > 0) {
+  studentInsights.push(
+    `⚠️ ${risk.length} students are scoring below 70%. Focus on mentoring them.`
+  )
+}
   // ================= FINAL SET =================
   const activeStudentsCount = uniqueStudents.size
 
@@ -384,7 +430,7 @@ Object.keys(performersMap).forEach(type => {
   setEffortData(effort)
   setEfficiencyData(efficiency)
   setTrendData(trend)
-  setRecommendations(recs)
+  
   setAiInsights(insights)
  setTopPerformers(performersMap)
  setGroupedSubtopics(groupedSubtopics)
