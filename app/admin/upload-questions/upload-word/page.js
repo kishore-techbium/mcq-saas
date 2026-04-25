@@ -193,9 +193,10 @@ const getQuestionHTML = ()=>{
         // ✅ MAP TO EXAM
       if(selectedExam && data && data.length > 0){
   await supabase.from('exam_questions').insert([{
-    exam_id: selectedExam,
-    question_id: data[0].id
-  }])
+  exam_id: selectedExam,
+  question_id: data[0].id,
+  college_id: collegeId   // ✅ ADD THIS
+}])
 }
       }
     }
