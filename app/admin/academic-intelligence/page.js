@@ -59,188 +59,206 @@ export default function AcademicIntelligence() {
     setLoading(false)
   }
 
-  async function loadData(college_id) {
+  async function loadData(college_id) {async function loadData(college_id) {
 
-    // 🔹 exam filter → exam_ids
-    let examQuery = supabase.from('exams').select('id')
+  // ================= STEP 1: GET EXAMS =================
+  let examQuery = supabase.from('exams').select('id')
 
-    if (examType !== 'ALL') examQuery.eq('exam_type', examType)
-    if (examCategory !== 'ALL') examQuery.eq('exam_category', examCategory)
+  if (examType !== 'ALL') {
+    examQuery = examQuery.eq('exam_type', examType)
+  }
 
-    const { data: exams } = await examQuery
-    const examIds = exams?.map(e => e.id) || []
+  if (examCategory !== 'ALL') {
+    examQuery = examQuery.eq('exam_category', examCategory)
+  }
 
-    // 🔹 queries
-    let examStatsQuery = supabase
-      .from('student_exam_stats')
-      .select('*')
+  const { data: exams } = await examQuery
+  const examIds = exams?.map(e => e.id) || []
+
+  // ================= STEP 2: BASE QUERIES =================
+  let examStatsQuery = supabase
+    .from('student_exam_stats')
+    .select('*')
+    .eq('college_id', college_id)
+
+  let subQuery = supabase
+    .from('student_subtopic_stats')
+    .select('*')
+    .eq('college_id', college_id)
+
+  if (examIds.length > 0) {
+    examStatsQuery = examStatsQuery.in('exam_id', examIds)
+    subQuery = subQuery.in('exam_id', examIds)
+  }
+
+  const { data: examStats = [] } = await examStatsQuery
+  const { data: subStats = [] } = await subQuery
+
+  // ================= STEP 3: TARGET YEAR FILTER =================
+  let filteredExamStats = examStats
+  let filteredSubStats = subStats
+
+  if (targetYear !== 'ALL') {
+    const { data: yearStudents } = await supabase
+      .from('students')
+      .select('id')
       .eq('college_id', college_id)
+      .eq('target_year', Number(targetYear))
 
-    let subQuery = supabase
-      .from('student_subtopic_stats')
-      .select('*')
-      .eq('college_id', college_id)
+    const ids = yearStudents?.map(s => s.id) || []
 
-    if (examIds.length > 0) {
-      examStatsQuery = examStatsQuery.in('exam_id', examIds)
-      subQuery = subQuery.in('exam_id', examIds)
+    filteredExamStats = examStats.filter(s => ids.includes(s.student_id))
+    filteredSubStats = subStats.filter(s => ids.includes(s.student_id))
+  }
+
+  // ================= STEP 4: STUDENT MAP =================
+  const studentIds = [...new Set(filteredExamStats.map(s => s.student_id))]
+
+  let studentMap = {}
+
+  if (studentIds.length > 0) {
+    const { data: students } = await supabase
+      .from('students')
+      .select('id, first_name, last_name')
+      .in('id', studentIds)
+
+    students?.forEach(s => {
+      studentMap[s.id] = `${s.first_name} ${s.last_name}`
+    })
+  }
+
+  // ================= STEP 5: SUMMARY =================
+  let totalScore = 0
+  let totalAttempts = 0
+
+  filteredExamStats.forEach(s => {
+    totalScore += (s.avg_score || 0) * (s.attempts || 0)
+    totalAttempts += s.attempts || 0
+  })
+
+  const avgScore = totalAttempts > 0 ? totalScore / totalAttempts : 0
+
+  const uniqueStudents = new Set(filteredExamStats.map(s => s.student_id))
+
+  // ================= STEP 6: SUBJECT =================
+  const subjectAgg = {}
+
+  filteredSubStats.forEach(s => {
+    if (!subjectAgg[s.subject]) {
+      subjectAgg[s.subject] = { correct: 0, total: 0, time: 0 }
     }
 
-    const { data: examStats } = await examStatsQuery
-    const { data: subStats } = await subQuery
+    subjectAgg[s.subject].correct += s.correct || 0
+    subjectAgg[s.subject].total += s.total_questions || 0
+    subjectAgg[s.subject].time += s.total_time_spent || 0
+  })
 
-    // 🎯 FILTER BY TARGET YEAR (student level)
-      let filteredExamStats = examStats
-      
-      if (targetYear !== 'ALL') {
-        const { data: yearStudents } = await supabase
-          .from('students')
-          .select('id')
-          .eq('target_year', Number(targetYear))
-      
-        const ids = yearStudents?.map(s => s.id) || []
-      
-        filteredExamStats = examStats.filter(s => ids.includes(s.student_id))
-      }
-    // 🔹 student names
-    const ids = filteredExamStats?.map(s => s.student_id) || []
-    let studentMap = {}
+  const subjectArray = Object.keys(subjectAgg).map(sub => {
+    const d = subjectAgg[sub]
 
-    if (ids.length > 0) {
-      const { data: students } = await supabase
-        .from('students')
-        .select('id, first_name, last_name')
-        .in('id', ids)
-
-      students?.forEach(s => {
-        studentMap[s.id] = `${s.first_name} ${s.last_name}`
-      })
+    return {
+      subject: sub,
+      accuracy: d.total > 0 ? (d.correct / d.total) * 100 : 0,
+      avgTime: d.total > 0 ? d.time / d.total : 0
     }
+  })
 
-    // ================= SUMMARY =================
-    let totalScore = 0
-    let totalAttempts = 0
-
-    filteredExamStats?.forEach(s => {
-      totalScore += (s.avg_score || 0) * (s.attempts || 0)
-      totalAttempts += s.attempts || 0
-    })
-
-    const avgScore = totalAttempts > 0 ? totalScore / totalAttempts : 0
-
-    let filteredSubStats = subStats
-
-      if (targetYear !== 'ALL') {
-        const ids = filteredExamStats.map(s => s.student_id)
-        filteredSubStats = subStats.filter(s => ids.includes(s.student_id))
-      }
-    // ================= SUBJECT =================
-    const subjectAgg = {}
-
-    filteredSubStats?.forEach(s => {
-      if (!subjectAgg[s.subject]) {
-        subjectAgg[s.subject] = { correct: 0, total: 0, time: 0 }
-      }
-      subjectAgg[s.subject].correct += s.correct || 0
-      subjectAgg[s.subject].total += s.total_questions || 0
-      subjectAgg[s.subject].time += s.total_time_spent || 0
-    })
-
-    const subjectArray = Object.keys(subjectAgg).map(sub => {
-      const d = subjectAgg[sub]
-      return {
-        subject: sub,
-        accuracy: d.total > 0 ? (d.correct / d.total) * 100 : 0,
-        avgTime: d.total > 0 ? d.time / d.total : 0
-      }
-    })
-
-    // ================= SUBTOPICS =================
-    const subArray = filteredSubStats?.map(s => ({
-      subject: s.subject,
-      subtopic: s.subtopic,
-      accuracy: s.total_questions > 0
+  // ================= STEP 7: SUBTOPICS =================
+  const subArray = filteredSubStats.map(s => ({
+    subject: s.subject,
+    subtopic: s.subtopic,
+    accuracy:
+      s.total_questions > 0
         ? (s.correct / s.total_questions) * 100
         : 0
-    })) || []
+  }))
 
-    // ================= RISK =================
-    const risk = filteredExamStats
-      ?.map(s => ({
-        name: studentMap[s.student_id] || 'Unknown',
-        score: s.avg_score || 0,
-        risk: (s.avg_score < 40 ? 2 : 0) + (s.avg_time_per_exam > 90 ? 1 : 0)
-      }))
-      .filter(s => s.risk >= 2)
-
-    // ================= EFFICIENCY =================
-    const efficiency = filteredExamStats?.map(s => ({
+  // ================= STEP 8: RISK =================
+  const risk = filteredExamStats
+    .map(s => ({
       name: studentMap[s.student_id] || 'Unknown',
-      efficiency: s.avg_time_per_exam
-        ? s.avg_score / (s.avg_time_per_exam / 60)
-        : 0
+      score: s.avg_score || 0,
+      risk:
+        (s.avg_score < 40 ? 2 : 0) +
+        (s.avg_time_per_exam > 90 ? 1 : 0)
     }))
+    .filter(s => s.risk >= 2)
 
-    // ================= TREND =================
-    const trend = filteredExamStats?.slice(0, 10).map((s, i) => ({
+  // ================= STEP 9: EFFICIENCY =================
+  const efficiency = filteredExamStats.map(s => ({
+    name: studentMap[s.student_id] || 'Unknown',
+    efficiency: s.avg_time_per_exam
+      ? s.avg_score / (s.avg_time_per_exam / 60)
+      : 0
+  }))
+
+  // ================= STEP 10: TREND (FIXED) =================
+  const trend = [...filteredExamStats]
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    .slice(-10)
+    .map((s, i) => ({
       name: `Test ${i + 1}`,
       score: Number(format2(s.avg_score))
     }))
 
-    // ================= EFFORT =================
-    const effort = filteredExamStats?.map(s => ({
-      effort: s.total_time_spent || 0,
+  // ================= STEP 11: EFFORT =================
+  const effort = filteredExamStats.map(s => ({
+    effort: s.total_time_spent || 0,
+    score: s.avg_score || 0
+  }))
+
+  // ================= STEP 12: TOP PERFORMERS =================
+  const performers = filteredExamStats
+    .map(s => ({
+      name: studentMap[s.student_id] || 'Unknown',
       score: s.avg_score || 0
     }))
-    // 🏆 TOP PERFORMERS (COLLEGE INSIGHTS MERGE)
-    const performers = filteredExamStats
-      ?.map(s => ({
-        name: studentMap[s.student_id] || 'Unknown',
-        score: s.avg_score || 0
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10)
-    
-    setTopPerformers(performers)
-    // ================= RECOMMENDATIONS =================
-    const recs = subjectArray.map(s => ({
-      subject: s.subject,
-      msg:
-        s.accuracy < 40 ? '🔴 Strong intervention needed' :
-        s.accuracy < 60 ? '🟡 Improve practice' :
-        '🟢 Good performance'
-    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10)
 
-    // ================= AI INSIGHTS =================
-    const insights = []
+  // ================= STEP 13: RECOMMENDATIONS =================
+  const recs = subjectArray.map(s => ({
+    subject: s.subject,
+    msg:
+      s.accuracy < 40
+        ? '🔴 Strong intervention needed'
+        : s.accuracy < 60
+        ? '🟡 Improve practice'
+        : '🟢 Good performance'
+  }))
 
-    if (subjectArray.some(s => s.accuracy < 40)) {
-      insights.push('🔴 Some subjects have very low accuracy — immediate focus required')
-    }
+  // ================= STEP 14: AI INSIGHTS =================
+  const insights = []
 
-    if (risk.length > 0) {
-      insights.push(`⚠️ ${risk.length} students are at risk`)
-    }
+  if (subjectArray.some(s => s.accuracy < 40)) {
+    insights.push('🔴 Some subjects have very low accuracy')
+  }
 
-    if (efficiency.some(e => e.efficiency < 1)) {
-      insights.push('⚡ Students spending more time but scoring low')
-    }
+  if (risk.length > 0) {
+    insights.push(`⚠️ ${risk.length} students are at risk`)
+  }
 
-    setSummary({
-      avgScore: format2(avgScore),
-      totalStudents: filteredExamStats?.length || 0,
-      risk: risk.length
-    })
+  if (efficiency.some(e => e.efficiency < 1)) {
+    insights.push('⚡ Low efficiency observed in students')
+  }
 
-          setSubjects(subjectArray)
-          setSubtopics(subArray)
-          setRiskStudents(risk)
-          setEffortData(effort)
-          setEfficiencyData(efficiency)
-          setTrendData(trend)
-          setRecommendations(recs)
-          setAiInsights(insights)
-        }
+  // ================= FINAL SET =================
+  setSummary({
+    avgScore: format2(avgScore),
+    totalStudents: uniqueStudents.size,
+    risk: risk.length
+  })
+
+  setSubjects(subjectArray)
+  setSubtopics(subArray)
+  setRiskStudents(risk)
+  setEffortData(effort)
+  setEfficiencyData(efficiency)
+  setTrendData(trend)
+  setRecommendations(recs)
+  setAiInsights(insights)
+  setTopPerformers(performers)
+}
 
             const groupedSubtopics = Object.values(subtopics).reduce((acc, s) => {
           if (!acc[s.subject]) acc[s.subject] = []
