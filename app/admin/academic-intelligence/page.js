@@ -27,9 +27,9 @@ export default function AcademicIntelligence() {
   const performanceRef = useRef(null)
   const leaderboardRef = useRef(null)
   const [loading, setLoading] = useState(true)
-  const [examType, setExamType] = useState('ALL')
-  const [examCategory, setExamCategory] = useState('ALL')
-  const [targetYear, setTargetYear] = useState('ALL')
+  
+  const [examCategory, setExamCategory] = useState('JEE_MAINS')
+  const [targetYear, setTargetYear] = useState('2')
   const [summary, setSummary] = useState({})
   const [topPerformers, setTopPerformers] = useState([])
   const [subjects, setSubjects] = useState([])
@@ -41,7 +41,7 @@ export default function AcademicIntelligence() {
   const [recommendations, setRecommendations] = useState([])
   const [aiInsights, setAiInsights] = useState([])
 
-  useEffect(() => { init() }, [examType, examCategory, targetYear])
+  useEffect(() => { init() }, [examCategory, targetYear])
 
   async function init() {
     setLoading(true)
@@ -63,10 +63,6 @@ export default function AcademicIntelligence() {
 
   // ================= STEP 1: GET EXAMS =================
   let examQuery = supabase.from('exams').select('id')
-
-  if (examType !== 'ALL') {
-    examQuery = examQuery.eq('exam_type', examType)
-  }
 
   if (examCategory !== 'ALL') {
     examQuery = examQuery.eq('exam_category', examCategory)
@@ -96,9 +92,10 @@ export default function AcademicIntelligence() {
 
 // ================= TOTAL STUDENTS (REAL COUNT) =================
 let studentQuery = supabase
-  .from('students')
-  .select('id')
-  .eq('college_id', college_id)
+.from('students')
+.select('id')
+.eq('college_id', college_id)
+.neq('role', 'admin')   
 
 if (examCategory !== 'ALL') {
   studentQuery = studentQuery.eq(
@@ -120,10 +117,11 @@ const totalStudentsCount = allStudents.length
 
   if (targetYear !== 'ALL') {
   const { data: yearStudents } = await supabase
-    .from('students')
-    .select('id')
-    .eq('college_id', college_id)
-    .eq('study_year', String(targetYear)) // ✅ FIX
+.from('students')
+.select('id')
+.eq('college_id', college_id)
+.neq('role', 'admin')   // ✅ ADD
+.eq('study_year', String(targetYear))
 
   const ids = yearStudents?.map(s => s.id) || []
 
@@ -138,9 +136,10 @@ const totalStudentsCount = allStudents.length
 
   if (studentIds.length > 0) {
     const { data: students } = await supabase
-      .from('students')
-      .select('id, first_name, last_name')
-      .in('id', studentIds)
+.from('students')
+.select('id, first_name, last_name')
+.in('id', studentIds)
+.neq('role', 'admin')   // ✅ ADD
 
     students?.forEach(s => {
       studentMap[s.id] = `${s.first_name} ${s.last_name}`
@@ -351,21 +350,16 @@ const risk = Object.values(riskMap)
           </div>
 
           <div style={styles.filters}>
-            <select value={examType} onChange={e => setExamType(e.target.value)}>
-              <option value="ALL">All Types</option>
-              <option value="WEEKLY_TEST">Weekly</option>
-              <option value="MONTHLY_TEST">Monthly</option>
-              <option value="GRAND_TEST">Grand</option>
-            </select>
+           
 
             <select value={examCategory} onChange={e => setExamCategory(e.target.value)}>
-              <option value="ALL">All Categories</option>
+              
               <option value="JEE_MAINS">JEE</option>
               <option value="NEET">NEET</option>
             </select>
 
             <select value={targetYear} onChange={e => setTargetYear(e.target.value)}>
-              <option value="ALL">All Years</option>
+              
               <option value="1">1st Year</option>
               <option value="2">2nd Year</option>
             </select>
