@@ -243,27 +243,22 @@ const strongest =
             <div style={{ marginBottom: 10, fontSize: 14 }}>
               <strong>Average Accuracy:</strong> {subjectAvg}%
             </div>
-            {Object.entries(chapters).map(
-                ([chapter, value]) => (
-                  <div key={chapter} style={styles.subtopicBox}>
-                    <strong>{chapter}</strong>
+           <div style={styles.chapterGrid}>
+            {Object.entries(chapters).map(([chapter, value]) => (
+              <div key={chapter} style={styles.chapterCard}>
+                <div style={styles.chapterTitle}>{chapter}</div>
 
-                    {value.subtopics.map((s, i) => (
-                      <div key={i} style={styles.subtopicRow}>
-                        {s.subtopic} –{' '}
-                        <span
-                          style={{
-                            color: getColor(s.accuracy)
-                          }}
-                        >
-                          {s.accuracy.toFixed(1)}%
-                        </span>{' '}
-                        {s.attempts}
-                      </div>
-                    ))}
+                {value.subtopics.map((s, i) => (
+                  <div key={i} style={styles.subtopicRow}>
+                    {s.subtopic} –{' '}
+                    <span style={{ color: getColor(s.accuracy) }}>
+                      {s.accuracy.toFixed(1)}%
+                    </span>
                   </div>
-                )
-              )}
+                ))}
+              </div>
+            ))}
+          </div>
           </div>
         </div>
 )
@@ -311,5 +306,24 @@ const styles = {
   subtopicRow: {
     fontSize: 13,
     marginTop: 4
-  }
+  },
+  chapterGrid: {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, 1fr)',
+  gap: 15,
+  marginTop: 15
+},
+
+chapterCard: {
+  background: '#f9fafb',
+  padding: 12,
+  borderRadius: 8,
+  border: '1px solid #e5e7eb'
+},
+
+chapterTitle: {
+  fontWeight: 600,
+  marginBottom: 6,
+  fontSize: 14
+}
 }
