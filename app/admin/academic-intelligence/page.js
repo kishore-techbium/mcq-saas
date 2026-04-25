@@ -429,6 +429,27 @@ subtopics.forEach(s => {
   title="Subtopic Analysis"
   desc="Chapter-wise comparison across exam types"
 >
+<div style={styles.infoBox}>
+  <strong>How to read this:</strong>
+
+  <div style={{ marginTop: 6 }}>
+    <b>63%</b> → Overall accuracy for this subtopic
+  </div>
+
+  <div>
+    <b>38/60</b> → Students answered 38 correct out of 60 total attempts
+  </div>
+
+  <div>
+    <b>👥 65%</b> → % of students who understood this concept
+  </div>
+
+  <div style={{ marginTop: 6 }}>
+    🔴 &lt;40% = Weak &nbsp;&nbsp;
+    🟡 40–70% = Moderate &nbsp;&nbsp;
+    🟢 &gt;70% = Strong
+  </div>
+</div>
 
 {Object.entries(groupedSubtopics).map(([subject, chapters]) => (
 
@@ -712,6 +733,14 @@ examTypeRow: {
 examTypeColumn: {
   flex: 1,
   minWidth: 250
+},
+infoBox: {
+  background: '#f8fafc',
+  borderLeft: '4px solid #2563eb',
+  padding: 12,
+  marginBottom: 15,
+  fontSize: 13,
+  lineHeight: 1.5
 },
 
 examTypeTitle: {
