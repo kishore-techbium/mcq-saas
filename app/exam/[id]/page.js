@@ -482,17 +482,14 @@ async function submitExam() {
 const currentQ = questions?.[currentIndex]
 if (!currentQ) return
 
-if (currentQ) {
-  
-
-  const updatedTime = {
-    ...timeSpent,
-    [currentQ.id]: (timeSpent[currentQ.id] || 0) + timeTaken
-  }
-
-  setTimeSpent(updatedTime)
-  persist({ timeSpent: updatedTime })
+// ✅ Add final 1-second buffer (optional but good)
+const finalTimeSpent = {
+  ...timeSpent,
+  [currentQ.id]: (timeSpent[currentQ.id] || 0) + 1
 }
+
+setTimeSpent(finalTimeSpent)
+persist({ timeSpent: finalTimeSpent })
   
   if (submitted) return
 
@@ -545,13 +542,7 @@ if (currentQ) {
     unattempted,
     accuracy
   })
-console.log('Submitting integrity:', {
-  tabSwitchCount,
-  blurCount,
-  fullscreenExitCount,
-  copyCount,
-  fastAnswerCount
-})
+
 await fetch('/api/exam/submit', {
   method: 'POST',
   headers: {
@@ -560,7 +551,7 @@ await fetch('/api/exam/submit', {
   body: JSON.stringify({
     sessionId,
     answers,
-    timeSpent,
+    timeSpent: finalTimeSpent,
     questionOrder: JSON.parse(localStorage.getItem(LS_KEY) || '{}')?.questionOrder,
     totalQuestions: questions.length, 
     score,
