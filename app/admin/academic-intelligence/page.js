@@ -20,7 +20,7 @@ function getHeatColor(val) {
 }
 
 export default function AcademicIntelligence() {
-  const totalStudents = students.length
+  
   const [groupedSubtopics, setGroupedSubtopics] = useState({})
   const summaryRef = useRef(null)
   const subjectRef = useRef(null)
@@ -174,9 +174,9 @@ const totalStudentsCount = allStudents.length
     subjectAgg[s.subject].time += s.total_time_spent || 0
   })
 
-  const subjectArray = Object.keys(subjectAgg).map(sub => {
+    const subjectArray = Object.keys(subjectAgg).map(sub => {
     const d = subjectAgg[sub]
-
+    const totalStudents = summary.totalStudents || 0
     return {
       subject: sub,
       accuracy: d.total > 0 ? (d.correct / d.total) * 100 : 0,
