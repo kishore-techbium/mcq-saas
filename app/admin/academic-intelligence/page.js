@@ -363,7 +363,7 @@ const studentAccuracy =
   (s.total || 0) > 0 ? (s.correct / s.total) * 100 : 0
 
 // ✅ ONLY count if meaningful understanding
-if (studentAccuracy >= 50) {
+if (studentAccuracy >= 80) {
   entry.studentsCorrect.add(s.student_id)
 }
 })
@@ -459,7 +459,7 @@ if (studentAccuracy >= 50) {
   </div>
 
   <div>
-    <b>👥 % (students)</b> → % of students who scored ≥ 60% in that subtopic
+    <b>👥 % (students)</b> → % of students who scored ≥ 80% in that subtopic
   </div>
 
   <div style={{ marginTop: 6 }}>
