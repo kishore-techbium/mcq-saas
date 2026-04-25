@@ -74,8 +74,8 @@ export default function AcademicIntelligence() {
 
   async function loadData(college_id) {
 
-  // ================= STEP 1: GET EXAMS =================
-  let examQuery = supabase.from('exams').select('id')
+// ================= STEP 1: GET EXAMS =================
+let examQuery = supabase.from('exams').select('id, exam_date')
 
   if (examCategory !== 'ALL') {
     examQuery = examQuery.eq('exam_category', examCategory)
@@ -103,6 +103,11 @@ export default function AcademicIntelligence() {
   const { data: examStats = [] } = await examStatsQuery
   const { data: subStats = [] } = await subQuery
 
+const examMap = {}
+
+exams?.forEach(e => {
+  examMap[e.id] = e.exam_date ? new Date(e.exam_date) : null
+})
 // ================= TOTAL STUDENTS (REAL COUNT) =================
 let studentQuery = supabase
 .from('students')
@@ -368,12 +373,14 @@ filteredExamStats.forEach(s => {
   const examId = s.exam_id
 
   if (!trendMap[type][examId]) {
-    trendMap[type][examId] = {
-      totalScore: 0,
-      totalStudents: 0,
-      date: s.exam_date || s.created_at   // use exam_date if available
-    }
+  const examDate = examMap[examId]
+
+  trendMap[type][examId] = {
+    totalScore: 0,
+    totalStudents: 0,
+    date: examDate ?? s.created_at
   }
+}
 
   trendMap[type][examId].totalScore += s.avg_score || 0
   trendMap[type][examId].totalStudents += 1
