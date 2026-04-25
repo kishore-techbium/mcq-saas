@@ -392,7 +392,10 @@ Object.keys(trendMap).forEach(type => {
     .sort((a, b) => new Date(a.date) - new Date(b.date))
     .slice(-10)
     .map((s, i) => ({
-      name: `Test ${i + 1}`,
+    name: new Date(s.date).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short'
+    }),
       score: Number(format2(s.score))
     }))
 })  
