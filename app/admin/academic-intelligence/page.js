@@ -364,22 +364,46 @@ const risk = Object.values(riskMap)
       score: Number(format2(s.avg_score))
     }))
 
-  // ================= STEP 11: EFFORT =================
-const effort = filteredExamStats.map(s => {
-  const effortVal = s.total_time_spent || 0
-  const scoreVal = s.avg_score || 0
+
+// ================= STEP 11: EFFORT (STUDENT LEVEL) =================
+
+// Step 1: aggregate per student
+const studentEffortMap = {}
+
+filteredExamStats.forEach(s => {
+  const id = s.student_id
+
+  if (!studentEffortMap[id]) {
+    studentEffortMap[id] = {
+      name: studentMap[id] || 'Unknown',
+      totalTime: 0,
+      totalScore: 0,
+      totalAttempts: 0
+    }
+  }
+
+  studentEffortMap[id].totalTime += s.total_time_spent || 0
+  studentEffortMap[id].totalScore += (s.avg_score || 0) * (s.attempts || 1)
+  studentEffortMap[id].totalAttempts += (s.attempts || 1)
+})
+
+
+// Step 2: convert to student-level data
+const effort = Object.values(studentEffortMap).map(s => {
+  const avgScore =
+    s.totalAttempts > 0 ? s.totalScore / s.totalAttempts : 0
 
   let zone = 'neutral'
 
-  if (effortVal < 300 && scoreVal < 50) zone = 'low'
-  else if (effortVal >= 300 && scoreVal < 50) zone = 'struggle'
-  else if (effortVal >= 300 && scoreVal >= 70) zone = 'ideal'
-  else if (effortVal < 300 && scoreVal >= 70) zone = 'potential'
+  if (s.totalTime < 300 && avgScore < 50) zone = 'low'
+  else if (s.totalTime >= 300 && avgScore < 50) zone = 'struggle'
+  else if (s.totalTime >= 300 && avgScore >= 70) zone = 'ideal'
+  else if (s.totalTime < 300 && avgScore >= 70) zone = 'potential'
 
   return {
-    effort: effortVal,
-    score: scoreVal,
-    name: studentMap[s.student_id] || 'Unknown',
+    name: s.name,
+    effort: s.totalTime,
+    score: avgScore,
     zone
   }
 })
@@ -762,7 +786,7 @@ const topNames = (arr) =>
         ))}
       </Section>
 
-      <Section title="Effort vs Performance" desc="Student behavior analysis">
+      <Section title="Effort vs Performance" desc="Student behavior analysis for overall exams">
         <div style={styles.infoBox}>
   <strong>How to read this:</strong>
 
