@@ -378,6 +378,46 @@ const effort = filteredExamStats.map(s => {
     zone
   }
 })
+
+const effortZones = {
+  low: [],
+  struggle: [],
+  ideal: [],
+  potential: []
+}
+
+effort.forEach(e => {
+  if (e.zone === 'low') effortZones.low.push(e)
+  if (e.zone === 'struggle') effortZones.struggle.push(e)
+  if (e.zone === 'ideal') effortZones.ideal.push(e)
+  if (e.zone === 'potential') effortZones.potential.push(e)
+})
+
+const effortInsights = []
+
+if (effortZones.low.length > 0) {
+  effortInsights.push(
+    `🔴 ${effortZones.low.length} students are not putting enough effort and scoring low. Need strict monitoring.`
+  )
+}
+
+if (effortZones.struggle.length > 0) {
+  effortInsights.push(
+    `🟡 ${effortZones.struggle.length} students are working hard but scoring low. They need conceptual clarity.`
+  )
+}
+
+if (effortZones.ideal.length > 0) {
+  effortInsights.push(
+    `🟢 ${effortZones.ideal.length} students are performing well with good effort.`
+  )
+}
+
+if (effortZones.potential.length > 0) {
+  effortInsights.push(
+    `⚠️ ${effortZones.potential.length} students have high potential but are not putting enough effort.`
+  )
+}
 // ================= STEP 12: TOP PERFORMERS (GROUPED) =================
 const performersMap = {}
 
@@ -429,7 +469,8 @@ if (risk.length > 0) {
 const insights = [
   ...subtopicInsights,
   ...subjectInsights,
-  ...studentInsights
+  ...studentInsights,
+  ...effortInsights  
 ].sort((a, b) => {
   const priority = (txt) =>
     txt.startsWith('🔴') ? 1 :
@@ -438,6 +479,8 @@ const insights = [
 
   return priority(a) - priority(b)
 }).slice(0, 7)
+
+
 if (risk.length > 0) {
   studentInsights.push(
     `⚠️ ${risk.length} students are scoring below 70%. Focus on mentoring them.`
@@ -712,31 +755,18 @@ const zoneColor = {
         ))}
       </Section>
 
-      <Section title="Effort vs Performance" desc="Time vs score comparison">
-        <Chart>
-          <ScatterChart>
-  <XAxis dataKey="effort" name="Effort (Time)" />
-  <YAxis dataKey="score" name="Score (%)" />
-  
-  <Tooltip
-    formatter={(value, name) =>
-      name === 'score'
-        ? `${format2(value)}%`
-        : `${format2(value)} sec`
-    }
-  />
+      <Section title="Effort vs Performance" desc="Student behavior analysis">
 
-  {['low', 'struggle', 'ideal', 'potential'].map(zone => (
-    <Scatter
-      key={zone}
-      name={zone}
-      data={effortData.filter(d => d.zone === zone)}
-      fill={zoneColor[zone]}
-    />
-  ))}
-</ScatterChart>
-        </Chart>
-      </Section>
+  <div style={{ display: 'flex', gap: 20 }}>
+
+    <Card title="🔴 Low Effort & Low Score" value={effortZones.low.length} />
+    <Card title="🟡 High Effort & Low Score" value={effortZones.struggle.length} />
+    <Card title="🟢 High Effort & High Score" value={effortZones.ideal.length} />
+    <Card title="⚠️ Low Effort & High Score" value={effortZones.potential.length} />
+
+  </div>
+
+</Section>
 
       <div style={{ display: 'flex', gap: 20, marginTop: 20 }}>
 
