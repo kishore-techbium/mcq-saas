@@ -618,8 +618,15 @@ const getNames = (arr, key) => {
         <div style={styles.page}>
 
           <div style={styles.header}>
-            <h1>📊 Academic Intelligence</h1>
-            <button style={styles.btn} onClick={downloadPDF}>PDF</button>
+              <h1>📊 Academic Intelligence</h1>
+                  <button
+                    style={styles.btn}
+                    onMouseEnter={e => e.target.style.background = '#1d4ed8'}
+                    onMouseLeave={e => e.target.style.background = '#2563eb'}
+                    onClick={downloadPDF}
+                  >
+                    📄 Export PDF
+                  </button>
           </div>
 
           <div style={styles.filters}>
@@ -1177,9 +1184,25 @@ examTypeTitle: {
   fontWeight: 'bold',
   marginBottom: 8
 },
+btn: {
+  padding: '4px 10px',
+  fontSize: 12,
+  background: '#2563eb',
+  color: '#fff',
+  borderRadius: 6,
+  border: 'none',
+  cursor: 'pointer',
+  height: 28,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6
+},
+header: {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center'
+},
   page:{padding:40, background:'#f1f5f9'},
-  header:{display:'flex',justifyContent:'space-between'},
-  btn:{padding:'6px 12px', fontSize:12, background:'#2563eb', color:'#fff', borderRadius:6},
   filters:{display:'flex', gap:10, margin:'20px 0'},
   section:{background:'#fff', padding:20, marginTop:20, borderRadius:12},
   desc:{color:'#64748b', fontSize:13},
