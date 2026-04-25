@@ -406,6 +406,13 @@ const subjectInsights = subjectArray.map(s => {
   // ================= STEP 14: AI INSIGHTS =================
 
 const studentInsights = []
+
+if (risk.length > 0) {
+  studentInsights.push(
+    `⚠️ ${risk.length} students are scoring below 70%. Focus on mentoring them.`
+  )
+}
+
 const insights = [
   ...subtopicInsights,
   ...subjectInsights,
