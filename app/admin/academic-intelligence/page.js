@@ -586,12 +586,13 @@ async function downloadPDF() {
         return
       }
 
-      const canvas = await html2canvas(ref.current, {
-        scale: 2,
-        useCORS: true
-      })
-
-      const img = canvas.toDataURL('image/png')
+const canvas = await html2canvas(ref.current, {
+  scale: 1.2,
+  useCORS: true,
+  windowWidth: ref.current.scrollWidth,
+  windowHeight: ref.current.scrollHeight
+})
+      const img = canvas.toDataURL('image/jpeg', 0.7)
 
       const imgProps = pdf.getImageProperties(img)
       const pdfWidth = pdf.internal.pageSize.getWidth()
@@ -599,7 +600,18 @@ async function downloadPDF() {
 
       if (!isFirst) pdf.addPage()
 
-      pdf.addImage(img, 'PNG', 0, 0, pdfWidth, pdfHeight)
+        let heightLeft = pdfHeight
+        let position = 0
+
+        pdf.addImage(img, 'JPEG', 0, position, pdfWidth, pdfHeight)
+        heightLeft -= 297
+
+        while (heightLeft > 0) {
+          position = heightLeft - pdfHeight
+          pdf.addPage()
+          pdf.addImage(img, 'JPEG', 0, position, pdfWidth, pdfHeight)
+          heightLeft -= 297
+        }
     }
 
     await addPage(summaryRef, true)
