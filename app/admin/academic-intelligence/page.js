@@ -576,14 +576,9 @@ if (risk.length > 0) {
 }
 
 
-  async function downloadPDF() {
+async function downloadPDF() {
   try {
     const pdf = new jsPDF('p', 'mm', 'a4')
-    const img = canvas.toDataURL('image/png')
-
-const imgProps = pdf.getImageProperties(img)
-const pdfWidth = pdf.internal.pageSize.getWidth()
-const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
 
     const addPage = async (ref, isFirst = false) => {
       if (!ref.current) {
@@ -597,6 +592,10 @@ const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
       })
 
       const img = canvas.toDataURL('image/png')
+
+      const imgProps = pdf.getImageProperties(img)
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
 
       if (!isFirst) pdf.addPage()
 
