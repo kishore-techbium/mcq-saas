@@ -490,7 +490,12 @@ if (risk.length > 0) {
 
       pdf.save('academic-intelligence.pdf')
     }
-
+const zoneColor = {
+  low: '#ef4444',        // red
+  struggle: '#f59e0b',   // yellow
+  ideal: '#10b981',      // green
+  potential: '#3b82f6'   // blue
+}
   if (loading) return <p>Loading...</p>
   const totalStudents = summary.totalStudents || 0
       return (
@@ -614,12 +619,7 @@ if (risk.length > 0) {
               if (!d || d.total === 0) return <span style={{ color:'#9ca3af' }}>—</span>
             
               const acc = (d.correct / d.total) * 100
-            const zoneColor = {
-  low: '#ef4444',        // red
-  struggle: '#f59e0b',   // yellow
-  ideal: '#10b981',      // green
-  potential: '#3b82f6'   // blue
-}
+            
               const studentPercent =
               totalStudents > 0
                 ? (d.studentsCorrect.size / totalStudents) * 100
