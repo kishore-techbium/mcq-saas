@@ -392,10 +392,10 @@ const effortZones = {
 }
 
 effort.forEach(e => {
-  if (e.zone === 'low') effortZonesState.low.push(e)
-  if (e.zone === 'struggle') effortZonesState.struggle.push(e)
-  if (e.zone === 'ideal') effortZonesState.ideal.push(e)
-  if (e.zone === 'potential') effortZonesState.potential.push(e)
+  if (e.zone === 'low') effortZones.low.push(e)
+  if (e.zone === 'struggle') effortZones.struggle.push(e)
+  if (e.zone === 'ideal') effortZones.ideal.push(e)
+  if (e.zone === 'potential') effortZones.potential.push(e)
 })
 setEffortZonesState(effortZones)
 
@@ -763,6 +763,37 @@ const topNames = (arr) =>
       </Section>
 
       <Section title="Effort vs Performance" desc="Student behavior analysis">
+        <div style={styles.infoBox}>
+  <strong>How to read this:</strong>
+
+  <div style={{ marginTop: 6 }}>
+    <b>Effort</b> → Total time spent by students in exams
+  </div>
+
+  <div>
+    <b>Score</b> → Average marks scored by students
+  </div>
+
+  <div style={{ marginTop: 6 }}>
+    Students are divided into 4 categories:
+  </div>
+
+  <div>🔴 <b>Low Effort + Low Score</b> → Not studying → Needs monitoring</div>
+
+  <div>🟡 <b>High Effort + Low Score</b> → Working hard but not understanding → Needs concept clarity</div>
+
+  <div>🟢 <b>High Effort + High Score</b> → Ideal students → Performing well</div>
+
+  <div>⚠️ <b>Low Effort + High Score</b> → High potential → Can improve further with effort</div>
+
+  <div style={{ marginTop: 6 }}>
+    <b>Example:</b>
+  </div>
+
+  <div>
+    🟡 4 students in "High Effort + Low Score" → They are trying hard but still scoring low → Teacher should focus on clearing concepts
+  </div>
+</div>
 
 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20 }}>
 
