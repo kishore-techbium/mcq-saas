@@ -184,13 +184,14 @@ const totalStudentsCount = allStudents.length
 
   // ================= STEP 7: SUBTOPICS =================
   const subArray = filteredSubStats.map(s => ({
-    subject: s.subject,
-    subtopic: s.subtopic,
-    accuracy:
-      s.total_questions > 0
-        ? (s.correct / s.total_questions) * 100
-        : 0
-  }))
+  subject: s.subject,
+  subtopic: s.subtopic,
+  total: s.total_questions || 0,
+  accuracy:
+    s.total_questions > 0
+      ? (s.correct / s.total_questions) * 100
+      : 0
+}))
 
   // ================= STEP 8: RISK =================
 const riskMap = {}
@@ -326,11 +327,28 @@ Object.keys(performersMap).forEach(type => {
  setTopPerformers(performersMap)
 }
 
-            const groupedSubtopics = Object.values(subtopics).reduce((acc, s) => {
-          if (!acc[s.subject]) acc[s.subject] = []
-          acc[s.subject].push(s)
-          return acc
-        }, {})
+      const groupedSubtopics = subtopics.reduce((acc, s) => {
+        if (!acc[s.subject]) {
+          acc[s.subject] = {
+            weak: [],
+            moderate: [],
+            strong: [],
+            notAttempted: []
+          }
+        }
+
+        if (s.total === 0) {
+          acc[s.subject].notAttempted.push(s)
+        } else if (s.accuracy < 40) {
+          acc[s.subject].weak.push(s)
+        } else if (s.accuracy < 70) {
+          acc[s.subject].moderate.push(s)
+        } else {
+          acc[s.subject].strong.push(s)
+        }
+
+        return acc
+      }, {})
   async function downloadPDF() {
 
       const pdf = new jsPDF('p', 'mm', 'a4')
@@ -406,41 +424,81 @@ Object.keys(performersMap).forEach(type => {
         ))}
       </Section>
 
-            <Section
-                title="Subtopic Heatmap"
-                desc="Color-coded performance by subject (Red = weak, Yellow = moderate, Green = strong)"
-              >
+      <Section
+        title="Subtopic Heatmap"
+        desc="🔴 Weak (<40%) | 🟡 Moderate | 🟢 Strong | ❗ Not Attempted"
+      >
 
-              {Object.entries(groupedSubtopics).map(([subject, items]) => (
+      {Object.entries(groupedSubtopics).map(([subject, groups]) => (
 
-              <div key={subject} style={{ marginBottom: 20 }}>
+        <div key={subject} style={{ marginBottom: 25 }}>
 
-              {/* SUBJECT TITLE */}
-              <h4 style={styles.heatSubject}>{subject}</h4>
+          <h3 style={{ marginBottom: 10 }}>{subject}</h3>
 
-              {/* GRID */}
-              <div style={styles.heatGrid}>
-                {[...items]
-                    .sort((a, b) => a.accuracy - b.accuracy)
-                    .slice(0, 15).map((s, i) => (
-                  <div
-                    key={i}
-                  style={{
-                    ...styles.heatCard,
-                    background: getHeatColor(s.accuracy)
-                  }}
-                 >
-                  <div style={styles.heatTitle}>{s.subtopic}</div>
-                  <div style={styles.heatValue}>{format2(s.accuracy)}%</div>
-                </div>
+          {/* 🔴 WEAK */}
+          {groups.weak.length > 0 && (
+            <>
+              <div style={{ color: '#ef4444', fontWeight: 'bold' }}>🔴 Weak</div>
+              {groups.weak
+                .sort((a,b)=>a.accuracy-b.accuracy)
+                .map((s,i)=>(
+                <Row
+                  key={i}
+                  left={s.subtopic}
+                  right={`${format2(s.accuracy)}% (${s.total} Qs)`}
+                />
               ))}
-                  </div>
+            </>
+          )}
 
-                </div>
-
+          {/* 🟡 MODERATE */}
+          {groups.moderate.length > 0 && (
+            <>
+              <div style={{ color: '#f59e0b', fontWeight: 'bold', marginTop: 8 }}>🟡 Moderate</div>
+              {groups.moderate
+                .sort((a,b)=>a.accuracy-b.accuracy)
+                .map((s,i)=>(
+                <Row
+                  key={i}
+                  left={s.subtopic}
+                  right={`${format2(s.accuracy)}% (${s.total} Qs)`}
+                />
               ))}
+            </>
+          )}
 
-      </Section>
+          {/* 🟢 STRONG */}
+          {groups.strong.length > 0 && (
+            <>
+              <div style={{ color: '#10b981', fontWeight: 'bold', marginTop: 8 }}>🟢 Strong</div>
+              {groups.strong.map((s,i)=>(
+                <Row
+                  key={i}
+                  left={s.subtopic}
+                  right={`${format2(s.accuracy)}% (${s.total} Qs)`}
+                />
+              ))}
+            </>
+          )}
+
+          {/* ❗ NOT ATTEMPTED */}
+          {groups.notAttempted.length > 0 && (
+            <>
+              <div style={{ color: '#6b7280', fontWeight: 'bold', marginTop: 8 }}>❗ Not Attempted</div>
+              {groups.notAttempted.map((s,i)=>(
+                <Row
+                  key={i}
+                  left={s.subtopic}
+                  right="0 Qs"
+                />
+              ))}
+            </>
+          )}
+
+        </div>
+      ))}
+
+      </Section>          
 
     </div>
 
