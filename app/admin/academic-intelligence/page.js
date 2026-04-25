@@ -356,10 +356,14 @@ const entry = groupedSubtopics[subject][chapter][subtopic][type]
 entry.correct += s.correct || 0
 entry.total += s.total || 0
 
-// 👇 ADD THESE 2 LINES (THIS IS WHAT I MEANT EARLIER)
 entry.studentsAttempted.add(s.student_id)
 
-if ((s.correct || 0) > 0) {
+// calculate student-level accuracy
+const studentAccuracy =
+  (s.total || 0) > 0 ? (s.correct / s.total) * 100 : 0
+
+// ✅ ONLY count if meaningful understanding
+if (studentAccuracy >= 50) {
   entry.studentsCorrect.add(s.student_id)
 }
 })
