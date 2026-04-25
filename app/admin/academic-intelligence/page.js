@@ -361,9 +361,6 @@ if (s.total >= MIN_QUESTIONS) {
 }
 
 // calculate student-level accuracy
-const studentAccuracy =
-  (s.total || 0) > 0 ? (s.correct / s.total) * 100 : 0
-
 // ✅ ONLY count if meaningful understanding
 const MIN_QUESTIONS = 5
 
