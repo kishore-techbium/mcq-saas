@@ -8,16 +8,35 @@ const supabase = createClient(
 
 export async function POST(req) {
   try {
-       const body = await req.json()
-       const { studentId, examId } = body
+    const body = await req.json()
+    const { studentId, examId } = body
+
+    if (!studentId || !examId) {
+      return Response.json({ error: 'Missing data' }, { status: 400 })
+    }
+
+    // Get student
     const { data: student } = await supabase
-  .from('students')
-  .select('college_id')
-  .eq('id', studentId)
-  .single()
-      if (!studentId) {
-        return Response.json({ error: 'studentId required' }, { status: 400 })
-      }
+      .from('students')
+      .select('college_id')
+      .eq('id', studentId)
+      .single()
+
+    // 🔥 STEP 1: CHECK EXISTING SESSION
+    const { data: existing } = await supabase
+      .from('exam_sessions')
+      .select('*')
+      .eq('student_id', studentId)
+      .eq('exam_id', examId)
+      .eq('attempt_number', 1)
+      .maybeSingle()
+
+    // ✅ If session already exists → reuse
+    if (existing) {
+      return Response.json({ id: existing.id })
+    }
+
+    // 🔥 STEP 2: CREATE NEW ONLY IF NOT EXISTS
     const { data, error } = await supabase
       .from('exam_sessions')
       .insert({
@@ -39,8 +58,8 @@ export async function POST(req) {
   } catch (err) {
     console.error(err)
     return Response.json(
-  { error: err.message, details: err },
-  { status: 500 }
-)
+      { error: err.message },
+      { status: 500 }
+    )
   }
 }
