@@ -48,7 +48,7 @@ export default function AcademicIntelligence() {
   const [riskStudents, setRiskStudents] = useState([])
   const [effortData, setEffortData] = useState([])
   const [efficiencyData, setEfficiencyData] = useState([])
-  const [trendData, setTrendData] = useState([])
+  const [trendData, setTrendData] = useState({})
   const [recommendations, setRecommendations] = useState([])
   const [aiInsights, setAiInsights] = useState([])
   const MIN_QUESTIONS = 2
@@ -353,22 +353,38 @@ const risk = Object.values(riskMap)
   .filter(s => s.score < 70)
   .sort((a, b) => a.score - b.score) // weakest first
 
-  // ================= STEP 9: EFFICIENCY =================
-  const efficiency = filteredExamStats.map(s => ({
-    name: studentMap[s.student_id] || 'Unknown',
-    efficiency: s.avg_time_per_exam
-      ? s.avg_score / (s.avg_time_per_exam / 60)
-      : 0
-  }))
-
+  
   // ================= STEP 10: TREND (FIXED) =================
-  const trend = [...filteredExamStats]
-    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+  // ================= STEP 10: TREND (BY EXAM TYPE) =================
+
+const trendMap = {
+  WEEKLY_TEST: [],
+  MONTHLY_TEST: [],
+  GRAND_TEST: []
+}
+
+// group by exam type
+filteredExamStats.forEach(s => {
+  const type = s.exam_type || 'OTHER'
+
+  if (!trendMap[type]) trendMap[type] = []
+
+  trendMap[type].push({
+    date: s.created_at,
+    score: s.avg_score || 0
+  })
+})
+
+// sort + take last 10 for each
+Object.keys(trendMap).forEach(type => {
+  trendMap[type] = trendMap[type]
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
     .slice(-10)
     .map((s, i) => ({
       name: `Test ${i + 1}`,
-      score: Number(format2(s.avg_score))
+      score: Number(format2(s.score))
     }))
+})
 
 
 // ================= STEP 11: EFFORT (STUDENT LEVEL) =================
@@ -538,9 +554,7 @@ if (risk.length > 0) {
   
   setRiskStudents(risk)
   setEffortData(effort)
-  setEfficiencyData(efficiency)
-  setTrendData(trend)
-  
+  setTrendData(trendMap)  
   setAiInsights(insights)
  setTopPerformers(performersMap)
  setGroupedSubtopics(groupedSubtopics)
@@ -771,29 +785,32 @@ const getNames = (arr, key) => {
     {/* ================= PAGE 3 ================= */}
     <div ref={performanceRef} style={styles.pageBlock}>
 
-      <Section title="Trend" desc="Performance over recent tests">
-        <div style={{ marginBottom: 10, fontSize: 12 }}>
-  🔴 Low effort + Low score |  
-  🟡 High effort + Low score |  
-  🟢 High effort + High score |  
-  🔵 Low effort + High score
-</div>
+  <Section title="Trend" desc="Performance across exam types">
+
+  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 20 }}>
+
+    {['WEEKLY_TEST', 'MONTHLY_TEST', 'GRAND_TEST'].map(type => (
+      
+      <div key={type}>
+        <div style={{ fontWeight: 600, marginBottom: 6 }}>
+          {type.replace('_TEST','')}
+        </div>
+
         <Chart>
-          <LineChart data={trendData}>
-            <XAxis dataKey="name"/>
-            <YAxis/>
-            <Tooltip/>
-            <Line dataKey="score"/>
+          <LineChart data={trendData[type] || []}>
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Tooltip />
+            <Line dataKey="score" />
           </LineChart>
         </Chart>
-      </Section>
+      </div>
 
-      <Section title="Efficiency" desc="Score per minute">
-        {efficiencyData.slice(0,10).map(e=>(
-          <Row key={e.name} left={e.name} right={format2(e.efficiency)} />
-        ))}
-      </Section>
+    ))}
 
+  </div>
+
+</Section>
       <Section title="Effort vs Performance" desc="Student behavior analysis on overall exams">
         <div style={styles.infoBox}>
   <strong>How to read this:</strong>
