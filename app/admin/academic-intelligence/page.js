@@ -343,11 +343,25 @@ subtopics.forEach(s => {
   }
 
   if (!groupedSubtopics[subject][chapter][subtopic][type]) {
-    groupedSubtopics[subject][chapter][subtopic][type] = { correct: 0, total: 0 }
+    groupedSubtopics[subject][chapter][subtopic][type] = {
+  correct: 0,
+  total: 0,
+  studentsAttempted: new Set(),
+  studentsCorrect: new Set()
+}
   }
 
-  groupedSubtopics[subject][chapter][subtopic][type].correct += s.correct
-  groupedSubtopics[subject][chapter][subtopic][type].total += s.total
+const entry = groupedSubtopics[subject][chapter][subtopic][type]
+
+entry.correct += s.correct || 0
+entry.total += s.total || 0
+
+// 👇 ADD THESE 2 LINES (THIS IS WHAT I MEANT EARLIER)
+entry.studentsAttempted.add(s.student_id)
+
+if ((s.correct || 0) > 0) {
+  entry.studentsCorrect.add(s.student_id)
+}
 })
 
   async function downloadPDF() {
@@ -479,8 +493,12 @@ subtopics.forEach(s => {
 
               const getCell = (type) => {
                 const d = exams[type]
+            
                 if (!d || d.total === 0) return '—'
-
+              const studentPercent =
+              d.studentsAttempted.size > 0
+              ? (d.studentsCorrect.size / d.studentsAttempted.size) * 100
+              : 0
                 const acc = (d.correct / d.total) * 100
                 return (
                   <span style={{
