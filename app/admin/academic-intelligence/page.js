@@ -27,6 +27,12 @@ export default function AcademicIntelligence() {
   const performanceRef = useRef(null)
   const leaderboardRef = useRef(null)
   const [loading, setLoading] = useState(true)
+  const [showAllZones, setShowAllZones] = useState({
+  low: false,
+  struggle: false,
+  ideal: false,
+  potential: false
+})
   const [effortZonesState, setEffortZonesState] = useState({
   low: [],
   struggle: [],
@@ -567,8 +573,10 @@ const zoneColor = {
   ideal: '#10b981',      // green
   potential: '#3b82f6'   // blue
 }
-const topNames = (arr) =>
-  arr.slice(0, 3).map(s => s.name).join(', ')
+const getNames = (arr, key) => {
+  const list = showAllZones[key] ? arr : arr.slice(0, 3)
+  return list.map(s => s.name).join(', ')
+}
 
   if (loading) return <p>Loading...</p>
   const totalStudents = summary.totalStudents || 0
@@ -818,7 +826,6 @@ const topNames = (arr) =>
     🟡 4 students in "High Effort + Low Score" → They are trying hard but still scoring low → Teacher should focus on clearing concepts
   </div>
 </div>
-
 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 20 }}>
 
   {/* 🔴 LOW */}
@@ -828,9 +835,24 @@ const topNames = (arr) =>
     <div style={{ fontSize: 12, color: '#64748b' }}>
       Not engaged students
     </div>
+
     <div style={{ fontSize: 12, marginTop: 6 }}>
-      {topNames(effortZonesState.low) || '—'}
+      {getNames(effortZonesState.low, 'low') || '—'}
     </div>
+
+    {effortZonesState.low.length > 3 && (
+      <div
+        style={{ fontSize: 12, color: '#2563eb', cursor: 'pointer' }}
+        onClick={() =>
+          setShowAllZones(prev => ({
+            ...prev,
+            low: !prev.low
+          }))
+        }
+      >
+        {showAllZones.low ? 'Show less' : 'View all'}
+      </div>
+    )}
   </div>
 
   {/* 🟡 STRUGGLE */}
@@ -840,9 +862,24 @@ const topNames = (arr) =>
     <div style={{ fontSize: 12, color: '#64748b' }}>
       Working hard but struggling
     </div>
+
     <div style={{ fontSize: 12, marginTop: 6 }}>
-      {topNames(effortZonesState.struggle) || '—'}
+      {getNames(effortZonesState.struggle, 'struggle') || '—'}
     </div>
+
+    {effortZonesState.struggle.length > 3 && (
+      <div
+        style={{ fontSize: 12, color: '#2563eb', cursor: 'pointer' }}
+        onClick={() =>
+          setShowAllZones(prev => ({
+            ...prev,
+            struggle: !prev.struggle
+          }))
+        }
+      >
+        {showAllZones.struggle ? 'Show less' : 'View all'}
+      </div>
+    )}
   </div>
 
   {/* 🟢 IDEAL */}
@@ -852,9 +889,24 @@ const topNames = (arr) =>
     <div style={{ fontSize: 12, color: '#64748b' }}>
       Top performing students
     </div>
+
     <div style={{ fontSize: 12, marginTop: 6 }}>
-      {topNames(effortZonesState.ideal) || '—'}
+      {getNames(effortZonesState.ideal, 'ideal') || '—'}
     </div>
+
+    {effortZonesState.ideal.length > 3 && (
+      <div
+        style={{ fontSize: 12, color: '#2563eb', cursor: 'pointer' }}
+        onClick={() =>
+          setShowAllZones(prev => ({
+            ...prev,
+            ideal: !prev.ideal
+          }))
+        }
+      >
+        {showAllZones.ideal ? 'Show less' : 'View all'}
+      </div>
+    )}
   </div>
 
   {/* ⚠️ POTENTIAL */}
@@ -864,9 +916,24 @@ const topNames = (arr) =>
     <div style={{ fontSize: 12, color: '#64748b' }}>
       High potential students
     </div>
+
     <div style={{ fontSize: 12, marginTop: 6 }}>
-      {topNames(effortZonesState.potential) || '—'}
+      {getNames(effortZonesState.potential, 'potential') || '—'}
     </div>
+
+    {effortZonesState.potential.length > 3 && (
+      <div
+        style={{ fontSize: 12, color: '#2563eb', cursor: 'pointer' }}
+        onClick={() =>
+          setShowAllZones(prev => ({
+            ...prev,
+            potential: !prev.potential
+          }))
+        }
+      >
+        {showAllZones.potential ? 'Show less' : 'View all'}
+      </div>
+    )}
   </div>
 
 </div>
