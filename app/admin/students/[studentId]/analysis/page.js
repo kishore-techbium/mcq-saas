@@ -258,7 +258,7 @@ const strongest =
                         >
                           {s.accuracy.toFixed(1)}%
                         </span>{' '}
-                        ({s.attempts})
+                        {s.attempts}
                       </div>
                     ))}
                   </div>
