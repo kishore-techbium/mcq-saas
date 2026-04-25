@@ -331,6 +331,9 @@ Object.keys(performersMap).forEach(type => {
      const groupedSubtopics = {}
 
 subtopics.forEach(s => {
+
+  const MIN_QUESTIONS = 5   // ✅ MOVE HERE (TOP)
+
   const subject = s.subject
   const chapter = s.chapter || 'General'
   const subtopic = s.subtopic
@@ -344,35 +347,32 @@ subtopics.forEach(s => {
 
   if (!groupedSubtopics[subject][chapter][subtopic][type]) {
     groupedSubtopics[subject][chapter][subtopic][type] = {
-  correct: 0,
-  total: 0,
-  studentsAttempted: new Set(),
-  studentsCorrect: new Set()
-}
+      correct: 0,
+      total: 0,
+      studentsAttempted: new Set(),
+      studentsCorrect: new Set()
+    }
   }
 
-const entry = groupedSubtopics[subject][chapter][subtopic][type]
+  const entry = groupedSubtopics[subject][chapter][subtopic][type]
 
-entry.correct += s.correct || 0
-entry.total += s.total || 0
+  entry.correct += s.correct || 0
+  entry.total += s.total || 0
 
-if (s.total >= MIN_QUESTIONS) {
-  entry.studentsAttempted.add(s.student_id)
-}
+  // ✅ NOW SAFE
+  if (s.total >= MIN_QUESTIONS) {
+    entry.studentsAttempted.add(s.student_id)
+  }
 
-// calculate student-level accuracy
-// ✅ ONLY count if meaningful understanding
-const MIN_QUESTIONS = 5
+  const studentAccuracy =
+    (s.total || 0) > 0 ? (s.correct / s.total) * 100 : 0
 
-const studentAccuracy =
-  (s.total || 0) > 0 ? (s.correct / s.total) * 100 : 0
-
-if (
-  s.total >= MIN_QUESTIONS &&   // ⭐ NEW CONDITION
-  studentAccuracy >= 60         // slightly relaxed threshold
-) {
-  entry.studentsCorrect.add(s.student_id)
-}
+  if (
+    s.total >= MIN_QUESTIONS &&
+    studentAccuracy >= 60
+  ) {
+    entry.studentsCorrect.add(s.student_id)
+  }
 })
 
   async function downloadPDF() {
