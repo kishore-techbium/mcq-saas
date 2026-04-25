@@ -183,18 +183,36 @@ const totalStudentsCount = allStudents.length
   })
 
   // ================= STEP 7: SUBTOPICS =================
-  const subArray = filteredSubStats.map(s => ({
+const subArray = filteredSubStats.map(s => ({
+  student_id: s.student_id,   // ⭐ REQUIRED
   subject: s.subject,
+  chapter: s.chapter || 'General', // ⭐ REQUIRED
   subtopic: s.subtopic,
   exam_type: s.exam_type || 'OTHER',
   correct: s.correct || 0,
-  total: s.total_questions || 0,
-  accuracy:
-    s.total_questions > 0
-      ? (s.correct / s.total_questions) * 100
-      : 0
+  total: s.total_questions || 0
 }))
 
+const studentAgg = {}
+
+subArray.forEach(s => {
+  const key = `${s.student_id}_${s.subject}_${s.chapter}_${s.subtopic}_${s.exam_type}`
+
+  if (!studentAgg[key]) {
+    studentAgg[key] = {
+      student_id: s.student_id,
+      subject: s.subject,
+      chapter: s.chapter,
+      subtopic: s.subtopic,
+      exam_type: s.exam_type,
+      correct: 0,
+      total: 0
+    }
+  }
+
+  studentAgg[key].correct += s.correct
+  studentAgg[key].total += s.total
+})
   // ================= STEP 8: RISK =================
 const riskMap = {}
 
@@ -328,16 +346,17 @@ Object.keys(performersMap).forEach(type => {
   setAiInsights(insights)
  setTopPerformers(performersMap)
 }
-     const groupedSubtopics = {}
+const groupedSubtopics = {}
 
-subtopics.forEach(s => {
+const MIN_QUESTIONS = 2
+const ACC_THRESHOLD = 50
 
-  const MIN_QUESTIONS = 2
-  const ACC_THRESHOLD = 50
+Object.values(studentAgg).forEach(s => {
+
   const subject = s.subject
-  const chapter = s.chapter || 'General'
+  const chapter = s.chapter
   const subtopic = s.subtopic
-  const type = s.exam_type || 'OTHER'
+  const type = s.exam_type
 
   if (!groupedSubtopics[subject]) groupedSubtopics[subject] = {}
   if (!groupedSubtopics[subject][chapter]) groupedSubtopics[subject][chapter] = {}
@@ -356,23 +375,18 @@ subtopics.forEach(s => {
 
   const entry = groupedSubtopics[subject][chapter][subtopic][type]
 
-  entry.correct += s.correct || 0
-  entry.total += s.total || 0
+  entry.correct += s.correct
+  entry.total += s.total
 
-  // ✅ NOW SAFE
   if (s.total >= MIN_QUESTIONS) {
     entry.studentsAttempted.add(s.student_id)
+
+    const acc = (s.correct / s.total) * 100
+
+    if (acc >= ACC_THRESHOLD) {
+      entry.studentsCorrect.add(s.student_id)
+    }
   }
-
-  const studentAccuracy =
-    (s.total || 0) > 0 ? (s.correct / s.total) * 100 : 0
-
- if (
-  s.total >= MIN_QUESTIONS &&
-  studentAccuracy >= ACC_THRESHOLD
-) {
-  entry.studentsCorrect.add(s.student_id)
-}
 })
 
   async function downloadPDF() {
