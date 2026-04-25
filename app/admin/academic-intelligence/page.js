@@ -186,6 +186,8 @@ const totalStudentsCount = allStudents.length
   const subArray = filteredSubStats.map(s => ({
   subject: s.subject,
   subtopic: s.subtopic,
+  exam_type: s.exam_type || 'OTHER',
+  correct: s.correct || 0,
   total: s.total_questions || 0,
   accuracy:
     s.total_questions > 0
@@ -326,29 +328,20 @@ Object.keys(performersMap).forEach(type => {
   setAiInsights(insights)
  setTopPerformers(performersMap)
 }
-
       const groupedSubtopics = subtopics.reduce((acc, s) => {
-        if (!acc[s.subject]) {
-          acc[s.subject] = {
-            weak: [],
-            moderate: [],
-            strong: [],
-            notAttempted: []
-          }
+
+        if (!acc[s.subject]) acc[s.subject] = {}
+
+        if (!acc[s.subject][s.exam_type]) {
+          acc[s.subject][s.exam_type] = []
         }
 
-        if (s.total === 0) {
-          acc[s.subject].notAttempted.push(s)
-        } else if (s.accuracy < 40) {
-          acc[s.subject].weak.push(s)
-        } else if (s.accuracy < 70) {
-          acc[s.subject].moderate.push(s)
-        } else {
-          acc[s.subject].strong.push(s)
-        }
+        acc[s.subject][s.exam_type].push(s)
 
         return acc
+
       }, {})
+
   async function downloadPDF() {
 
       const pdf = new jsPDF('p', 'mm', 'a4')
@@ -426,58 +419,68 @@ Object.keys(performersMap).forEach(type => {
 
       <Section
   title="Subtopic Heatmap"
-  desc="🔴 Weak | 🟡 Moderate | 🟢 Strong | ❗ Not Attempted"
+  desc="Performance by Exam Type | 🔴 Weak | 🟡 Moderate | 🟢 Strong"
 >
 
-{Object.entries(groupedSubtopics).map(([subject, groups]) => {
+{Object.entries(groupedSubtopics).map(([subject, examTypes]) => (
 
-  const combined = [
-    ...groups.weak.sort((a,b)=>a.accuracy-b.accuracy),
-    ...groups.moderate.sort((a,b)=>a.accuracy-b.accuracy),
-    ...groups.strong,
-    ...groups.notAttempted
-  ]
+  <div key={subject} style={{ marginBottom: 40 }}>
 
-  return (
-    <div key={subject} style={{ marginBottom: 30 }}>
+    <h3 style={{ marginBottom: 15 }}>{subject}</h3>
 
-      <h3 style={{ marginBottom: 10 }}>{subject}</h3>
+    <div style={styles.examTypeRow}>
 
-      <div style={styles.heatGrid4}>
+      {Object.entries(examTypes).map(([type, items]) => {
 
-        {combined.map((s, i) => {
+        const sorted = [...items].sort((a,b)=>a.accuracy-b.accuracy)
 
-          let bg = '#9ca3af' // default (not attempted)
+        return (
+          <div key={type} style={styles.examTypeColumn}>
 
-          if (s.total === 0) bg = '#9ca3af'
-          else if (s.accuracy < 40) bg = '#ef4444'
-          else if (s.accuracy < 70) bg = '#f59e0b'
-          else bg = '#10b981'
+            <h4 style={styles.examTypeTitle}>
+              {type.replace('_TEST','')}
+            </h4>
 
-          return (
-            <div key={i} style={{ ...styles.heatCardNew, background: bg }}>
+            <div style={styles.heatGrid4}>
 
-              <div style={styles.heatSubtopic}>
-                {s.subtopic}
-              </div>
+              {sorted.map((s, i) => {
 
-              <div style={styles.heatPercent}>
-                {format2(s.accuracy)}%
-              </div>
+                let bg = '#9ca3af'
 
-              <div style={styles.heatQs}>
-                {s.total} Qs
-              </div>
+                if (s.total === 0) bg = '#9ca3af'
+                else if (s.accuracy < 40) bg = '#ef4444'
+                else if (s.accuracy < 70) bg = '#f59e0b'
+                else bg = '#10b981'
+
+                return (
+                  <div key={i} style={{ ...styles.heatCardNew, background: bg }}>
+
+                    <div style={styles.heatSubtopic}>
+                      {s.subtopic}
+                    </div>
+
+                    <div style={styles.heatPercent}>
+                      {s.correct}/{s.total}
+                    </div>
+
+                    <div style={styles.heatQs}>
+                      {format2(s.accuracy)}%
+                    </div>
+
+                  </div>
+                )
+              })}
 
             </div>
-          )
-        })}
 
-      </div>
+          </div>
+        )
+      })}
 
     </div>
-  )
-})}
+
+  </div>
+))}
 
 </Section>
 
@@ -668,6 +671,22 @@ heatPercent: {
 heatQs: {
   fontSize: 11,
   opacity: 0.9
+},
+examTypeRow: {
+  display: 'flex',
+  gap: 20,
+  flexWrap: 'wrap'
+},
+
+examTypeColumn: {
+  flex: 1,
+  minWidth: 250
+},
+
+examTypeTitle: {
+  fontSize: 14,
+  fontWeight: 'bold',
+  marginBottom: 8
 },
   page:{padding:40, background:'#f1f5f9'},
   header:{display:'flex',justifyContent:'space-between'},
