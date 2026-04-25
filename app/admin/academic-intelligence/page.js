@@ -59,7 +59,7 @@ export default function AcademicIntelligence() {
     setLoading(false)
   }
 
-  async function loadData(college_id) {
+  async function loadData(college_id) {async function loadData(college_id) {
 
   // ================= STEP 1: GET EXAMS =================
   let examQuery = supabase.from('exams').select('id')
@@ -99,17 +99,17 @@ export default function AcademicIntelligence() {
   let filteredSubStats = subStats
 
   if (targetYear !== 'ALL') {
-    const { data: yearStudents } = await supabase
-      .from('students')
-      .select('id')
-      .eq('college_id', college_id)
-      .eq('target_year', Number(targetYear))
+  const { data: yearStudents } = await supabase
+    .from('students')
+    .select('id')
+    .eq('college_id', college_id)
+    .eq('study_year', String(targetYear)) // ✅ FIX
 
-    const ids = yearStudents?.map(s => s.id) || []
+  const ids = yearStudents?.map(s => s.id) || []
 
-    filteredExamStats = examStats.filter(s => ids.includes(s.student_id))
-    filteredSubStats = subStats.filter(s => ids.includes(s.student_id))
-  }
+  filteredExamStats = examStats.filter(s => ids.includes(s.student_id))
+  filteredSubStats = subStats.filter(s => ids.includes(s.student_id))
+}
 
   // ================= STEP 4: STUDENT MAP =================
   const studentIds = [...new Set(filteredExamStats.map(s => s.student_id))]
@@ -174,15 +174,42 @@ export default function AcademicIntelligence() {
   }))
 
   // ================= STEP 8: RISK =================
-  const risk = filteredExamStats
-    .map(s => ({
-      name: studentMap[s.student_id] || 'Unknown',
-      score: s.avg_score || 0,
-      risk:
-        (s.avg_score < 40 ? 2 : 0) +
-        (s.avg_time_per_exam > 90 ? 1 : 0)
-    }))
-    .filter(s => s.risk >= 2)
+const riskMap = {}
+
+filteredExamStats.forEach(s => {
+  const id = s.student_id
+
+  if (!riskMap[id]) {
+    riskMap[id] = {
+      name: studentMap[id] || 'Unknown',
+      scores: [],
+      times: []
+    }
+  }
+
+  riskMap[id].scores.push(s.avg_score || 0)
+  riskMap[id].times.push(s.avg_time_per_exam || 0)
+})
+
+const risk = Object.values(riskMap)
+  .map(s => {
+    const avgScore =
+      s.scores.reduce((a, b) => a + b, 0) / s.scores.length
+
+    const avgTime =
+      s.times.reduce((a, b) => a + b, 0) / s.times.length
+
+    const riskScore =
+      (avgScore < 40 ? 2 : 0) +
+      (avgTime > 90 ? 1 : 0)
+
+    return {
+      name: s.name,
+      score: avgScore,
+      risk: riskScore
+    }
+  })
+  .filter(s => s.risk >= 2)
 
   // ================= STEP 9: EFFICIENCY =================
   const efficiency = filteredExamStats.map(s => ({
@@ -321,7 +348,7 @@ export default function AcademicIntelligence() {
 
       <Section title="Summary" desc="Overall performance snapshot">
         <CardRow>
-          <Card title="Students" value={summary.totalStudents} />
+          <Card title="ActiveStudents" value={summary.totalStudents} />
           <Card title="Avg Score" value={summary.avgScore + '%'} />
           <Card title="At Risk" value={summary.risk} />
         </CardRow>
