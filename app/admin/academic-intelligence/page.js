@@ -356,14 +356,24 @@ const entry = groupedSubtopics[subject][chapter][subtopic][type]
 entry.correct += s.correct || 0
 entry.total += s.total || 0
 
-entry.studentsAttempted.add(s.student_id)
+if (s.total >= MIN_QUESTIONS) {
+  entry.studentsAttempted.add(s.student_id)
+}
 
 // calculate student-level accuracy
 const studentAccuracy =
   (s.total || 0) > 0 ? (s.correct / s.total) * 100 : 0
 
 // ✅ ONLY count if meaningful understanding
-if (studentAccuracy >= 80) {
+const MIN_QUESTIONS = 5
+
+const studentAccuracy =
+  (s.total || 0) > 0 ? (s.correct / s.total) * 100 : 0
+
+if (
+  s.total >= MIN_QUESTIONS &&   // ⭐ NEW CONDITION
+  studentAccuracy >= 60         // slightly relaxed threshold
+) {
   entry.studentsCorrect.add(s.student_id)
 }
 })
