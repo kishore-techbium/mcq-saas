@@ -451,15 +451,15 @@ if (studentAccuracy >= 50) {
   <strong>How to read this:</strong>
 
   <div style={{ marginTop: 6 }}>
-    <b>63%</b> → Overall accuracy for this subtopic
+    <b>% (big number)</b> → Overall accuracy for that subtopic
   </div>
 
   <div>
-    <b>38/60</b> → Students answered 38 correct out of 60 total attempts
+    <b>Correct/Total (e.g., 38/60)</b> → Total correct answers out of all attempts
   </div>
 
   <div>
-    <b>👥 65% → % of students scoring ≥ 50% in this subtopic
+    <b>👥 % (students)</b> → % of students who scored ≥ 60% in that subtopic
   </div>
 
   <div style={{ marginTop: 6 }}>
