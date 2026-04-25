@@ -9,7 +9,16 @@ import * as XLSX from 'xlsx'
 export default function StudentDetailsPage() {
   const { studentId } = useParams()
   const router = useRouter()
+const typeCounts = (() => {
+  const counts = {}
 
+  sessions.forEach((s) => {
+    if (!counts[s.exam_type]) counts[s.exam_type] = 0
+    counts[s.exam_type]++
+  })
+
+  return counts
+})()
   const [student, setStudent] = useState(null)
   const [sessions, setSessions] = useState([])
   const [grouped, setGrouped] = useState({})
@@ -182,12 +191,18 @@ export default function StudentDetailsPage() {
 
       {/* 🔥 TOP INTELLIGENCE */}
       <div style={styles.analyticsBox}>
-        <div>
-          <strong>Total Exams:</strong> {totalExams} |{' '}
-          <strong>Avg:</strong> {averageScore}% |{' '}
-          <strong>Best:</strong> {bestScore} |{' '}
-          <strong>Latest:</strong> {latestScore}
-        </div>
+       <div>
+        <strong>Exam Distribution:</strong>{' '}
+        {Object.entries(typeCounts).map(([type, count]) => (
+          <span key={type} style={{ marginRight: 15 }}>
+         {type
+          .replace('_TEST', '')
+          .replace('WEEKLY', 'Weekly')
+          .replace('MONTHLY', 'Monthly')
+          .replace('GRAND', 'Grand'))}: {count}
+          </span>
+        ))}
+      </div>
 
         <div style={styles.compareBox}>
           <strong>📊 Performance by Type:</strong>
