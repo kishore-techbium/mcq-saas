@@ -79,7 +79,42 @@ export default function ExamPage({ params }) {
   const captureIndexRef = useRef(0)
 
   /* ================= INIT (UNCHANGED) ================= */
+useEffect(() => {
+  if (submitted || loading) return
 
+  const interval = setInterval(() => {
+    const currentQ = questions[currentIndex]
+    if (!currentQ) return
+
+    setTimeSpent(prev => {
+      const newTime = (prev[currentQ.id] || 0) + 1
+
+      // 🔥 detect fast answers
+      if (newTime === 1) {
+        // first second — do nothing
+      }
+
+      return {
+        ...prev,
+        [currentQ.id]: newTime
+      }
+    })
+
+  }, 1000)
+
+  return () => clearInterval(interval)
+}, [currentIndex, submitted, loading, questions])
+
+  useEffect(() => {
+  if (submitted) return
+
+  const interval = setInterval(() => {
+    persist({ timeSpent })
+  }, 10000) // every 10 seconds
+
+  return () => clearInterval(interval)
+}, [timeSpent, submitted])
+  
   useEffect(() => {
     init()
     return () => stopProctoring()
@@ -300,31 +335,18 @@ useEffect(() => {
   }
 
 function goToQuestion(i) {
-  const currentQ = questions?.[currentIndex]
-if (!currentQ) return
+  // ✅ Save current progress
+  persist({ timeSpent })
 
-  if (currentQ) {
-    const timeTaken = Math.floor((Date.now() - questionStartTimeRef.current) / 1000)
-    if (timeTaken < 5) {
-        setFastAnswerCount(prev => prev + 1)
-       }
-
-    const updatedTime = {
-      ...timeSpent,
-      [currentQ.id]: (timeSpent[currentQ.id] || 0) + timeTaken
-    }
-
-    setTimeSpent(updatedTime)
-    persist({ timeSpent: updatedTime })
-  }
-
+  // ✅ Move to next question
   setCurrentIndex(i)
+
+  // (optional, can keep if used elsewhere)
   questionStartTimeRef.current = Date.now()
 
   markVisited(i)
   persist({ currentIndex: i })
 }
-
   /* ================= 🎥 PROCTORING LOGIC ================= */
 
  async function startProctoring() {
@@ -461,7 +483,7 @@ const currentQ = questions?.[currentIndex]
 if (!currentQ) return
 
 if (currentQ) {
-  const timeTaken = Math.floor((Date.now() - questionStartTimeRef.current) / 1000)
+  
 
   const updatedTime = {
     ...timeSpent,
