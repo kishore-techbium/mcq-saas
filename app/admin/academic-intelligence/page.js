@@ -425,80 +425,61 @@ Object.keys(performersMap).forEach(type => {
       </Section>
 
       <Section
-        title="Subtopic Heatmap"
-        desc="🔴 Weak (<40%) | 🟡 Moderate | 🟢 Strong | ❗ Not Attempted"
-      >
+  title="Subtopic Heatmap"
+  desc="🔴 Weak | 🟡 Moderate | 🟢 Strong | ❗ Not Attempted"
+>
 
-      {Object.entries(groupedSubtopics).map(([subject, groups]) => (
+{Object.entries(groupedSubtopics).map(([subject, groups]) => {
 
-        <div key={subject} style={{ marginBottom: 25 }}>
+  const combined = [
+    ...groups.weak.sort((a,b)=>a.accuracy-b.accuracy),
+    ...groups.moderate.sort((a,b)=>a.accuracy-b.accuracy),
+    ...groups.strong,
+    ...groups.notAttempted
+  ]
 
-          <h3 style={{ marginBottom: 10 }}>{subject}</h3>
+  return (
+    <div key={subject} style={{ marginBottom: 30 }}>
 
-          {/* 🔴 WEAK */}
-          {groups.weak.length > 0 && (
-            <>
-              <div style={{ color: '#ef4444', fontWeight: 'bold' }}>🔴 Weak</div>
-              {groups.weak
-                .sort((a,b)=>a.accuracy-b.accuracy)
-                .map((s,i)=>(
-                <Row
-                  key={i}
-                  left={s.subtopic}
-                  right={`${format2(s.accuracy)}% (${s.total} Qs)`}
-                />
-              ))}
-            </>
-          )}
+      <h3 style={{ marginBottom: 10 }}>{subject}</h3>
 
-          {/* 🟡 MODERATE */}
-          {groups.moderate.length > 0 && (
-            <>
-              <div style={{ color: '#f59e0b', fontWeight: 'bold', marginTop: 8 }}>🟡 Moderate</div>
-              {groups.moderate
-                .sort((a,b)=>a.accuracy-b.accuracy)
-                .map((s,i)=>(
-                <Row
-                  key={i}
-                  left={s.subtopic}
-                  right={`${format2(s.accuracy)}% (${s.total} Qs)`}
-                />
-              ))}
-            </>
-          )}
+      <div style={styles.heatGrid4}>
 
-          {/* 🟢 STRONG */}
-          {groups.strong.length > 0 && (
-            <>
-              <div style={{ color: '#10b981', fontWeight: 'bold', marginTop: 8 }}>🟢 Strong</div>
-              {groups.strong.map((s,i)=>(
-                <Row
-                  key={i}
-                  left={s.subtopic}
-                  right={`${format2(s.accuracy)}% (${s.total} Qs)`}
-                />
-              ))}
-            </>
-          )}
+        {combined.map((s, i) => {
 
-          {/* ❗ NOT ATTEMPTED */}
-          {groups.notAttempted.length > 0 && (
-            <>
-              <div style={{ color: '#6b7280', fontWeight: 'bold', marginTop: 8 }}>❗ Not Attempted</div>
-              {groups.notAttempted.map((s,i)=>(
-                <Row
-                  key={i}
-                  left={s.subtopic}
-                  right="0 Qs"
-                />
-              ))}
-            </>
-          )}
+          let bg = '#9ca3af' // default (not attempted)
 
-        </div>
-      ))}
+          if (s.total === 0) bg = '#9ca3af'
+          else if (s.accuracy < 40) bg = '#ef4444'
+          else if (s.accuracy < 70) bg = '#f59e0b'
+          else bg = '#10b981'
 
-      </Section>          
+          return (
+            <div key={i} style={{ ...styles.heatCardNew, background: bg }}>
+
+              <div style={styles.heatSubtopic}>
+                {s.subtopic}
+              </div>
+
+              <div style={styles.heatPercent}>
+                {format2(s.accuracy)}%
+              </div>
+
+              <div style={styles.heatQs}>
+                {s.total} Qs
+              </div>
+
+            </div>
+          )
+        })}
+
+      </div>
+
+    </div>
+  )
+})}
+
+</Section>
 
     </div>
 
@@ -657,6 +638,37 @@ Object.keys(performersMap).forEach(type => {
       fontSize: 11,
       opacity: 0.8
     },
+    heatGrid4: {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(4, 1fr)',
+  gap: 12
+},
+
+heatCardNew: {
+  borderRadius: 10,
+  padding: 10,
+  color: '#fff',
+  minHeight: 90,
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'space-between',
+  fontSize: 12
+},
+
+heatSubtopic: {
+  fontWeight: 'bold',
+  fontSize: 12
+},
+
+heatPercent: {
+  fontSize: 16,
+  fontWeight: 'bold'
+},
+
+heatQs: {
+  fontSize: 11,
+  opacity: 0.9
+},
   page:{padding:40, background:'#f1f5f9'},
   header:{display:'flex',justifyContent:'space-between'},
   btn:{padding:'6px 12px', fontSize:12, background:'#2563eb', color:'#fff', borderRadius:6},
