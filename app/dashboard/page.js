@@ -5,15 +5,10 @@ import { getCurrentUser } from '../../lib/auth'
 //import { fromWithCollege } from '../../lib/supabaseWithCollege'
 import { useEffect, useState } from 'react'
 
- const CATEGORY_MAP = {
-  JEE: ['JEE_MAINS', 'JEE_ADVANCED'],
-  NEET: ['NEET']
-}
 export default function StudentDashboard() {
   const [user, setUser] = useState(null)
   const [category, setCategory] = useState(null)
   const [view, setView] = useState(null) // ✅ NEW
- 
 
   const [availableExams, setAvailableExams] = useState([])
   const [completedExams, setCompletedExams] = useState([])
@@ -107,28 +102,11 @@ if (currentUser.type === 'manual') {
   setLoading(false)
 }
   async function refreshData(studentId, cat, userData) {
-
-  const [adminRes, globalExams] = await Promise.all([
-    loadAdminExams(studentId, cat, userData),
-    loadGlobalAssignedExams(userData, cat),
-    loadPracticeTests(studentId)
-  ])
-
-  const map = new Map()
-
-;(adminRes?.available || []).forEach(e => {
-  map.set(e.id, e)
-})
-
-globalExams.forEach(e => {
-  map.set(e.id, e) // override if same
-})
-
-const mergedAvailable = Array.from(map.values())
-
-  setAvailableExams(mergedAvailable)
-  setCompletedExams(adminRes?.completed || [])
-}
+await Promise.all([
+  loadAdminExams(studentId, cat, userData),
+      loadPracticeTests(studentId)
+    ])
+  }
 
   async function ensureStudentProfile(user) {
     const { data: existing } = await supabase
@@ -148,12 +126,11 @@ const mergedAvailable = Array.from(map.values())
  async function loadAdminExams(studentId, cat, userData) {
 
   if (!userData?.college_id) {
-    
-    return {
-  available: [],
-  completed: []
-}
+    console.log("No college_id found")
+    return
   }
+
+  console.log("COLLEGE ID:", userData.college_id)
 
 const res = await fetch('/api/exam/list', {
   method: 'POST',
@@ -166,14 +143,12 @@ const res = await fetch('/api/exam/list', {
 })
 
 const exams = await res.json()
-const allowedCategories = CATEGORY_MAP[cat] || [cat]
  
-if (!exams || exams.length === 0) {
-  return {
-    available: [],
-    completed: []
-  }
-}
+    if (!exams || exams.length === 0) {
+      setAvailableExams([])
+      setCompletedExams([])
+      return
+    }
 
   
 const examIds = exams.map(e => e.id)
@@ -214,10 +189,6 @@ const questionCountMap = await res2.json()
     const completed = []
 
     exams.forEach(exam => {
-
-      if (!allowedCategories.includes(exam.exam_category)) {
-        return
-      }
       const enriched = {
         ...exam,
         question_count: questionCountMap[exam.id] || 0
@@ -226,140 +197,26 @@ const questionCountMap = await res2.json()
       const latest = latestAttemptMap[exam.id]
       const attemptCount = attemptCountMap[exam.id] || 0
 
-          if (latest) {
-          // already attempted → only completed
-          completed.push({
-            ...enriched,
-            score: latest.score,
-            attempted_at: latest.created_at,
-            attempt_count: attemptCount,
-            session_id: latest.id
-          })
-        } else {
-          // not attempted → available
+      if (latest) {
+        completed.push({
+          ...enriched,
+          score: latest.score,
+          attempted_at: latest.created_at,
+          attempt_count: attemptCount,
+          session_id: latest.id
+        })
+
+        if (exam.allow_retake) {
           available.push(enriched)
         }
+      } else {
+        available.push(enriched)
+      }
     })
 
-      return {
-        available,
-        completed
-      }
+    setAvailableExams(available)
+    setCompletedExams(completed)
   }
-
-  async function loadGlobalAssignedExams(userData, cat) {
-
-  // 1. Get assignments
-  const { data: assignments, error } = await supabase
-  .from('exam_assignments')
-  .select(`
-    exam_id,
-    exam_date,
-    exam_time,
-    duration_minutes,
-    is_active
-  `)
-  .eq('college_id', userData.college_id)
-  .eq('is_active', true)
-
-// ✅ AFTER query finishes
-console.log("STEP 1 - ASSIGNMENTS RAW:", assignments)
-console.log("STEP 1 - USER DATA:", userData)
-
-  if (error) {
-    console.log("ASSIGNMENT ERROR:", error)
-    return []
-  }
-  
-
-  if (!assignments || assignments.length === 0) return []
-
-  // 2. Extract exam IDs
-  const examIds = assignments.map(a => a.exam_id)
-
-  // 3. Fetch exams separately (NO JOIN)
-  const { data: exams, error: examError } = await supabase
-    .from('exams')
-    .select('id, title, exam_category, target_year')
-    .in('id', examIds)
-
-  if (examError) {
-    console.log("EXAM FETCH ERROR:", examError)
-    return []
-  }
-console.log("STEP 2 - EXAM IDS SENT:", examIds)
-console.log("STEP 2 - EXAMS RAW:", exams)
-  if (!exams) return []
-
-  // 4. Create map for fast lookup
-  const examMap = {}
-  exams.forEach(e => {
-    examMap[e.id] = e
-  })
-
-  // 5. Get question counts
-  const res = await fetch('/api/exam/question-count', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ examIds })
-  })
-
-  const questionCountMap = await res.json()
-
-  const allowedCategories = CATEGORY_MAP[cat] || [cat]
-
-  console.log("STEP 3 - CATEGORY INPUT:", cat)
-console.log("STEP 3 - ALLOWED CATEGORIES:", allowedCategories)
-console.log("STEP 3 - STUDENT YEAR:", userData.study_year)
-
-console.log("STEP 3 - EXAM MAP:", examMap)
-  // 6. Merge + filter
-  const result = assignments
-   .map(a => {
-  const exam = examMap[a.exam_id]
-
-  console.log("STEP 4 - MATCHING EXAM:", {
-    assignment_exam_id: a.exam_id,
-    exam_found: exam
-  })
-
-  if (!exam) return null
-
-  const combined = {
-    ...exam,
-    id: a.exam_id,
-    exam_date: a.exam_date,
-    exam_time: a.exam_time,
-    duration_minutes: a.duration_minutes,
-    question_count: questionCountMap[a.exam_id] || 0,
-    is_global: true
-  }
-
-  console.log("STEP 4 - COMBINED OBJECT:", combined)
-
-  return combined
-})
-
-.filter(e => {
-  if (!e) return false
-
-  const categoryMatch = allowedCategories.includes(e.exam_category)
-  const yearMatch = Number(e.target_year) === Number(userData.study_year)
-
-  console.log("STEP 5 - FILTER CHECK:", {
-    exam_id: e.id,
-    exam_category: e.exam_category,
-    allowedCategories,
-    categoryMatch,
-    target_year: e.target_year,
-    student_year: userData.study_year,
-    yearMatch
-  })
-
-  return categoryMatch && yearMatch
-})
-  return result
-}
 
   async function loadPracticeTests(studentId) {
     const { data } = await supabase
@@ -377,9 +234,13 @@ console.log("STEP 3 - EXAM MAP:", examMap)
     setPracticeTests(filtered)
   }
 
-function startExam(examId) {
-  window.location.href = `/exam/${examId}/instructions`
-}
+  function startExam(examId, isRetake = false) {
+    const url = isRetake
+      ? `/exam/${examId}/instructions?retake=1`
+      : `/exam/${examId}/instructions`
+
+    window.location.href = url
+  }
 
   function reviewPractice(sessionId) {
     window.location.href = `/exam/review?sessionId=${sessionId}`
@@ -432,8 +293,8 @@ function startExam(examId) {
       action={started ? "Start Exam" : "Not Started"}
       color={started ? "#16a34a" : "#9ca3af"}
       onClick={() => {
-          if (started) startExam(exam.id)
-        }}
+        if (started) startExam(exam.id, true)
+      }}
     />
   )
 })}
