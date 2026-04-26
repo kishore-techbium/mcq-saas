@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js'
-import { randomUUID } from 'crypto'
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -31,50 +30,49 @@ export async function POST(req) {
       .eq('submitted', false)
       .maybeSingle()
 
-    // ✅ If session already exists → reuse
     if (existing) {
       return Response.json({ id: existing.id })
     }
 
-    // 🔥 STEP 2: CREATE NEW ONLY IF NOT EXISTS
-  const { data, error } = await supabase
-  .from('exam_sessions')
-  .insert({
-    student_id: studentId,
-    exam_id: examId,
-    college_id: student.college_id,
-    attempt_number: 1,
-    submitted: false,
-    score: 0,
-    original_score: 0
-  })
-  .select()
-  .single()
+    // 🔥 STEP 2: CREATE NEW
+    const { data, error } = await supabase
+      .from('exam_sessions')
+      .insert({
+        student_id: studentId,
+        exam_id: examId,
+        college_id: student.college_id,
+        attempt_number: 1,
+        submitted: false,
+        score: 0,
+        original_score: 0
+      })
+      .select()
+      .single()
 
-if (error) {
-  // 🔥 If duplicate due to unique constraint → fetch existing
-  const { data: fallback } = await supabase
-    .from('exam_sessions')
-    .select('*')
-    .eq('student_id', studentId)
-    .eq('exam_id', examId)
-    .eq('submitted', false)
-    .maybeSingle()
+    if (error) {
+      const { data: fallback } = await supabase
+        .from('exam_sessions')
+        .select('*')
+        .eq('student_id', studentId)
+        .eq('exam_id', examId)
+        .eq('submitted', false)
+        .maybeSingle()
 
-  if (fallback) {
-    return Response.json({ id: fallback.id })
+      if (fallback) {
+        return Response.json({ id: fallback.id })
+      }
+
+      throw error
+    }
+
+    // ✅ FINAL RETURN
+    return Response.json({ id: data.id })
+
+  } catch (err) {
+    console.error(err)
+    return Response.json(
+      { error: err.message },
+      { status: 500 }
+    )
   }
-
-  throw error
-}
-
-// ✅ ADD THIS LINE
-return Response.json({ id: data.id })
-} catch (err) {
-  console.error(err)
-  return Response.json(
-    { error: err.message },
-    { status: 500 }
-  )
-}
 }
