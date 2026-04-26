@@ -361,7 +361,7 @@ const infra = getInfraRecommendation(upcomingExams)
   {assignMsg && <p>{assignMsg}</p>}
 </div>
     <h2 style={{ marginTop: 40 }}>📊 Global Exam Assignments</h2>
-    <p>Want to change date&time, first off the exam and change them and turn on the exam</p>
+    <p>Want to change date&time? first off the exam and change them and turn on the exam</p>
 
 <table style={{ ...styles.table, tableLayout: 'fixed' }}>
   <thead>
