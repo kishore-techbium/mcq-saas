@@ -249,38 +249,49 @@ const questionCountMap = await res2.json()
 
   async function loadGlobalAssignedExams(userData, cat) {
 
-  const { data, error } = await supabase
-  .from('exam_assignments')
-  .select(`
-    exam_id,
-    exam_date,
-    exam_time,
-    duration_minutes,
-    is_active,
-    exams!exam_assignments_exam_id_fkey (
-  id,
-  title,
-  exam_category,
-  target_year
-)
-  `)
-  .eq('college_id', userData.college_id)
-  .eq('is_active', true)
+  // 1. Get assignments
+  const { data: assignments, error } = await supabase
+    .from('exam_assignments')
+    .select(`
+      exam_id,
+      exam_date,
+      exam_time,
+      duration_minutes,
+      is_active
+    `)
+    .eq('college_id', userData.college_id)
+    .eq('is_active', true)
 
-// ✅ STEP 2 — ADD EXACTLY HERE
-if (!data) {
-  console.log("NO DATA RETURNED FROM exam_assignments", error)
-  return []
-}
-console.log("ERROR:", error)
-console.log("DATA:", data)
+  if (error) {
+    console.log("ASSIGNMENT ERROR:", error)
+    return []
+  }
 
-  // ✅ FIX: MOVE THIS HERE
-  if (!data || data.length === 0) return []
+  if (!assignments || assignments.length === 0) return []
 
-  // ✅ NOW SAFE
-  const examIds = data.map(a => a.exam_id)
+  // 2. Extract exam IDs
+  const examIds = assignments.map(a => a.exam_id)
 
+  // 3. Fetch exams separately (NO JOIN)
+  const { data: exams, error: examError } = await supabase
+    .from('exams')
+    .select('id, title, exam_category, target_year')
+    .in('id', examIds)
+
+  if (examError) {
+    console.log("EXAM FETCH ERROR:", examError)
+    return []
+  }
+
+  if (!exams) return []
+
+  // 4. Create map for fast lookup
+  const examMap = {}
+  exams.forEach(e => {
+    examMap[e.id] = e
+  })
+
+  // 5. Get question counts
   const res = await fetch('/api/exam/question-count', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -291,32 +302,27 @@ console.log("DATA:", data)
 
   const allowedCategories = CATEGORY_MAP[cat] || [cat]
 
-  console.log("STEP 2 - CATEGORY:", cat)
-  console.log("STEP 2 - ALLOWED:", allowedCategories)
-  console.log("STEP 2 - STUDENT YEAR:", userData.study_year)
+  // 6. Merge + filter
+  const result = assignments
+    .map(a => {
+      const exam = examMap[a.exam_id]
+      if (!exam) return null
 
-  const result = data
-  data.forEach(a => {
-  console.log("DEBUG TARGET:", {
-    exam_target: a.exams?.target_year,
-    student_year: userData.study_year
-  })
-})
-    .filter(a =>
-      allowedCategories.includes(a.exams?.exam_category) &&
-      Number(a.exams?.target_year) === Number(userData.study_year)
+      return {
+        ...exam,
+        id: a.exam_id,
+        exam_date: a.exam_date,
+        exam_time: a.exam_time,
+        duration_minutes: a.duration_minutes,
+        question_count: questionCountMap[a.exam_id] || 0,
+        is_global: true
+      }
+    })
+    .filter(e =>
+      e &&
+      allowedCategories.includes(e.exam_category) &&
+      Number(e.target_year) === Number(userData.study_year)
     )
-    .map(a => ({
-      ...a.exams,
-      id: a.exam_id,
-      exam_date: a.exam_date,
-      exam_time: a.exam_time,
-      duration_minutes: a.duration_minutes,
-      question_count: questionCountMap[a.exam_id] || 0,
-      is_global: true
-    }))
-
-  console.log("STEP 4 - FINAL GLOBAL EXAMS:", result)
 
   return result
 }
