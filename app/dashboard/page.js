@@ -9,6 +9,10 @@ export default function StudentDashboard() {
   const [user, setUser] = useState(null)
   const [category, setCategory] = useState(null)
   const [view, setView] = useState(null) // ✅ NEW
+  const CATEGORY_MAP = {
+  JEE: ['JEE_MAINS', 'JEE_ADVANCED'],
+  NEET: ['NEET']
+}
 
   const [availableExams, setAvailableExams] = useState([])
   const [completedExams, setCompletedExams] = useState([])
@@ -147,8 +151,6 @@ const mergedAvailable = Array.from(map.values())
     return
   }
 
-  console.log("COLLEGE ID:", userData.college_id)
-
 const res = await fetch('/api/exam/list', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -160,6 +162,7 @@ const res = await fetch('/api/exam/list', {
 })
 
 const exams = await res.json()
+const allowedCategories = CATEGORY_MAP[cat] || [cat]
  
 if (!exams || exams.length === 0) {
   return {
@@ -207,6 +210,10 @@ const questionCountMap = await res2.json()
     const completed = []
 
     exams.forEach(exam => {
+
+      if (!allowedCategories.includes(exam.exam_category)) {
+        return
+      }
       const enriched = {
         ...exam,
         question_count: questionCountMap[exam.id] || 0
@@ -265,23 +272,25 @@ const questionCountMap = await res2.json()
 
   const questionCountMap = await res.json()
 
-  return data
-    .filter(a =>
-      a.exams?.exam_category === cat &&
-      String(a.exams?.target_year) === String(userData.study_year)
-    )
-    .map(a => ({
-      ...a.exams,
-      id: a.exam_id,
+ const allowedCategories = CATEGORY_MAP[cat] || [cat]
 
-      exam_date: a.exam_date,
-      exam_time: a.exam_time,
-      duration_minutes: a.duration_minutes,
+return data
+  .filter(a =>
+    allowedCategories.includes(a.exams?.exam_category) &&
+    String(a.exams?.target_year) === String(userData.study_year)
+  )
+  .map(a => ({
+    ...a.exams,
+    id: a.exam_id,
 
-      question_count: questionCountMap[a.exam_id] || 0,
+    exam_date: a.exam_date,
+    exam_time: a.exam_time,
+    duration_minutes: a.duration_minutes,
 
-      is_global: true
-    }))
+    question_count: questionCountMap[a.exam_id] || 0,
+
+    is_global: true
+  }))
 }
 
   async function loadPracticeTests(studentId) {
