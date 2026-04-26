@@ -211,7 +211,7 @@ const infra = getInfraRecommendation(upcomingExams)
       borderRadius: 8,
       cursor: 'pointer'
     }}
-    onClick={() => window.location.href = '/superadmin/create-exam'}
+    onClick={() => window.location.href = '/superadmin/globalexam'}
   >
     ➕ Create Global Exam (PYQ)
   </button>
