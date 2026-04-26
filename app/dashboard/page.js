@@ -261,6 +261,8 @@ const questionCountMap = await res2.json()
     `)
     .eq('college_id', userData.college_id)
     .eq('is_active', true)
+    console.log("STEP 1 - ASSIGNMENTS RAW:", assignments)
+console.log("STEP 1 - USER DATA:", userData)
 
   if (error) {
     console.log("ASSIGNMENT ERROR:", error)
@@ -283,7 +285,8 @@ const questionCountMap = await res2.json()
     console.log("EXAM FETCH ERROR:", examError)
     return []
   }
-
+console.log("STEP 2 - EXAM IDS SENT:", examIds)
+console.log("STEP 2 - EXAMS RAW:", exams)
   if (!exams) return []
 
   // 4. Create map for fast lookup
@@ -303,28 +306,55 @@ const questionCountMap = await res2.json()
 
   const allowedCategories = CATEGORY_MAP[cat] || [cat]
 
+  console.log("STEP 3 - CATEGORY INPUT:", cat)
+console.log("STEP 3 - ALLOWED CATEGORIES:", allowedCategories)
+console.log("STEP 3 - STUDENT YEAR:", userData.study_year)
+
+console.log("STEP 3 - EXAM MAP:", examMap)
   // 6. Merge + filter
   const result = assignments
-    .map(a => {
-      const exam = examMap[a.exam_id]
-      if (!exam) return null
+   .map(a => {
+  const exam = examMap[a.exam_id]
 
-      return {
-        ...exam,
-        id: a.exam_id,
-        exam_date: a.exam_date,
-        exam_time: a.exam_time,
-        duration_minutes: a.duration_minutes,
-        question_count: questionCountMap[a.exam_id] || 0,
-        is_global: true
-      }
-    })
+  console.log("STEP 4 - MATCHING EXAM:", {
+    assignment_exam_id: a.exam_id,
+    exam_found: exam
+  })
+
+  if (!exam) return null
+
+  const combined = {
+    ...exam,
+    id: a.exam_id,
+    exam_date: a.exam_date,
+    exam_time: a.exam_time,
+    duration_minutes: a.duration_minutes,
+    question_count: questionCountMap[a.exam_id] || 0,
+    is_global: true
+  }
+
+  console.log("STEP 4 - COMBINED OBJECT:", combined)
+
+  return combined
+})
 
 .filter(e => {
-  const matchCategory = allowedCategories.includes(e.exam_category)
-  const matchYear = Number(e.target_year) === Number(userData.study_year)
+  if (!e) return false
 
-  return matchCategory && matchYear
+  const categoryMatch = allowedCategories.includes(e.exam_category)
+  const yearMatch = Number(e.target_year) === Number(userData.study_year)
+
+  console.log("STEP 5 - FILTER CHECK:", {
+    exam_id: e.id,
+    exam_category: e.exam_category,
+    allowedCategories,
+    categoryMatch,
+    target_year: e.target_year,
+    student_year: userData.study_year,
+    yearMatch
+  })
+
+  return categoryMatch && yearMatch
 })
   return result
 }
