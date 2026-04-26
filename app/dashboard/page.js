@@ -249,28 +249,26 @@ const questionCountMap = await res2.json()
 
   async function loadGlobalAssignedExams(userData, cat) {
 
-  const { data } = await supabase
-    .from('exam_assignments')
-    .select(`
-  exam_id,
-  exam_date,
-  exam_time,
-  duration_minutes,
-  is_active,
-  exams (
-    id,
-    title,
-    exam_category,
-    target_year,
-    duration_minutes
-  )
-`)
-console.log("STEP 1 - RAW ASSIGNMENTS:", data)
+  const { data, error } = await supabase
+  .from('exam_assignments')
+  .select(`
+    exam_id,
+    exam_date,
+    exam_time,
+    duration_minutes,
+    is_active,
+    exams (id, title, exam_category, target_year)
+  `)
+  .eq('college_id', userData.college_id)
+  .eq('is_active', true)
+
+// ✅ STEP 2 — ADD EXACTLY HERE
+if (!data) {
+  console.log("NO DATA RETURNED FROM exam_assignments", error)
+  return []
+}
 console.log("ERROR:", error)
 console.log("DATA:", data)
-
-    .eq('college_id', userData.college_id)
-    .eq('is_active', true)
 
   // ✅ FIX: MOVE THIS HERE
   if (!data || data.length === 0) return []
