@@ -266,6 +266,7 @@ const questionCountMap = await res2.json()
     console.log("ASSIGNMENT ERROR:", error)
     return []
   }
+  console.log("EXAMS FETCHED:", exams)
 
   if (!assignments || assignments.length === 0) return []
 
@@ -318,12 +319,25 @@ const questionCountMap = await res2.json()
         is_global: true
       }
     })
-    .filter(e =>
-      e &&
-      allowedCategories.includes(e.exam_category) &&
-      Number(e.target_year) === Number(userData.study_year)
-    )
+console.log("MERGED BEFORE FILTER:", assignments.map(a => ({
+  assignment: a,
+  exam: exams.find(e => e.id === a.exam_id)
+})))
+.filter(e => {
+  const matchCategory = allowedCategories.includes(e.exam_category)
+  const matchYear = Number(e.target_year) === Number(userData.study_year)
 
+  console.log("FILTER CHECK:", {
+    exam_category: e.exam_category,
+    allowed: allowedCategories,
+    matchCategory,
+    target_year: e.target_year,
+    student_year: userData.study_year,
+    matchYear
+  })
+
+  return matchCategory && matchYear
+})
   return result
 }
 
