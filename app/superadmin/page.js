@@ -5,6 +5,15 @@ import { supabase } from '../../lib/supabase'
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true)
+  const [globalExams, setGlobalExams] = useState([])
+const [collegesList, setCollegesList] = useState([])
+
+const [selectedExam, setSelectedExam] = useState('')
+const [selectedCollege, setSelectedCollege] = useState('')
+const [examDate, setExamDate] = useState('')
+const [examTime, setExamTime] = useState('')
+
+const [assignMsg, setAssignMsg] = useState('')
 
   const [stats, setStats] = useState({
     colleges: 0,
@@ -42,7 +51,7 @@ export default function Dashboard() {
 
     await loadStats()
     await loadUpcomingExams()
-
+await loadGlobalData()
     setLoading(false)
   }
 
@@ -100,6 +109,24 @@ export default function Dashboard() {
 
     setUpcomingExams(enriched)
   }
+
+  async function loadGlobalData() {
+
+  // 🔹 Fetch global exams
+  const { data: exams } = await supabase
+    .from('exams')
+    .select('id, title')
+    .eq('is_global', true)
+
+  // 🔹 Fetch colleges
+  const { data: colleges } = await supabase
+    .from('colleges')
+    .select('id, name')
+
+  setGlobalExams(exams || [])
+  setCollegesList(colleges || [])
+}
+  
   function getInfraRecommendation(exams) {
   if (!exams || exams.length === 0) return null
 
@@ -146,7 +173,42 @@ export default function Dashboard() {
     if (count < 250) return 3
     return 4
   }
+async function assignExam() {
 
+  if (!selectedExam || !selectedCollege || !examDate || !examTime) {
+    setAssignMsg('❌ Fill all fields')
+    return
+  }
+
+  const { data: exam } = await supabase
+    .from('exams')
+    .select('duration_minutes')
+    .eq('id', selectedExam)
+    .single()
+
+  const { error } = await supabase
+    .from('exam_assignments')
+    .insert({
+      exam_id: selectedExam,
+      college_id: selectedCollege,
+      exam_date: examDate,
+      exam_time: examTime,
+      duration_minutes: exam.duration_minutes
+    })
+
+  if (error) {
+    setAssignMsg('❌ ' + error.message)
+    return
+  }
+
+  setAssignMsg('✅ Assigned successfully')
+
+  // reset
+  setSelectedExam('')
+  setSelectedCollege('')
+  setExamDate('')
+  setExamTime('')
+}
  async function handleScaleWorkers() {
   try {
     const { data: session } = await supabase.auth.getSession()
@@ -180,7 +242,16 @@ export default function Dashboard() {
 const infra = getInfraRecommendation(upcomingExams)
   return (
     <div>
-      <h1>Dashboard</h1>
+      <div style={styles.header}>
+          <h1>Dashboard</h1>
+        
+          <button
+            style={styles.primaryBtn}
+            onClick={() => window.location.href = '/superadmin/globalexam'}
+          >
+            ➕ Create Global Exam
+          </button>
+        </div>
 
       {/* 🔥 TOP RIGHT WORKER CONTROL */}
       <div style={styles.topBar}>
@@ -201,22 +272,7 @@ const infra = getInfraRecommendation(upcomingExams)
 
           {saveMsg && <span style={{ marginLeft: 10 }}>{saveMsg}</span>}
         </div>
-            <br></br>
-        <div style={{ marginTop: 20 }}>
-  <button
-    style={{
-      padding: '10px 16px',
-      background: '#16a34a',
-      color: '#fff',
-      border: 'none',
-      borderRadius: 8,
-      cursor: 'pointer'
-    }}
-    onClick={() => window.location.href = '/superadmin/globalexam'}
-  >
-    ➕ Create Global Exam (PYQ)
-  </button>
-</div>
+       
       </div>
 
       <div style={styles.grid}>
@@ -224,6 +280,44 @@ const infra = getInfraRecommendation(upcomingExams)
         <Card title="Students" value={stats.students} />
         <Card title="Exams" value={stats.exams} />
       </div>
+
+      <h2 style={{ marginTop: 40 }}>🎯 Assign Global Exam</h2>
+
+<div style={styles.assignBox}>
+
+  <select value={selectedExam} onChange={e => setSelectedExam(e.target.value)}>
+    <option value="">Select Global Exam</option>
+    {globalExams.map(e => (
+      <option key={e.id} value={e.id}>{e.title}</option>
+    ))}
+  </select>
+
+  <select value={selectedCollege} onChange={e => setSelectedCollege(e.target.value)}>
+    <option value="">Select College</option>
+    {collegesList.map(c => (
+      <option key={c.id} value={c.id}>{c.name}</option>
+    ))}
+  </select>
+
+  <input
+    type="date"
+    value={examDate}
+    onChange={e => setExamDate(e.target.value)}
+  />
+
+  <input
+    type="time"
+    value={examTime}
+    onChange={e => setExamTime(e.target.value)}
+  />
+
+  <button onClick={assignExam} style={styles.primaryBtn}>
+    Assign
+  </button>
+
+  {assignMsg && <p>{assignMsg}</p>}
+</div>
+    
 
       <h2 style={{ marginTop: 40 }}>📅 Upcoming Exams</h2>
 
@@ -316,5 +410,29 @@ const styles = {
     width: '100%',
     borderCollapse: 'collapse',
     marginTop: 10
-  }
+  },
+  header: {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center'
+},
+  assignBox: {
+  display: 'flex',
+  gap: 10,
+  flexWrap: 'wrap',
+  marginTop: 10,
+  padding: 15,
+  background: '#f8fafc',
+  borderRadius: 10
+},
+
+primaryBtn: {
+  padding: '10px 16px',
+  background: '#2563eb',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 8,
+  cursor: 'pointer',
+  fontWeight: 500
+}
 }
