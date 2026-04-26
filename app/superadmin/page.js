@@ -201,6 +201,7 @@ const infra = getInfraRecommendation(upcomingExams)
 
           {saveMsg && <span style={{ marginLeft: 10 }}>{saveMsg}</span>}
         </div>
+            <br></br>
         <div style={{ marginTop: 20 }}>
   <button
     style={{
