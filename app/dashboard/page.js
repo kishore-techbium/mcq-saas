@@ -5,14 +5,15 @@ import { getCurrentUser } from '../../lib/auth'
 //import { fromWithCollege } from '../../lib/supabaseWithCollege'
 import { useEffect, useState } from 'react'
 
+ const CATEGORY_MAP = {
+  JEE: ['JEE_MAINS', 'JEE_ADVANCED'],
+  NEET: ['NEET']
+}
 export default function StudentDashboard() {
   const [user, setUser] = useState(null)
   const [category, setCategory] = useState(null)
   const [view, setView] = useState(null) // ✅ NEW
-  const CATEGORY_MAP = {
-  JEE: ['JEE_MAINS', 'JEE_ADVANCED'],
-  NEET: ['NEET']
-}
+ 
 
   const [availableExams, setAvailableExams] = useState([])
   const [completedExams, setCompletedExams] = useState([])
@@ -147,8 +148,11 @@ const mergedAvailable = Array.from(map.values())
  async function loadAdminExams(studentId, cat, userData) {
 
   if (!userData?.college_id) {
-    console.log("No college_id found")
-    return
+    
+    return {
+  available: [],
+  completed: []
+}
   }
 
 const res = await fetch('/api/exam/list', {
