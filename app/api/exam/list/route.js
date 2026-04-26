@@ -22,23 +22,21 @@ export async function POST(req) {
 
     if (assignError) throw assignError
 
-    const examIds = (assignments || []).map(a => a.exam_id)
+   const examIds = (assignments || []).map(a => a.exam_id)
 
-    console.log("ASSIGNED EXAM IDS:", examIds)
+let query = supabase.from('exams').select('*')
 
-    // 🔹 STEP 2: Fetch exams (admin + global)
-    let query = supabase.from('exams').select('*')
+if (examIds.length > 0) {
+  const formattedIds = examIds.map(id => `"${id}"`).join(',')
 
-    if (examIds.length > 0) {
-      query = query.or(`
-        and(college_id.eq.${collegeId},is_active.eq.true),
-        id.in.(${examIds.join(',')})
-      `)
-    } else {
-      query = query
-        .eq('college_id', collegeId)
-        .eq('is_active', true)
-    }
+  query = query.or(
+    `and(college_id.eq.${collegeId},is_active.eq.true),id.in.(${formattedIds})`
+  )
+} else {
+  query = query
+    .eq('college_id', collegeId)
+    .eq('is_active', true)
+}
 
     const { data: exams, error } = await query
 
