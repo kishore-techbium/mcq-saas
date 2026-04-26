@@ -102,11 +102,28 @@ if (currentUser.type === 'manual') {
   setLoading(false)
 }
   async function refreshData(studentId, cat, userData) {
-await Promise.all([
-  loadAdminExams(studentId, cat, userData),
-      loadPracticeTests(studentId)
-    ])
-  }
+
+  const [adminRes, globalExams] = await Promise.all([
+    loadAdminExams(studentId, cat, userData),
+    loadGlobalAssignedExams(userData, cat),
+    loadPracticeTests(studentId)
+  ])
+
+  const map = new Map()
+
+;(adminRes?.available || []).forEach(e => {
+  map.set(e.id, e)
+})
+
+globalExams.forEach(e => {
+  map.set(e.id, e) // override if same
+})
+
+const mergedAvailable = Array.from(map.values())
+
+  setAvailableExams(mergedAvailable)
+  setCompletedExams(adminRes?.completed || [])
+}
 
   async function ensureStudentProfile(user) {
     const { data: existing } = await supabase
@@ -144,11 +161,12 @@ const res = await fetch('/api/exam/list', {
 
 const exams = await res.json()
  
-    if (!exams || exams.length === 0) {
-      setAvailableExams([])
-      setCompletedExams([])
-      return
-    }
+if (!exams || exams.length === 0) {
+  return {
+    available: [],
+    completed: []
+  }
+}
 
   
 const examIds = exams.map(e => e.id)
@@ -197,26 +215,74 @@ const questionCountMap = await res2.json()
       const latest = latestAttemptMap[exam.id]
       const attemptCount = attemptCountMap[exam.id] || 0
 
-      if (latest) {
-        completed.push({
-          ...enriched,
-          score: latest.score,
-          attempted_at: latest.created_at,
-          attempt_count: attemptCount,
-          session_id: latest.id
-        })
-
-        if (exam.allow_retake) {
+          if (latest) {
+          // already attempted → only completed
+          completed.push({
+            ...enriched,
+            score: latest.score,
+            attempted_at: latest.created_at,
+            attempt_count: attemptCount,
+            session_id: latest.id
+          })
+        } else {
+          // not attempted → available
           available.push(enriched)
         }
-      } else {
-        available.push(enriched)
-      }
     })
 
-    setAvailableExams(available)
-    setCompletedExams(completed)
+      return {
+        available,
+        completed
+      }
   }
+
+  async function loadGlobalAssignedExams(userData, cat) {
+
+  const { data } = await supabase
+    .from('exam_assignments')
+    .select(`
+      exam_id,
+      exam_date,
+      exam_time,
+      duration_minutes,
+      is_active,
+      exams (*)
+    `)
+    .eq('college_id', userData.college_id)
+    .eq('is_active', true)
+
+  // ✅ FIX: MOVE THIS HERE
+  if (!data || data.length === 0) return []
+
+  // ✅ NOW SAFE
+  const examIds = data.map(a => a.exam_id)
+
+  const res = await fetch('/api/exam/question-count', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ examIds })
+  })
+
+  const questionCountMap = await res.json()
+
+  return data
+    .filter(a =>
+      a.exams?.exam_category === cat &&
+      String(a.exams?.target_year) === String(userData.study_year)
+    )
+    .map(a => ({
+      ...a.exams,
+      id: a.exam_id,
+
+      exam_date: a.exam_date,
+      exam_time: a.exam_time,
+      duration_minutes: a.duration_minutes,
+
+      question_count: questionCountMap[a.exam_id] || 0,
+
+      is_global: true
+    }))
+}
 
   async function loadPracticeTests(studentId) {
     const { data } = await supabase
@@ -234,13 +300,9 @@ const questionCountMap = await res2.json()
     setPracticeTests(filtered)
   }
 
-  function startExam(examId, isRetake = false) {
-    const url = isRetake
-      ? `/exam/${examId}/instructions?retake=1`
-      : `/exam/${examId}/instructions`
-
-    window.location.href = url
-  }
+function startExam(examId) {
+  window.location.href = `/exam/${examId}/instructions`
+}
 
   function reviewPractice(sessionId) {
     window.location.href = `/exam/review?sessionId=${sessionId}`
@@ -293,8 +355,8 @@ const questionCountMap = await res2.json()
       action={started ? "Start Exam" : "Not Started"}
       color={started ? "#16a34a" : "#9ca3af"}
       onClick={() => {
-        if (started) startExam(exam.id, true)
-      }}
+          if (started) startExam(exam.id)
+        }}
     />
   )
 })}
