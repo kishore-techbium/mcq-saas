@@ -261,7 +261,7 @@ const questionCountMap = await res2.json()
     `)
     .eq('college_id', userData.college_id)
     .eq('is_active', true)
-
+console.log("STEP 1 - RAW ASSIGNMENTS:", data)
   // ✅ FIX: MOVE THIS HERE
   if (!data || data.length === 0) return []
 
@@ -276,25 +276,30 @@ const questionCountMap = await res2.json()
 
   const questionCountMap = await res.json()
 
- const allowedCategories = CATEGORY_MAP[cat] || [cat]
+  const allowedCategories = CATEGORY_MAP[cat] || [cat]
 
-return data
-  .filter(a =>
-    allowedCategories.includes(a.exams?.exam_category) &&
-    String(a.exams?.target_year) === String(userData.study_year)
-  )
-  .map(a => ({
-    ...a.exams,
-    id: a.exam_id,
+  console.log("STEP 2 - CATEGORY:", cat)
+  console.log("STEP 2 - ALLOWED:", allowedCategories)
+  console.log("STEP 2 - STUDENT YEAR:", userData.study_year)
 
-    exam_date: a.exam_date,
-    exam_time: a.exam_time,
-    duration_minutes: a.duration_minutes,
+  const result = data
+    .filter(a =>
+      allowedCategories.includes(a.exams?.exam_category) &&
+      String(a.exams?.target_year) === String(userData.study_year)
+    )
+    .map(a => ({
+      ...a.exams,
+      id: a.exam_id,
+      exam_date: a.exam_date,
+      exam_time: a.exam_time,
+      duration_minutes: a.duration_minutes,
+      question_count: questionCountMap[a.exam_id] || 0,
+      is_global: true
+    }))
 
-    question_count: questionCountMap[a.exam_id] || 0,
+  console.log("STEP 4 - FINAL GLOBAL EXAMS:", result)
 
-    is_global: true
-  }))
+  return result
 }
 
   async function loadPracticeTests(studentId) {
