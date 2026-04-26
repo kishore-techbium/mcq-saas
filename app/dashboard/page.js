@@ -257,7 +257,12 @@ const questionCountMap = await res2.json()
     exam_time,
     duration_minutes,
     is_active,
-    exams (id, title, exam_category, target_year)
+    exams!exam_assignments_exam_id_fkey (
+  id,
+  title,
+  exam_category,
+  target_year
+)
   `)
   .eq('college_id', userData.college_id)
   .eq('is_active', true)
