@@ -361,19 +361,19 @@ const infra = getInfraRecommendation(upcomingExams)
   {assignMsg && <p>{assignMsg}</p>}
 </div>
     <h2 style={{ marginTop: 40 }}>📊 Global Exam Assignments</h2>
+    <p>Want to change date&time, first off the exam and change them and turn on the exam</p>
 
-<table style={styles.table}>
+<table style={{ ...styles.table, tableLayout: 'fixed' }}>
   <thead>
-    <tr>
-      <th>Exam</th>
-      <th>College</th>
-      <th>Date</th>
-      <th>Time</th>
-      <th>Active</th>
-      <th>Action</th>
-    </tr>
-  </thead>
-
+  <tr>
+    <th style={{ width: '25%' }}>Exam</th>
+    <th style={{ width: '20%' }}>College</th>
+    <th style={{ width: '20%' }}>Date</th>
+    <th style={{ width: '15%' }}>Time</th>
+    <th style={{ width: '10%' }}>Active</th>
+    <th style={{ width: '10%' }}>Action</th>
+  </tr>
+</thead>
   <tbody>
     {assignments.map(a => (
       <tr key={a.id}>
@@ -383,6 +383,7 @@ const infra = getInfraRecommendation(upcomingExams)
         <td>
           <input
             type="date"
+            style={styles.dateInput}
             defaultValue={a.exam_date}
             onBlur={(e) =>
               updateSchedule(a.id, e.target.value, a.exam_time)
@@ -393,6 +394,7 @@ const infra = getInfraRecommendation(upcomingExams)
         <td>
           <input
             type="time"
+            style={styles.timeInput}
             defaultValue={a.exam_time}
             onBlur={(e) =>
               updateSchedule(a.id, a.exam_date, e.target.value)
@@ -400,7 +402,7 @@ const infra = getInfraRecommendation(upcomingExams)
           />
         </td>
 
-        <td>
+        <td style={{ textAlign: 'center' }}>
           <button
             onClick={() => toggleActive(a.id, a.is_active)}
             style={{
@@ -520,6 +522,28 @@ const styles = {
   justifyContent: 'space-between',
   alignItems: 'center'
 },
+  dateInput: {
+  width: '100%',
+  padding: '6px',
+  boxSizing: 'border-box'
+},
+th: {
+  textAlign: 'left',
+  padding: 10,
+  borderBottom: '1px solid #ddd'
+},
+
+td: {
+  textAlign: 'left',
+  padding: 10,
+  borderBottom: '1px solid #eee',
+  verticalAlign: 'middle'
+},
+timeInput: {
+  width: '100%',
+  padding: '6px',
+  boxSizing: 'border-box'
+},
   assignBox: {
   display: 'flex',
   gap: 10,
@@ -528,6 +552,9 @@ const styles = {
   padding: 15,
   background: '#f8fafc',
   borderRadius: 10
+},
+tableLayout: {
+  tableLayout: 'fixed',
 },
 
 primaryBtn: {
