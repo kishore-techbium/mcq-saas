@@ -150,6 +150,7 @@ const exams = await res.json()
       return
     }
 
+console.log("API RESPONSE EXAMS:", exams)
   
 const examIds = exams.map(e => e.id)
 
