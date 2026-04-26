@@ -265,10 +265,13 @@ const questionCountMap = await res2.json()
     duration_minutes
   )
 `)
+console.log("STEP 1 - RAW ASSIGNMENTS:", data)
+console.log("ERROR:", error)
+console.log("DATA:", data)
+
     .eq('college_id', userData.college_id)
     .eq('is_active', true)
-console.log("STEP 1 - RAW ASSIGNMENTS:", data)
-   console.log("FULL ROW:", data[0])
+
   // ✅ FIX: MOVE THIS HERE
   if (!data || data.length === 0) return []
 
