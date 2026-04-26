@@ -201,6 +201,21 @@ const infra = getInfraRecommendation(upcomingExams)
 
           {saveMsg && <span style={{ marginLeft: 10 }}>{saveMsg}</span>}
         </div>
+        <div style={{ marginTop: 20 }}>
+  <button
+    style={{
+      padding: '10px 16px',
+      background: '#16a34a',
+      color: '#fff',
+      border: 'none',
+      borderRadius: 8,
+      cursor: 'pointer'
+    }}
+    onClick={() => window.location.href = '/superadmin/create-exam'}
+  >
+    ➕ Create Global Exam (PYQ)
+  </button>
+</div>
       </div>
 
       <div style={styles.grid}>
