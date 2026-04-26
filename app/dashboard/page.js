@@ -251,24 +251,26 @@ const questionCountMap = await res2.json()
 
   // 1. Get assignments
   const { data: assignments, error } = await supabase
-    .from('exam_assignments')
-    .select(`
-      exam_id,
-      exam_date,
-      exam_time,
-      duration_minutes,
-      is_active
-    `)
-    .eq('college_id', userData.college_id)
-    .eq('is_active', true)
-    console.log("STEP 1 - ASSIGNMENTS RAW:", assignments)
+  .from('exam_assignments')
+  .select(`
+    exam_id,
+    exam_date,
+    exam_time,
+    duration_minutes,
+    is_active
+  `)
+  .eq('college_id', userData.college_id)
+  .eq('is_active', true)
+
+// ✅ AFTER query finishes
+console.log("STEP 1 - ASSIGNMENTS RAW:", assignments)
 console.log("STEP 1 - USER DATA:", userData)
 
   if (error) {
     console.log("ASSIGNMENT ERROR:", error)
     return []
   }
-  console.log("EXAMS FETCHED:", exams)
+  
 
   if (!assignments || assignments.length === 0) return []
 
