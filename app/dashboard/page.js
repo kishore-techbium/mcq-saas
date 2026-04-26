@@ -283,9 +283,15 @@ console.log("STEP 1 - RAW ASSIGNMENTS:", data)
   console.log("STEP 2 - STUDENT YEAR:", userData.study_year)
 
   const result = data
+  data.forEach(a => {
+  console.log("DEBUG TARGET:", {
+    exam_target: a.exams?.target_year,
+    student_year: userData.study_year
+  })
+})
     .filter(a =>
       allowedCategories.includes(a.exams?.exam_category) &&
-      String(a.exams?.target_year) === String(userData.study_year)
+      Number(a.exams?.target_year) === Number(userData.study_year)
     )
     .map(a => ({
       ...a.exams,
