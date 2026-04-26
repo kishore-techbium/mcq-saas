@@ -28,7 +28,7 @@ export async function POST(req) {
       .select('*')
       .eq('student_id', studentId)
       .eq('exam_id', examId)
-      .eq('attempt_number', 1)
+      .eq('submitted', false)
       .maybeSingle()
 
     // ✅ If session already exists → reuse
@@ -37,29 +37,34 @@ export async function POST(req) {
     }
 
     // 🔥 STEP 2: CREATE NEW ONLY IF NOT EXISTS
-    const { data, error } = await supabase
-      .from('exam_sessions')
-      .insert({
-        student_id: studentId,
-        exam_id: examId,
-        college_id: student.college_id,
-        attempt_number: 1,
-        submitted: false,
-        score: 0,
-        original_score: 0
-      })
-      .select()
-      .single()
+  const { data, error } = await supabase
+  .from('exam_sessions')
+  .insert({
+    student_id: studentId,
+    exam_id: examId,
+    college_id: student.college_id,
+    attempt_number: 1,
+    submitted: false,
+    score: 0,
+    original_score: 0
+  })
+  .select()
+  .single()
 
-    if (error) throw error
+if (error) {
+  // 🔥 If duplicate due to unique constraint → fetch existing
+  const { data: fallback } = await supabase
+    .from('exam_sessions')
+    .select('*')
+    .eq('student_id', studentId)
+    .eq('exam_id', examId)
+    .eq('submitted', false)
+    .maybeSingle()
 
-    return Response.json({ id: data.id })
-
-  } catch (err) {
-    console.error(err)
-    return Response.json(
-      { error: err.message },
-      { status: 500 }
-    )
+  if (fallback) {
+    return Response.json({ id: fallback.id })
   }
+
+  throw error
+}
 }
