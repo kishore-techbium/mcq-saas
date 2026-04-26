@@ -67,4 +67,14 @@ if (error) {
 
   throw error
 }
+
+// ✅ ADD THIS LINE
+return Response.json({ id: data.id })
+} catch (err) {
+  console.error(err)
+  return Response.json(
+    { error: err.message },
+    { status: 500 }
+  )
+}
 }
