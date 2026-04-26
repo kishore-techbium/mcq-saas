@@ -252,13 +252,19 @@ const questionCountMap = await res2.json()
   const { data } = await supabase
     .from('exam_assignments')
     .select(`
-      exam_id,
-      exam_date,
-      exam_time,
-      duration_minutes,
-      is_active,
-      exams (*)
-    `)
+  exam_id,
+  exam_date,
+  exam_time,
+  duration_minutes,
+  is_active,
+  exams (
+    id,
+    title,
+    exam_category,
+    target_year,
+    duration_minutes
+  )
+`)
     .eq('college_id', userData.college_id)
     .eq('is_active', true)
 console.log("STEP 1 - RAW ASSIGNMENTS:", data)
