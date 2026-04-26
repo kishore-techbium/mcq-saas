@@ -7,7 +7,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [globalExams, setGlobalExams] = useState([])
 const [collegesList, setCollegesList] = useState([])
-
+const [assignments, setAssignments] = useState([])
 const [selectedExam, setSelectedExam] = useState('')
 const [selectedCollege, setSelectedCollege] = useState('')
 const [examDate, setExamDate] = useState('')
@@ -51,7 +51,8 @@ const [assignMsg, setAssignMsg] = useState('')
 
     await loadStats()
     await loadUpcomingExams()
-await loadGlobalData()
+    await loadGlobalData()
+    await loadAssignments()
     setLoading(false)
   }
 
@@ -209,6 +210,48 @@ async function assignExam() {
   setExamDate('')
   setExamTime('')
 }
+
+async function loadAssignments() {
+
+  const { data } = await supabase
+    .from('exam_assignments')
+    .select(`
+      id,
+      exam_date,
+      exam_time,
+      is_active,
+      exams (title),
+      colleges (name)
+    `)
+    .order('assigned_at', { ascending: false })
+
+  setAssignments(data || [])
+}
+async function toggleActive(id, current) {
+
+  const { error } = await supabase
+    .from('exam_assignments')
+    .update({ is_active: !current })
+    .eq('id', id)
+
+  if (!error) {
+    loadAssignments()
+  }
+}
+async function updateSchedule(id, newDate, newTime) {
+
+  const { error } = await supabase
+    .from('exam_assignments')
+    .update({
+      exam_date: newDate,
+      exam_time: newTime
+    })
+    .eq('id', id)
+
+  if (!error) {
+    loadAssignments()
+  }
+}
  async function handleScaleWorkers() {
   try {
     const { data: session } = await supabase.auth.getSession()
@@ -317,7 +360,68 @@ const infra = getInfraRecommendation(upcomingExams)
 
   {assignMsg && <p>{assignMsg}</p>}
 </div>
-    
+    <h2 style={{ marginTop: 40 }}>📊 Global Exam Assignments</h2>
+
+<table style={styles.table}>
+  <thead>
+    <tr>
+      <th>Exam</th>
+      <th>College</th>
+      <th>Date</th>
+      <th>Time</th>
+      <th>Active</th>
+      <th>Action</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {assignments.map(a => (
+      <tr key={a.id}>
+        <td>{a.exams?.title}</td>
+        <td>{a.colleges?.name}</td>
+
+        <td>
+          <input
+            type="date"
+            defaultValue={a.exam_date}
+            onBlur={(e) =>
+              updateSchedule(a.id, e.target.value, a.exam_time)
+            }
+          />
+        </td>
+
+        <td>
+          <input
+            type="time"
+            defaultValue={a.exam_time}
+            onBlur={(e) =>
+              updateSchedule(a.id, a.exam_date, e.target.value)
+            }
+          />
+        </td>
+
+        <td>
+          <button
+            onClick={() => toggleActive(a.id, a.is_active)}
+            style={{
+              background: a.is_active ? '#16a34a' : '#dc2626',
+              color: '#fff',
+              border: 'none',
+              padding: '5px 10px',
+              borderRadius: 6
+            }}
+          >
+            {a.is_active ? 'ON' : 'OFF'}
+          </button>
+        </td>
+
+        <td>
+          —
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
 
       <h2 style={{ marginTop: 40 }}>📅 Upcoming Exams</h2>
 
