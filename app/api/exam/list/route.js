@@ -7,33 +7,57 @@ const supabase = createClient(
 
 export async function POST(req) {
   try {
-    const body = await req.json()
-    const { collegeId, category, studyYear } = body
+    const { collegeId, category, studyYear } = await req.json()
 
     if (!collegeId || !category || !studyYear) {
       return Response.json({ error: 'Missing data' }, { status: 400 })
     }
 
-    let query = supabase
-      .from('exams')
-      .select('*')
-      .eq('exam_category', category)
-      .eq('target_year', studyYear)
-      .order('created_at', { ascending: false })
-
-    // ✅ Only apply these if needed
-    query = query
+    // 🔹 STEP 1: Get assigned exams
+    const { data: assignments, error: assignError } = await supabase
+      .from('exam_assignments')
+      .select('exam_id')
       .eq('college_id', collegeId)
       .eq('is_active', true)
 
-    const { data, error } = await query
+    if (assignError) throw assignError
+
+    const examIds = (assignments || []).map(a => a.exam_id)
+
+    console.log("ASSIGNED EXAM IDS:", examIds)
+
+    // 🔹 STEP 2: Fetch exams (admin + global)
+    let query = supabase.from('exams').select('*')
+
+    if (examIds.length > 0) {
+      query = query.or(`
+        and(college_id.eq.${collegeId},is_active.eq.true),
+        id.in.(${examIds.join(',')})
+      `)
+    } else {
+      query = query
+        .eq('college_id', collegeId)
+        .eq('is_active', true)
+    }
+
+    const { data: exams, error } = await query
 
     if (error) {
       console.error("SUPABASE ERROR:", error)
       throw error
     }
 
-    return Response.json(data || [])
+    console.log("ALL EXAMS:", exams)
+
+    // 🔹 STEP 3: Apply filters AFTER fetching
+    const filtered = (exams || []).filter(e =>
+      e.exam_category === category &&
+      Number(e.target_year) === Number(studyYear)
+    )
+
+    console.log("FILTERED EXAMS:", filtered)
+
+    return Response.json(filtered)
 
   } catch (err) {
     console.error("API ERROR:", err)
