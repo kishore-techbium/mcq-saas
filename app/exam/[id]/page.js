@@ -426,6 +426,29 @@ async function captureSnapshot() {
   } else {
     console.log("✅ Uploaded:", path)
   }
+
+  if (error) {
+  console.error("❌ Upload error:", error)
+  return
+}
+
+console.log("✅ Uploaded:", path)
+
+
+const { error: dbError } = await supabase
+  .from('proctoring_images')
+  .insert({
+    exam_session_id: sessionId,
+    image_url: path,
+    capture_index: captureIndexRef.current,
+    captured_at: new Date().toISOString()
+  })
+
+if (dbError) {
+  console.error("❌ DB INSERT ERROR:", dbError)
+} else {
+  console.log("✅ DB INSERT SUCCESS")
+}
 }
 
 
