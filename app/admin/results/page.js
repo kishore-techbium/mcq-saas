@@ -34,13 +34,19 @@ async function loadResults() {
 // 🔥 Get current admin
 const { data: userData } = await supabase.auth.getUser()
 
-const { data: admin } = await supabase
+const { data: admin, error: adminError } = await supabase
   .from('students')
   .select('college_id')
   .eq('id', userData.user.id)
-  .single()
+  .maybeSingle()
+
+console.log("ADMIN DATA:", admin, adminError)
 
 const collegeId = admin?.college_id
+if (!collegeId) {
+  console.error("❌ collegeId is missing")
+  return
+}
 
 // 🔥 Get assigned exam ids
 const { data: assignments } = await supabase
