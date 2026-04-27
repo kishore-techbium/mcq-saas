@@ -226,6 +226,7 @@ async function loadAssignments() {
     .order('assigned_at', { ascending: false })
 
   setAssignments(data || [])
+  console.log("ASSIGNMENTS DATA:", data)
 }
 async function toggleActive(id, current) {
 
@@ -294,6 +295,12 @@ const infra = getInfraRecommendation(upcomingExams)
           >
             ➕ Create Global Exam
           </button>
+          <button
+            style={styles.primaryBtn}
+            onClick={() => window.location.href = '/superadmin/upload-questions'}
+          >
+            📤 Upload Questions
+          </button>    
         </div>
 
       {/* 🔥 TOP RIGHT WORKER CONTROL */}
