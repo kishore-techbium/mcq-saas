@@ -31,12 +31,7 @@ async function init() {
 }
 
 async function loadResults() {
-const { data: allExams } = await supabase
-  .from('exams')
-  .select('*')
-
-console.log("ALL EXAMS RAW:", allExams)
-  
+ 
   // 🔥 Get current admin
 const { data: userData } = await supabase.auth.getUser()
 
@@ -68,7 +63,7 @@ console.log("ASSIGNED IDS:", assignedExamIds)
 const { data: adminExams } = await supabase
   .from('exams')
   .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
-  .eq('college_id', collegeId)
+  .or(`college_id.eq.${collegeId},college_id.is.null`)
 
 // 🔥 STEP 2: Get global assigned exams
 let globalExams = []
