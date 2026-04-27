@@ -41,7 +41,7 @@ const { data: admin, error: adminError } = await supabase
   .eq('user_id', userData.user.id)
   .maybeSingle()
 
-console.log("ADMIN DATA:", admin, adminError)
+
 
 const collegeId = admin?.college_id
 if (!collegeId) {
@@ -57,7 +57,7 @@ const { data: assignments } = await supabase
   .eq('is_active', true)
 
 const assignedExamIds = (assignments || []).map(a => a.exam_id)
-console.log("ASSIGNED IDS:", assignedExamIds)
+
 
 // 🔥 STEP 1: Get admin exams
 const { data: adminExams } = await supabase
@@ -73,7 +73,7 @@ const { data: allExamsRaw } = await supabase
   .from('exams')
   .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
 
-console.log("ALL EXAMS RAW:", allExamsRaw)
+
 
 // manually filter global
 const globalExams = (allExamsRaw || []).filter(e =>
@@ -86,7 +86,7 @@ const exams = [...new Map(
   [...(adminExams || []), ...(globalExams || [])]
   .map(e => [e.id, e])
 ).values()]
-console.log("FINAL EXAMS:", exams)
+
 
 
 const collegeIds = [
