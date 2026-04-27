@@ -188,10 +188,10 @@ export default function UploadGlobalQuestions() {
           <option key={e.id} value={e.id}>{e.title}</option>
         ))}
       </select>
-
+   <label>🖼️ Select csv file</label>
       <input type="file" onChange={e=>setExcelFile(e.target.files[0])}/>
       <br/><br/>
-
+   <label>🖼️ Select Images ZIP (optional)</label>
       <input type="file" onChange={e=>setZipFile(e.target.files[0])}/>
       <br/><br/>
 
