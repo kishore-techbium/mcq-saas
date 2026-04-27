@@ -153,12 +153,31 @@ export default function UploadGlobalQuestions() {
       if(error){
         console.error(error)
       }else{
-        // 🔥 MAP TO GLOBAL EXAM
-        await supabase.from('exam_questions').insert([{
-          exam_id: selectedExam,
-          question_id: data[0].id,
-          college_id: null
-        }])
+        
+          // 🔥 MAP TO GLOBAL EXAM
+
+        if (!selectedExam) {
+        console.error("❌ No exam selected")
+        continue
+        }
+
+        if (!data || !data.length) {
+        console.error("❌ Question insert failed, no ID returned")
+        continue
+        }
+const { error: mapError } = await supabase
+  .from('exam_questions')
+  .insert([{
+    exam_id: selectedExam,
+    question_id: data[0].id,
+    college_id: null
+  }])
+
+if (mapError) {
+  console.error("❌ MAPPING ERROR:", mapError)
+} else {
+  console.log("✅ MAPPED:", selectedExam, data[0].id)
+}
       }
     }
 
