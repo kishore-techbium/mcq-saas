@@ -41,7 +41,10 @@ const { data: assignments } = await supabase
   .from('exam_assignments')
   .select('exam_id, college_id')
   .eq('is_active', true)
-// 🔥 STEP 2: Build mapping
+
+console.log("EXAMS:", exams)
+console.log("ASSIGNMENTS:", assignments)
+  // 🔥 STEP 2: Build mapping
 const examCollegeMap = {}
 
 ;(assignments || []).forEach(a => {
@@ -50,6 +53,9 @@ const examCollegeMap = {}
   }
   examCollegeMap[a.exam_id].push(a.college_id)
 })
+
+console.log("EXAM → COLLEGE MAP:", examCollegeMap)
+
 const collegeIds = [
   ...new Set((exams || [])
     .map(e => e.college_id)
@@ -62,6 +68,9 @@ const { data: students, error: studentError } = await supabase
   ...collegeIds,
   ...new Set((assignments || []).map(a => a.college_id))
 ])
+
+console.log("STUDENTS COUNT:", students?.length)
+
   // ✅ Get analytics data instead of sessions
   const { data: stats } = await supabase
     .from('student_exam_stats')
@@ -97,6 +106,12 @@ const { data: students, error: studentError } = await supabase
 
   // 🔥 BUILD FINAL ROWS
   const finalRows = (exams || []).map((exam) => {
+    console.log("CHECK EXAM:", {
+  id: exam.id,
+  title: exam.title,
+  college_id: exam.college_id,
+  assigned: examCollegeMap[exam.id]
+})
     const s = grouped[exam.id]
 // 🎯 Filter students based on exam
 
@@ -105,6 +120,16 @@ const { data: students, error: studentError } = await supabase
 const assignedColleges = examCollegeMap[exam.id] || []
 
 let relatedStudents = []
+
+if (!exam.college_id) {
+  console.log("GLOBAL MATCH:", {
+    examId: exam.id,
+    assignedColleges: examCollegeMap[exam.id],
+    matchingStudents: (students || []).filter(st =>
+      (examCollegeMap[exam.id] || []).includes(st.college_id)
+    ).length
+  })
+}
 
 if (exam.college_id) {
   // ✅ Admin exam
