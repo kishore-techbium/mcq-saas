@@ -56,6 +56,7 @@ const { data: assignments } = await supabase
   .eq('is_active', true)
 
 const assignedExamIds = (assignments || []).map(a => a.exam_id)
+console.log("ASSIGNED IDS:", assignedExamIds)
 
 // 🔥 STEP 1: Get admin exams
 const { data: adminExams } = await supabase
@@ -67,12 +68,14 @@ const { data: adminExams } = await supabase
 let globalExams = []
 
 if (assignedExamIds.length > 0) {
-  const { data } = await supabase
-    .from('exams')
-    .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
-    .in('id', assignedExamIds)
+  const { data: allGlobal } = await supabase
+  .from('exams')
+  .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
+  .is('college_id', null)
 
-  globalExams = data || []
+const globalExams = (allGlobal || []).filter(e =>
+  assignedExamIds.includes(e.id)
+)
 }
 
 // 🔥 STEP 3: Merge both
