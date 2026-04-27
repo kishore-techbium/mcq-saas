@@ -57,25 +57,30 @@ const { data: assignments } = await supabase
 
 const assignedExamIds = (assignments || []).map(a => a.exam_id)
 
-// 🔥 Fetch BOTH admin + global assigned exams
-const formattedIds = assignedExamIds.length > 0
-  ? assignedExamIds.map(id => `"${id}"`).join(',')
-  : null
-  
-let query = supabase
+// 🔥 STEP 1: Get admin exams
+const { data: adminExams } = await supabase
   .from('exams')
   .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
-  .order('created_at', { ascending: false })
+  .eq('college_id', collegeId)
 
-if (formattedIds) {
-  query = query.or(
-    `college_id.eq.${collegeId},id.in.(${formattedIds})`
-  )
-} else {
-  query = query.eq('college_id', collegeId)
+// 🔥 STEP 2: Get global assigned exams
+let globalExams = []
+
+if (assignedExamIds.length > 0) {
+  const { data } = await supabase
+    .from('exams')
+    .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
+    .in('id', assignedExamIds)
+
+  globalExams = data || []
 }
 
-const { data: exams, error: examError } = await query
+// 🔥 STEP 3: Merge both
+const exams = [...new Map(
+  [...(adminExams || []), ...(globalExams || [])]
+  .map(e => [e.id, e])
+).values()]
+console.log("FINAL EXAMS:", exams)
 
 console.log("EXAMS RESULT:", exams, examError)
 
