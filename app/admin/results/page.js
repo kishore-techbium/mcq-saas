@@ -31,46 +31,40 @@ async function init() {
 }
 
 async function loadResults() {
-  // ✅ Get exams (same as before)
-  const { data: exams } = await supabase
-    .from('exams')
-    .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
-    .order('created_at', { ascending: false })
-// 🔥 STEP 1: Get assignments
+// 🔥 Get current admin
+const { data: userData } = await supabase.auth.getUser()
+
+const { data: admin } = await supabase
+  .from('students')
+  .select('college_id')
+  .eq('id', userData.user.id)
+  .single()
+
+const collegeId = admin?.college_id
+
+// 🔥 Get assigned exam ids
 const { data: assignments } = await supabase
   .from('exam_assignments')
-  .select('exam_id, college_id')
+  .select('exam_id')
+  .eq('college_id', collegeId)
   .eq('is_active', true)
 
-console.log("EXAMS:", exams)
-console.log("ASSIGNMENTS:", assignments)
-  // 🔥 STEP 2: Build mapping
-const examCollegeMap = {}
+const assignedExamIds = (assignments || []).map(a => a.exam_id)
 
-;(assignments || []).forEach(a => {
-  if (!examCollegeMap[a.exam_id]) {
-    examCollegeMap[a.exam_id] = []
-  }
-  examCollegeMap[a.exam_id].push(a.college_id)
-})
+// 🔥 Fetch BOTH admin + global assigned exams
+const { data: exams } = await supabase
+  .from('exams')
+  .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
+  .or(
+    `college_id.eq.${collegeId},id.in.(${assignedExamIds.join(',')})`
+  )
+  .order('created_at', { ascending: false })
 
-console.log("EXAM → COLLEGE MAP:", examCollegeMap)
-
-const collegeIds = [
-  ...new Set((exams || [])
-    .map(e => e.college_id)
-    .filter(id => id))
-]
+const collegeIds = [...new Set((exams || []).map(e => e.college_id))]
 const { data: students, error: studentError } = await supabase
   .from('students')
   .select('id, exam_preference, study_year, college_id')
-  .in('college_id', [
-  ...collegeIds,
-  ...new Set((assignments || []).map(a => a.college_id))
-])
-
-console.log("STUDENTS COUNT:", students?.length)
-
+  .in('college_id', collegeIds)
   // ✅ Get analytics data instead of sessions
   const { data: stats } = await supabase
     .from('student_exam_stats')
@@ -106,44 +100,24 @@ console.log("STUDENTS COUNT:", students?.length)
 
   // 🔥 BUILD FINAL ROWS
   const finalRows = (exams || []).map((exam) => {
-    console.log("CHECK EXAM:", {
-  id: exam.id,
-  title: exam.title,
-  college_id: exam.college_id,
-  assigned: examCollegeMap[exam.id]
-})
     const s = grouped[exam.id]
 // 🎯 Filter students based on exam
 
-// 🔥 STEP 3: FIX STUDENT MAPPING
+const relatedStudents = (students || []).filter(st => {
+  if (!st.exam_preference || !st.study_year) return false
 
-const assignedColleges = examCollegeMap[exam.id] || []
+  const studentPref = st.exam_preference.toUpperCase()
+  const examCat = exam.exam_category.toUpperCase()
 
-let relatedStudents = []
+  const categoryMatch =
+    (studentPref === 'JEE' && examCat.startsWith('JEE')) ||
+    (studentPref === 'NEET' && examCat === 'NEET')
 
-if (!exam.college_id) {
-  console.log("GLOBAL MATCH:", {
-    examId: exam.id,
-    assignedColleges: examCollegeMap[exam.id],
-    matchingStudents: (students || []).filter(st =>
-      (examCollegeMap[exam.id] || []).includes(st.college_id)
-    ).length
-  })
-}
-
-if (exam.college_id) {
-  // ✅ Admin exam
-  relatedStudents = (students || []).filter(st =>
-    st.college_id === exam.college_id &&
+  const yearMatch =
     Number(st.study_year) === Number(exam.target_year)
-  )
-} else {
-  // ✅ Global exam
-  relatedStudents = (students || []).filter(st =>
-    assignedColleges.includes(st.college_id) &&
-    Number(st.study_year) === Number(exam.target_year)
-  )
-}
+
+  return categoryMatch && yearMatch
+})
     
     return {
       ...exam,
