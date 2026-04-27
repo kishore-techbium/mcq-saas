@@ -69,14 +69,16 @@ const { data: adminExams } = await supabase
 let globalExams = []
 
 if (assignedExamIds.length > 0) {
-  const { data: allGlobal } = await supabase
-    .from('exams')
-    .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
-    .is('college_id', null)
+const { data: allExamsRaw } = await supabase
+  .from('exams')
+  .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
 
-  globalExams = (allGlobal || []).filter(e =>
-    assignedExamIds.includes(e.id)
-  )
+console.log("ALL EXAMS RAW:", allExamsRaw)
+
+// manually filter global
+const globalExams = (allExamsRaw || []).filter(e =>
+  !e.college_id && assignedExamIds.includes(e.id)
+)
 }
 
 // 🔥 STEP 3: Merge both
