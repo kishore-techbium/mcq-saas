@@ -31,7 +31,13 @@ async function init() {
 }
 
 async function loadResults() {
-// 🔥 Get current admin
+const { data: allExams } = await supabase
+  .from('exams')
+  .select('*')
+
+console.log("ALL EXAMS RAW:", allExams)
+  
+  // 🔥 Get current admin
 const { data: userData } = await supabase.auth.getUser()
 
 const { data: admin, error: adminError } = await supabase
