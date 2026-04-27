@@ -36,12 +36,32 @@ async function loadResults() {
     .from('exams')
     .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
     .order('created_at', { ascending: false })
+// 🔥 STEP 1: Get assignments
+const { data: assignments } = await supabase
+  .from('exam_assignments')
+  .select('exam_id, college_id')
+  .eq('is_active', true)
+// 🔥 STEP 2: Build mapping
+const examCollegeMap = {}
 
-const collegeIds = [...new Set((exams || []).map(e => e.college_id))]
+;(assignments || []).forEach(a => {
+  if (!examCollegeMap[a.exam_id]) {
+    examCollegeMap[a.exam_id] = []
+  }
+  examCollegeMap[a.exam_id].push(a.college_id)
+})
+const collegeIds = [
+  ...new Set((exams || [])
+    .map(e => e.college_id)
+    .filter(id => id))
+]
 const { data: students, error: studentError } = await supabase
   .from('students')
   .select('id, exam_preference, study_year, college_id')
-  .in('college_id', collegeIds)
+  .in('college_id', [
+  ...collegeIds,
+  ...new Set((assignments || []).map(a => a.college_id))
+])
   // ✅ Get analytics data instead of sessions
   const { data: stats } = await supabase
     .from('student_exam_stats')
@@ -80,21 +100,25 @@ const { data: students, error: studentError } = await supabase
     const s = grouped[exam.id]
 // 🎯 Filter students based on exam
 
-const relatedStudents = (students || []).filter(st => {
-  if (!st.exam_preference || !st.study_year) return false
+// 🔥 STEP 3: FIX STUDENT MAPPING
 
-  const studentPref = st.exam_preference.toUpperCase()
-  const examCat = exam.exam_category.toUpperCase()
+const assignedColleges = examCollegeMap[exam.id] || []
 
-  const categoryMatch =
-    (studentPref === 'JEE' && examCat.startsWith('JEE')) ||
-    (studentPref === 'NEET' && examCat === 'NEET')
+let relatedStudents = []
 
-  const yearMatch =
+if (exam.college_id) {
+  // ✅ Admin exam
+  relatedStudents = (students || []).filter(st =>
+    st.college_id === exam.college_id &&
     Number(st.study_year) === Number(exam.target_year)
-
-  return categoryMatch && yearMatch
-})
+  )
+} else {
+  // ✅ Global exam
+  relatedStudents = (students || []).filter(st =>
+    assignedColleges.includes(st.college_id) &&
+    Number(st.study_year) === Number(exam.target_year)
+  )
+}
     
     return {
       ...exam,
