@@ -380,22 +380,14 @@ function goToQuestion(i) {
       scheduleSnapshot()
     }, delay)
   }
-  /*
+
 async function captureSnapshot() {
-  console.log("📸 Attempting snapshot...")
+  console.log("📸 Capturing snapshot...")
 
-  if (!videoRef.current) {
-    console.log("❌ videoRef missing")
-    return
-  }
-
-  console.log("Video dimensions:",
-    videoRef.current.videoWidth,
-    videoRef.current.videoHeight
-  )
+  if (!videoRef.current) return
 
   if (videoRef.current.videoWidth === 0) {
-    console.log("❌ Video not ready yet")
+    console.log("❌ Video not ready")
     return
   }
 
@@ -406,67 +398,36 @@ async function captureSnapshot() {
   const ctx = canvas.getContext('2d')
   ctx.drawImage(videoRef.current, 0, 0)
 
-  const blob = await new Promise(res =>
-    canvas.toBlob(res, 'image/jpeg', 0.8)
-  )
+  const blob = await new Promise(resolve => {
+    canvas.toBlob((b) => {
+      if (!b) {
+        console.error("❌ Blob failed")
+        resolve(null)
+      } else {
+        resolve(b)
+      }
+    }, 'image/jpeg')
+  })
 
-  console.log("Blob created:", blob)
-
-  if (!blob) {
-    console.log("❌ Blob creation failed")
-    return
-  }
+  if (!blob) return
 
   captureIndexRef.current += 1
   const path = `${sessionId}/${captureIndexRef.current}.jpg`
 
-  console.log("Uploading to:", path)
-
   const { error } = await supabase.storage
     .from('exam-proctoring')
-    .upload(path, blob, { upsert: true })
+    .upload(path, blob, {
+      upsert: true,
+      contentType: 'image/jpeg'
+    })
 
   if (error) {
-    console.error("❌ Upload failed:", error)
+    console.error("❌ Upload error:", error)
   } else {
-    console.log("✅ Upload success:", path)
+    console.log("✅ Uploaded:", path)
   }
-}*/
-  
-  async function captureSnapshot() {
-  console.log("📸 Capturing snapshot...")
+}
 
-  if (!videoRef.current) {
-    console.log("❌ videoRef missing")
-    return
-  }
-    if (!videoRef.current) return
-
-    const canvas = document.createElement('canvas')
-    canvas.width = videoRef.current.videoWidth
-    canvas.height = videoRef.current.videoHeight
-    const ctx = canvas.getContext('2d')
-    ctx.drawImage(videoRef.current, 0, 0)
-
-    const blob = await new Promise(res =>
-      canvas.toBlob(res, 'image/jpeg', 0.8)
-    )
-
-    captureIndexRef.current += 1
-    const path = `${sessionId}/${captureIndexRef.current}.jpg`
-
-    const { error } = await supabase.storage
-      .from('exam-proctoring')
-      .upload(path, blob, { upsert: true })
-
-    if (!error) {
-       await supabase.from('proctoring_images').insert({
-  exam_session_id: sessionId,
-  image_url: path,   // store path only (NOT public URL)
-  capture_index: captureIndexRef.current
-})
-    }
-  }
 
 function stopProctoring() {
   clearTimeout(snapshotTimerRef.current)
