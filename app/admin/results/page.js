@@ -70,13 +70,13 @@ let globalExams = []
 
 if (assignedExamIds.length > 0) {
   const { data: allGlobal } = await supabase
-  .from('exams')
-  .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
-  .is('college_id', null)
+    .from('exams')
+    .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
+    .is('college_id', null)
 
-const globalExams = (allGlobal || []).filter(e =>
-  assignedExamIds.includes(e.id)
-)
+  globalExams = (allGlobal || []).filter(e =>
+    assignedExamIds.includes(e.id)
+  )
 }
 
 // 🔥 STEP 3: Merge both
