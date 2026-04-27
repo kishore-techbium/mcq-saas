@@ -82,7 +82,6 @@ const exams = [...new Map(
 ).values()]
 console.log("FINAL EXAMS:", exams)
 
-console.log("EXAMS RESULT:", exams, examError)
 
 const collegeIds = [...new Set((exams || []).map(e => e.college_id))]
 const { data: students, error: studentError } = await supabase
