@@ -52,13 +52,24 @@ const { data: assignments } = await supabase
 const assignedExamIds = (assignments || []).map(a => a.exam_id)
 
 // 🔥 Fetch BOTH admin + global assigned exams
-const { data: exams } = await supabase
+const formattedIds = assignedExamIds.length > 0
+  ? assignedExamIds.map(id => `"${id}"`).join(',')
+  : null
+  
+  let query = supabase
   .from('exams')
   .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
-  .or(
-    `college_id.eq.${collegeId},id.in.(${assignedExamIds.join(',')})`
-  )
   .order('created_at', { ascending: false })
+
+if (formattedIds) {
+  query = query.or(
+    `college_id.eq.${collegeId},id.in.(${formattedIds})`
+  )
+} else {
+  query = query.eq('college_id', collegeId)
+}
+
+const { data: exams } = await query
 
 const collegeIds = [...new Set((exams || []).map(e => e.college_id))]
 const { data: students, error: studentError } = await supabase
