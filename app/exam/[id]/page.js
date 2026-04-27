@@ -73,6 +73,7 @@ export default function ExamPage({ params }) {
   const [fastAnswerCount, setFastAnswerCount] = useState(0)
 
   /* 🎥 PROCTORING REFS */
+  const collegeIdRef = useRef(null)
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const snapshotTimerRef = useRef(null)
@@ -181,6 +182,7 @@ if (!currentUser) {
   body: JSON.stringify({ examId })
 })
 
+
 const data = await res.json()
 
 if (!res.ok || !data || data.error) {
@@ -251,6 +253,16 @@ setCurrentIndex(prev => {
   questionStartTimeRef.current = Date.now()
   return prev || 0
 })
+
+
+
+const { data: sessionData } = await supabase
+  .from('exam_sessions')
+  .select('college_id')
+  .eq('id', sessionId)
+  .single()
+
+collegeIdRef.current = sessionData?.college_id
 
 setLoading(false)
 
@@ -422,33 +434,19 @@ async function captureSnapshot() {
     })
 
   if (error) {
-    console.error("❌ Upload error:", error)
-  } else {
-    console.log("✅ Uploaded:", path)
-  }
-
-  if (error) {
   console.error("❌ Upload error:", error)
   return
 }
 
-console.log("✅ Uploaded:", path)
-
-
-const { error: dbError } = await supabase
+await supabase
   .from('proctoring_images')
   .insert({
     exam_session_id: sessionId,
     image_url: path,
     capture_index: captureIndexRef.current,
-    captured_at: new Date().toISOString()
+    captured_at: new Date().toISOString(),
+    college_id: collegeIdRef.current
   })
-
-if (dbError) {
-  console.error("❌ DB INSERT ERROR:", dbError)
-} else {
-  console.log("✅ DB INSERT SUCCESS")
-}
 }
 
 
