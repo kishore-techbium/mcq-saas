@@ -24,7 +24,7 @@ export default function ExamAnalyticsPage() {
 
   const reportRef = useRef()
   const leaderboardRef = useRef()
-
+  const [proctorMap, setProctorMap] = useState({})
   const [exam, setExam] = useState(null)
   const [studentsMap, setStudentsMap] = useState({})
   const [collegeName, setCollegeName] = useState('')
@@ -59,6 +59,7 @@ export default function ExamAnalyticsPage() {
 
     const studentIds = [...new Set(stats.map(s => s.student_id))]
 
+   
     // 🔹 students
     const { data: students } = await supabase
       .from('students')
@@ -89,6 +90,19 @@ if (students && students.length > 0) {
     setSubmitted(stats || [])
     setExam(examData)
 
+
+
+// 🔹 exam sessions (for proctor status)
+const { data: sessions } = await supabase
+  .from('exam_sessions')
+  .select('student_id, proctor_status')
+  .eq('exam_id', examId)
+
+const pMap = {}
+sessions?.forEach(s => {
+  pMap[s.student_id] = s.proctor_status
+})
+setProctorMap(pMap)
     // ================= SUBJECT ANALYSIS =================
     const { data: subjectStats } = await supabase
       .from('student_subject_stats')
@@ -213,14 +227,17 @@ if (students && students.length > 0) {
   }
 
   // ================= LEADERBOARD =================
-  const leaderboard = submitted
-    .map(s => ({
+const leaderboard = submitted
+  .map(s => {
+    const status = proctorMap[s.student_id]
+
+    return {
       student_id: s.student_id,
       score: s.best_score || 0,
-      rejected: s.proctor_status === 'REJECTED'
-    }))
-    .sort((a, b) => b.score - a.score)
-
+      proctor_status: status
+    }
+  })
+  .sort((a, b) => b.score - a.score)
   // ================= PDF =================
   async function downloadPDF() {
 
@@ -313,7 +330,10 @@ if (students && students.length > 0) {
             <tr><th style={styles.th}>Rank</th>
                 <th style={styles.th}>Name</th>
                 <th style={styles.th}>Score</th>
-                <th style={styles.th}>Proctor</th>
+
+                {exam?.camera_required && (
+                  <th style={styles.th}>Proctor Status</th>
+                )}
             </tr>
           </thead>
 
@@ -323,7 +343,16 @@ if (students && students.length > 0) {
                 <td style={{ ...styles.td, fontWeight:'bold' }}>{i+1}</td>
                 <td style={styles.td}>{studentsMap[l.student_id]?.name}</td>
                 <td style={styles.td}>{l.score}</td>
-                <td style={styles.td}>{l.rejected ? '⚠️' : 'OK'}</td>
+
+                {exam?.camera_required && (
+                  <td style={styles.td}>
+                    {l.proctor_status === 'REJECTED'
+                      ? '🔴 Rejected'
+                      : l.proctor_status === 'APPROVED'
+                      ? '🟢 Approved'
+                      : '🟡 Pending'}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
