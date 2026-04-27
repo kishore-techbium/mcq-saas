@@ -78,6 +78,7 @@ const [assignMsg, setAssignMsg] = useState('')
     const { data: exams } = await supabase
       .from('exams')
       .select('*')
+      .gte('exam_date', today)
       .order('exam_date', { ascending: true })
 
     if (!exams) return
