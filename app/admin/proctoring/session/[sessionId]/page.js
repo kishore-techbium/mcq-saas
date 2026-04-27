@@ -89,35 +89,55 @@ export default function ProctorReviewPage() {
   }
 
   async function approve() {
-    await supabase
-      .from('exam_sessions')
-      .update({
-        score: session.original_score,
-        is_rejected: false,
-        rejection_reason: null,
-        proctor_status: 'APPROVED'
-      })
-      .eq('id', sessionId)
+  const adminId = localStorage.getItem('admin_id')
 
-    alert('Exam Approved')
-    window.location.href = '/admin/proctoring'
+  const { error } = await supabase
+    .from('exam_sessions')
+    .update({
+      score: session.original_score,
+      is_rejected: false,
+      rejection_reason: null,
+      proctor_status: 'APPROVED',
+      reviewed_at: new Date(),
+      reviewed_by: adminId
+    })
+    .eq('id', sessionId)
+
+  if (error) {
+    console.error("❌ Approve error:", error)
+    alert("Failed to approve exam")
+    return
   }
 
-  async function reject() {
-    await supabase
-      .from('exam_sessions')
-      .update({
-        original_score: session.score,
-        score: 0,
-        is_rejected: true,
-        proctor_status: 'REJECTED'
-      })
-      .eq('id', sessionId)
+  alert('Exam Approved')
+  window.location.href = '/admin/proctoring'
+}
 
-    alert('Exam Rejected & Score set to 0')
-    window.location.href = '/admin/proctoring'
+async function reject() {
+  const adminId = localStorage.getItem('admin_id') // or your auth method
+
+  const { error } = await supabase
+    .from('exam_sessions')
+    .update({
+      original_score: session.original_score || session.score, // safer
+      score: 0,
+      is_rejected: true,
+      proctor_status: 'REJECTED',
+      rejection_reason: 'Proctoring violation',
+      reviewed_at: new Date(),
+      reviewed_by: adminId
+    })
+    .eq('id', sessionId)
+
+  if (error) {
+    console.error("❌ Reject error:", error)
+    alert("Failed to reject exam")
+    return
   }
 
+  alert('Exam Rejected & Score set to 0')
+  window.location.href = '/admin/proctoring'
+}
   if (loading)
     return <p style={{ padding: 40 }}>Loading...</p>
 
