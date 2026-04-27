@@ -213,20 +213,56 @@ async function assignExam() {
 
 async function loadAssignments() {
 
-  const { data } = await supabase
+  // 1. Get assignments
+  const { data: assignments, error } = await supabase
     .from('exam_assignments')
-    .select(`
-      id,
-      exam_date,
-      exam_time,
-      is_active,
-      exams (title),
-      colleges (name)
-    `)
+    .select('*')
     .order('assigned_at', { ascending: false })
 
-  setAssignments(data || [])
-  console.log("ASSIGNMENTS DATA:", data)
+  if (error) {
+    console.log("ASSIGNMENT ERROR:", error)
+    return
+  }
+
+  if (!assignments) {
+    console.log("NO ASSIGNMENTS")
+    setAssignments([])
+    return
+  }
+
+  // 2. Get exam IDs
+  const examIds = assignments.map(a => a.exam_id)
+  const collegeIds = assignments.map(a => a.college_id)
+
+  // 3. Fetch exams
+  const { data: exams } = await supabase
+    .from('exams')
+    .select('id, title')
+    .in('id', examIds)
+
+  // 4. Fetch colleges
+  const { data: colleges } = await supabase
+    .from('colleges')
+    .select('id, name')
+    .in('id', collegeIds)
+
+  // 5. Create maps
+  const examMap = {}
+  exams?.forEach(e => examMap[e.id] = e.title)
+
+  const collegeMap = {}
+  colleges?.forEach(c => collegeMap[c.id] = c.name)
+
+  // 6. Merge
+  const final = assignments.map(a => ({
+    ...a,
+    exams: { title: examMap[a.exam_id] },
+    colleges: { name: collegeMap[a.college_id] }
+  }))
+
+  console.log("FINAL ASSIGNMENTS:", final)
+
+  setAssignments(final)
 }
 async function toggleActive(id, current) {
 
