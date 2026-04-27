@@ -37,12 +37,16 @@ async function loadResults() {
     .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
     .order('created_at', { ascending: false })
 
-    // 🔥 STEP 1: Get assignments
-    const { data: assignments } = await supabase
-      .from('exam_assignments')
-      .select('exam_id, college_id')
-      .eq('is_active', true)
+// 🔥 STEP 1: Get assignments
+const { data: assignments } = await supabase
+  .from('exam_assignments')
+  .select('exam_id, college_id')
+  .eq('is_active', true)
 
+// ✅ ADD THIS HERE (STEP 1 FIX)
+const assignedCollegeIds = [
+  ...new Set((assignments || []).map(a => a.college_id))
+]
       // 🔥 STEP 2: Build mapping
       const examCollegeMap = {}
 
@@ -53,11 +57,15 @@ async function loadResults() {
         examCollegeMap[a.exam_id].push(a.college_id)
       })
 
-const collegeIds = [...new Set((exams || []).map(e => e.college_id))]
+const collegeIds = [
+  ...new Set((exams || [])
+    .map(e => e.college_id)
+    .filter(id => id)) // 🔥 remove null
+]
 const { data: students, error: studentError } = await supabase
   .from('students')
   .select('id, exam_preference, study_year, college_id')
-  .in('college_id', collegeIds)
+  .in('college_id', [...collegeIds, ...assignedCollegeIds])
   // ✅ Get analytics data instead of sessions
   const { data: stats } = await supabase
     .from('student_exam_stats')
@@ -100,6 +108,7 @@ const { data: students, error: studentError } = await supabase
 
 const assignedColleges = examCollegeMap[exam.id] || []
 
+
 let relatedStudents = []
 
 if (exam.college_id) {
@@ -124,7 +133,7 @@ if (exam.college_id) {
     : Number(exam.target_year) === 2
     ? '2nd Year'
     : '-',
-      students: relatedStudents.length,
+      students: relatedStudents.length || (s ? s.students : 0),
       attempts: s ? s.attempts : 0,
       
       avg_score: s
