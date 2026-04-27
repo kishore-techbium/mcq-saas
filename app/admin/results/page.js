@@ -37,7 +37,7 @@ const { data: userData } = await supabase.auth.getUser()
 const { data: admin, error: adminError } = await supabase
   .from('students')
   .select('college_id')
-  .eq('id', userData.user.id)
+  .eq('user_id', userData.user.id)
   .maybeSingle()
 
 console.log("ADMIN DATA:", admin, adminError)
