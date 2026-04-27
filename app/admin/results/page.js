@@ -56,7 +56,7 @@ const formattedIds = assignedExamIds.length > 0
   ? assignedExamIds.map(id => `"${id}"`).join(',')
   : null
   
-  let query = supabase
+let query = supabase
   .from('exams')
   .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
   .order('created_at', { ascending: false })
@@ -69,7 +69,9 @@ if (formattedIds) {
   query = query.eq('college_id', collegeId)
 }
 
-const { data: exams } = await query
+const { data: exams, error: examError } = await query
+
+console.log("EXAMS RESULT:", exams, examError)
 
 const collegeIds = [...new Set((exams || []).map(e => e.college_id))]
 const { data: students, error: studentError } = await supabase
