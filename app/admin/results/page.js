@@ -89,7 +89,13 @@ const exams = [...new Map(
 console.log("FINAL EXAMS:", exams)
 
 
-const collegeIds = [...new Set((exams || []).map(e => e.college_id))]
+const collegeIds = [
+  ...new Set(
+    (exams || [])
+      .map(e => e.college_id)
+      .filter(id => id)   // 🔥 removes null
+  )
+]
 const { data: students, error: studentError } = await supabase
   .from('students')
   .select('id, exam_preference, study_year, college_id')
