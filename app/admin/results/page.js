@@ -36,40 +36,12 @@ async function loadResults() {
     .from('exams')
     .select('id, title, exam_category, exam_type, college_id, target_year, created_at')
     .order('created_at', { ascending: false })
-console.log("STEP 1 - ALL EXAMS:", exams)
-// 🔥 STEP 1: Get assignments
-const { data: assignments } = await supabase
-  .from('exam_assignments')
-  .select('exam_id, college_id')
-  .eq('is_active', true)
-console.log("STEP 2 - ASSIGNMENTS:", assignments)
-// ✅ ADD THIS HERE (STEP 1 FIX)
-const assignedCollegeIds = [
-  ...new Set((assignments || []).map(a => a.college_id))
-]
-      // 🔥 STEP 2: Build mapping
-      const examCollegeMap = {}
 
-      ;(assignments || []).forEach(a => {
-        if (!examCollegeMap[a.exam_id]) {
-          examCollegeMap[a.exam_id] = []
-        }
-        examCollegeMap[a.exam_id].push(a.college_id)
-      })
-console.log("STEP 3 - EXAM COLLEGE MAP:", examCollegeMap)
-const collegeIds = [
-  ...new Set((exams || [])
-    .map(e => e.college_id)
-    .filter(id => id)) // 🔥 remove null
-]
+const collegeIds = [...new Set((exams || []).map(e => e.college_id))]
 const { data: students, error: studentError } = await supabase
   .from('students')
   .select('id, exam_preference, study_year, college_id')
-  .in('college_id', [...collegeIds, ...assignedCollegeIds])
-
-console.log("STEP 4 - STUDENTS COUNT:", students?.length)
-console.log("STEP 4 - SAMPLE STUDENT:", students?.[0])
-
+  .in('college_id', collegeIds)
   // ✅ Get analytics data instead of sessions
   const { data: stats } = await supabase
     .from('student_exam_stats')
@@ -102,44 +74,27 @@ console.log("STEP 4 - SAMPLE STUDENT:", students?.[0])
       e.last = s.last_attempt_at
     }
   })
-console.log("STEP 5 - PROCESSING EXAM:", {
-  id: exam.id,
-  title: exam.title,
-  college_id: exam.college_id,
-  isGlobal: !exam.college_id
-})
+
   // 🔥 BUILD FINAL ROWS
   const finalRows = (exams || []).map((exam) => {
     const s = grouped[exam.id]
 // 🎯 Filter students based on exam
 
-// 🔥 STEP 3: FIX STUDENT MAPPING
+const relatedStudents = (students || []).filter(st => {
+  if (!st.exam_preference || !st.study_year) return false
 
-const assignedColleges = examCollegeMap[exam.id] || []
+  const studentPref = st.exam_preference.toUpperCase()
+  const examCat = exam.exam_category.toUpperCase()
 
+  const categoryMatch =
+    (studentPref === 'JEE' && examCat.startsWith('JEE')) ||
+    (studentPref === 'NEET' && examCat === 'NEET')
 
-let relatedStudents = []
-
-if (exam.college_id) {
-  // ✅ Admin exam
-  relatedStudents = (students || []).filter(st =>
-    st.college_id === exam.college_id &&
+  const yearMatch =
     Number(st.study_year) === Number(exam.target_year)
-  )
-} else {
-  console.log("STEP 6 - GLOBAL EXAM DEBUG:", {
-  examId: exam.id,
-  assignedColleges,
-  studentsMatching: (students || []).filter(st =>
-    assignedColleges.includes(st.college_id)
-  ).length
+
+  return categoryMatch && yearMatch
 })
-  // ✅ Global exam
-  relatedStudents = (students || []).filter(st =>
-    assignedColleges.includes(st.college_id) &&
-    Number(st.study_year) === Number(exam.target_year)
-  )
-}
     
     return {
       ...exam,
@@ -149,7 +104,7 @@ if (exam.college_id) {
     : Number(exam.target_year) === 2
     ? '2nd Year'
     : '-',
-      students: relatedStudents.length || (s ? s.students : 0),
+      students: relatedStudents.length,
       attempts: s ? s.attempts : 0,
       
       avg_score: s
@@ -170,7 +125,7 @@ if (exam.college_id) {
       last_attempt: s ? s.last : null
     }
   })
-console.log("STEP 7 - FINAL ROWS TITLES:", finalRows.map(r => r.title))
+
   setRows(finalRows)
 }
 
