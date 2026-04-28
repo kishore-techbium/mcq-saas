@@ -224,7 +224,7 @@ async function regenerateCode() {
 
           <br />
 <button
-  onClick={() => (window.location.href = '/admin/latexquestions/page')}
+  onClick={() => (window.location.href = '/admin/latexquestions')}
   style={styles.latexBtn}
 >
   ➕ Add Question (LaTeX)
