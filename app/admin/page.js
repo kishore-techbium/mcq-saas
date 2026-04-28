@@ -223,7 +223,12 @@ async function regenerateCode() {
           </button>
 
           <br />
-
+<button
+  onClick={() => (window.location.href = '/admin/add-question')}
+  style={styles.latexBtn}
+>
+  ➕ Add Question (LaTeX)
+</button>
           <button onClick={logoutAdmin} style={styles.logoutBtn}>
             Logout
           </button>
@@ -432,6 +437,16 @@ const styles = {
     border: 'none',
     borderRadius: 8
   },
+  latexBtn: {
+  marginTop: 10,
+  padding: '10px 18px',
+  background: '#059669',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 10,
+  fontWeight: 700,
+  cursor: 'pointer'
+},
 
   maintenance: {
     marginTop: 50,
