@@ -58,6 +58,15 @@ export default function LatexQuestionsPage() {
 
     return t
   }
+  function copyToClipboard(){
+  if(!outputText){
+    alert('Nothing to copy')
+    return
+  }
+
+  navigator.clipboard.writeText(outputText)
+  alert('✅ Copied to clipboard')
+}
 
   /* ================= LIVE UPDATE ================= */
 
@@ -161,10 +170,19 @@ export default function LatexQuestionsPage() {
       />
 
       {/* OUTPUT (copy to excel) */}
-      <h3>📋 Auto Wrapped (copy this to Excel)</h3>
-      <div style={styles.outputBox}>
-        {outputText}
-      </div>
+    <h3>📋 Auto Wrapped (copy this to Excel)</h3>
+
+<div style={{display:'flex', gap:10, marginBottom:10}}>
+  <button onClick={copyToClipboard} style={styles.copyBtn}>
+    📋 Copy
+  </button>
+</div>
+
+<textarea
+  value={outputText}
+  readOnly
+  style={styles.outputTextarea}
+/>
 
       {/* PREVIEW */}
       <h3>👁️ Preview</h3>
@@ -179,6 +197,22 @@ export default function LatexQuestionsPage() {
 /* ================= STYLES ================= */
 
 const styles = {
+  copyBtn:{
+  padding:'8px 12px',
+  background:'#16a34a',
+  color:'#fff',
+  border:'none',
+  borderRadius:6,
+  cursor:'pointer'
+},
+
+outputTextarea:{
+  width:'100%',
+  height:120,
+  padding:10,
+  background:'#f1f5f9',
+  border:'1px solid #ddd'
+},
   page:{padding:30,maxWidth:900,margin:'auto'},
   textarea:{width:'100%',height:120,padding:10,marginBottom:10},
   outputBox:{background:'#f1f5f9',padding:10,marginBottom:20},
