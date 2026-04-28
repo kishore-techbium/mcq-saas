@@ -4,10 +4,21 @@ import { supabase } from '../../../../lib/supabase'
 import { useState, useEffect } from 'react'   // ✅ added useEffect
 import * as XLSX from 'xlsx'
 import JSZip from 'jszip'
-import { BlockMath } from 'react-katex'
+import { BlockMath, InlineMath } from 'react-katex'
 import { getAdminCollege } from '../../../../lib/getAdminCollege'
+import 'katex/dist/katex.min.css'
+import renderMathInElement from 'katex/contrib/auto-render'
 
 const BATCH_SIZE = 25
+
+useEffect(() => {
+  renderMathInElement(document.body, {
+    delimiters: [
+      {left: '$', right: '$', display: false},
+      {left: '$$', right: '$$', display: true}
+    ]
+  })
+}, [batches, editorValue])
 
 export default function UploadExcelPage(){
 
@@ -327,6 +338,9 @@ function openLatexEditor(row, index){
   setEditingIndex(index)
   setEditorValue(row.question || '')
 }
+function insertLatex(value){
+  setEditorValue(prev => prev + ' ' + value)
+}
   const batch = batches[currentBatch] || []
 
   return (
@@ -402,9 +416,9 @@ function openLatexEditor(row, index){
                 marginBottom:10,
                 borderRadius:6
               }}>
-              <div style={{whiteSpace:'pre-wrap'}}>
-                {r.question.replace(/_/g, '')}
-              </div>
+          <div style={{whiteSpace:'pre-wrap'}}>
+            {r.question}
+          </div>
               </div>
             )}
 
@@ -506,7 +520,7 @@ function openLatexEditor(row, index){
             <div>
               <b>Math:</b>
               {TOOLBAR.math.map((t,i)=>(
-                <button key={i} onClick={()=>setEditorValue(prev => prev + ' ' + t.latex)} style={toolbarBtn}>
+                <button key={i} onClick={()=>insertLatex(t.latex)} style={toolbarBtn}>
                   {t.label}
                 </button>
               ))}
@@ -515,7 +529,7 @@ function openLatexEditor(row, index){
             <div style={{marginTop:8}}>
               <b>Chem:</b>
               {TOOLBAR.chemistry.map((t,i)=>(
-                <button key={i} onClick={()=>setEditorValue(prev => prev + ' ' + t.latex)} style={toolbarBtn}>
+                <button key={i} onClick={()=>insertLatex(t.latex)} style={toolbarBtn}>
                   {t.label}
                 </button>
               ))}
@@ -524,7 +538,7 @@ function openLatexEditor(row, index){
             <div style={{marginTop:8}}>
               <b>Physics:</b>
               {TOOLBAR.physics.map((t,i)=>(
-                <button key={i} onClick={()=>setEditorValue(prev => prev + ' ' + t.latex)} style={toolbarBtn}>
+                <button key={i} onClick={()=>insertLatex(t.latex)} style={toolbarBtn}>
                   {t.label}
                 </button>
               ))}
@@ -541,7 +555,9 @@ function openLatexEditor(row, index){
 
           {/* PREVIEW */}
           <div style={{marginTop:10, background:'#f1f5f9', padding:10}}>
-            <BlockMath>{editorValue}</BlockMath>
+          <div style={{whiteSpace:'pre-wrap'}}>
+            {editorValue}
+          </div>
           </div>
 
           {/* ACTIONS */}
