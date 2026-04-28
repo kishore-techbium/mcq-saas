@@ -37,6 +37,29 @@ export default function UploadExcelPage(){
   // ✅ NEW STATES
   const [exams,setExams] = useState([])
   const [selectedExam,setSelectedExam] = useState('')
+  const TOOLBAR = {
+  math: [
+    { label: 'x²', latex: 'x^{2}' },
+    { label: '√', latex: '\\sqrt{x}' },
+    { label: 'frac', latex: '\\frac{a}{b}' },
+    { label: 'sin', latex: '\\sin(x)' },
+    { label: 'log', latex: '\\log(x)' },
+    { label: '∫', latex: '\\int x \\, dx' }
+  ],
+  chemistry: [
+    { label: 'H₂O', latex: 'H_{2}O' },
+    { label: 'CO₂', latex: 'CO_{2}' },
+    { label: '→', latex: '\\rightarrow' },
+    { label: '⇌', latex: '\\rightleftharpoons' },
+    { label: 'Δ', latex: '\\Delta' }
+  ],
+  physics: [
+    { label: 'v=d/t', latex: 'v = \\frac{d}{t}' },
+    { label: 'F=ma', latex: 'F = ma' },
+    { label: 'E=mc²', latex: 'E = mc^{2}' },
+    { label: 'V=IR', latex: 'V = IR' }
+  ]
+}
 
   function showToast(msg,type='success'){
     setToast({msg,type})
@@ -379,7 +402,9 @@ function openLatexEditor(row, index){
                 marginBottom:10,
                 borderRadius:6
               }}>
-                <BlockMath>{r.question}</BlockMath>
+              <div style={{whiteSpace:'pre-wrap'}}>
+                {r.question.replace(/_/g, '')}
+              </div>
               </div>
             )}
 
