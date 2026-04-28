@@ -43,24 +43,72 @@ export default function UploadExcelPage(){
   const TOOLBAR = {
   math: [
     { label: 'x²', latex: 'x^{2}' },
+    { label: 'xⁿ', latex: 'x^{n}' },
     { label: '√', latex: '\\sqrt{x}' },
+    { label: 'n√', latex: '\\sqrt[n]{x}' },
     { label: 'frac', latex: '\\frac{a}{b}' },
-    { label: 'sin', latex: '\\sin(x)' },
+    { label: '( )', latex: '(a+b)' },
+    { label: '|x|', latex: '|x|' },
     { label: 'log', latex: '\\log(x)' },
-    { label: '∫', latex: '\\int x \\, dx' }
+    { label: 'ln', latex: '\\ln(x)' },
+    { label: 'e^x', latex: 'e^{x}' },
+    { label: '10^x', latex: '10^{x}' },
+    { label: 'sin', latex: '\\sin(x)' },
+    { label: 'cos', latex: '\\cos(x)' },
+    { label: 'tan', latex: '\\tan(x)' },
+    { label: 'cot', latex: '\\cot(x)' },
+    { label: 'sec', latex: '\\sec(x)' },
+    { label: 'cosec', latex: '\\csc(x)' },
+    { label: '∫', latex: '\\int x \\, dx' },
+    { label: '∫ limits', latex: '\\int_{a}^{b} f(x) dx' },
+    { label: 'Σ', latex: '\\sum_{i=1}^{n} i' },
+    { label: 'lim', latex: '\\lim_{x \\to a}' },
+    { label: '∞', latex: '\\infty' },
+    { label: 'θ', latex: '\\theta' },
+    { label: 'π', latex: '\\pi' },
+    { label: '≈', latex: '\\approx' },
+    { label: '≠', latex: '\\neq' },
+    { label: '≤', latex: '\\leq' },
+    { label: '≥', latex: '\\geq' }
   ],
+
   chemistry: [
     { label: 'H₂O', latex: 'H_{2}O' },
     { label: 'CO₂', latex: 'CO_{2}' },
+    { label: 'NH₃', latex: 'NH_{3}' },
+    { label: 'H₂SO₄', latex: 'H_{2}SO_{4}' },
+    { label: 'Na⁺', latex: 'Na^{+}' },
+    { label: 'Cl⁻', latex: 'Cl^{-}' },
+    { label: 'e⁻', latex: 'e^{-}' },
     { label: '→', latex: '\\rightarrow' },
     { label: '⇌', latex: '\\rightleftharpoons' },
-    { label: 'Δ', latex: '\\Delta' }
+    { label: '↑', latex: '\\uparrow' },
+    { label: '↓', latex: '\\downarrow' },
+    { label: 'Δ', latex: '\\Delta' },
+    { label: '°C', latex: '^{\\circ}C' },
+    { label: 'mol', latex: '\\text{mol}' },
+    { label: 'aq', latex: '_{(aq)}' },
+    { label: 'solid', latex: '_{(s)}' },
+    { label: 'liquid', latex: '_{(l)}' },
+    { label: 'gas', latex: '_{(g)}' }
   ],
+
   physics: [
     { label: 'v=d/t', latex: 'v = \\frac{d}{t}' },
+    { label: 'a=(v-u)/t', latex: 'a = \\frac{v-u}{t}' },
     { label: 'F=ma', latex: 'F = ma' },
     { label: 'E=mc²', latex: 'E = mc^{2}' },
-    { label: 'V=IR', latex: 'V = IR' }
+    { label: 'V=IR', latex: 'V = IR' },
+    { label: 'P=W/t', latex: 'P = \\frac{W}{t}' },
+    { label: 'p=mv', latex: 'p = mv' },
+    { label: 'ρ=m/V', latex: '\\rho = \\frac{m}{V}' },
+    { label: 'W=Fd', latex: 'W = Fd' },
+    { label: 'KE', latex: 'KE = \\frac{1}{2}mv^{2}' },
+    { label: 'PE', latex: 'PE = mgh' },
+    { label: 'g', latex: 'g = 9.8 \\, m/s^{2}' },
+    { label: 'λ', latex: '\\lambda' },
+    { label: 'f', latex: 'f = \\frac{1}{T}' },
+    { label: 'c', latex: 'c = 3 \\times 10^{8} \\, m/s' }
   ]
 }
 
