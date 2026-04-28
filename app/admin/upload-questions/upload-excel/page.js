@@ -173,10 +173,10 @@ export default function UploadExcelPage(){
 
     rows.forEach((r,i)=>{
       const ok = data.some(m =>
-        m.exam_category===r.exam_category &&
-        m.subject===r.subject &&
-        m.chapter===r.chapter &&
-        m.subtopic===r.subtopic
+m.exam_category === (r.exam_category || '') &&
+m.subject === (r.subject || '') &&
+m.chapter === (r.chapter || '') &&
+m.subtopic === (r.subtopic || '')
       )
 
       if(!ok){
@@ -202,7 +202,16 @@ export default function UploadExcelPage(){
 
     const buffer = await excelFile.arrayBuffer()
     const wb = XLSX.read(buffer)
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]])
+    const rawRows = XLSX.utils.sheet_to_json(
+  wb.Sheets[wb.SheetNames[0]],
+  { defval: '' }   // 🔥 VERY IMPORTANT
+)
+console.log('Parsed Rows:', rows)
+
+// remove empty rows completely
+const rows = rawRows.filter(r =>
+  r && Object.keys(r).length > 0
+)
 
     const masterErrors = await validateMaster(rows)
 
