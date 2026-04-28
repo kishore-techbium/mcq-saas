@@ -105,28 +105,61 @@ export default function LatexQuestionsPage() {
   /* ================= TOOLBAR ================= */
 const TOOLBAR = {
   math: [
-    'x^2','x^n','\\sqrt{x}','\\frac{a}{b}','\\log(x)','\\ln(x)',
-    '\\sin(x)','\\cos(x)','\\tan(x)','\\cot(x)','\\sec(x)','\\csc(x)',
-    '\\int x dx','\\int_{a}^{b} f(x) dx',
-    '\\sum_{i=1}^{n} i','\\lim_{x \\to a}',
-    '\\pi','\\theta','\\infty','\\approx','\\neq','\\leq','\\geq'
+    { label: 'x²', latex: 'x^2' },
+    { label: 'xⁿ', latex: 'x^n' },
+    { label: '√', latex: '\\sqrt{x}' },
+    { label: '∛', latex: '\\sqrt[3]{x}' },
+    { label: '½', latex: '\\frac{a}{b}' },
+    { label: '∫', latex: '\\int x dx' },
+    { label: '∫ₐᵇ', latex: '\\int_{a}^{b} f(x) dx' },
+    { label: 'Σ', latex: '\\sum_{i=1}^{n} i' },
+    { label: '∂', latex: '\\partial' },
+    { label: 'd/dx', latex: '\\frac{d}{dx}' },
+    { label: 'lim', latex: '\\lim_{x \\to a}' },
+    { label: '∞', latex: '\\infty' },
+    { label: 'π', latex: '\\pi' },
+    { label: 'θ', latex: '\\theta' },
+    { label: '≈', latex: '\\approx' },
+    { label: '≠', latex: '\\neq' },
+    { label: '≤', latex: '\\leq' },
+    { label: '≥', latex: '\\geq' }
   ],
 
   chemistry: [
-    'H2O','CO2','NH3','H2SO4',
-    'Na^+','Cl^-','e^-',
-    '\\rightarrow','\\rightleftharpoons',
-    '\\uparrow','\\downarrow',
-    '\\Delta','^{\\circ}C',
-    '(aq)','(l)','(g)','(s)',
-    '\\text{mol}'
+    { label: 'H₂O', latex: 'H2O' },
+    { label: 'CO₂', latex: 'CO2' },
+    { label: 'NH₃', latex: 'NH3' },
+    { label: 'H₂SO₄', latex: 'H2SO4' },
+    { label: 'Na⁺', latex: 'Na^+' },
+    { label: 'Cl⁻', latex: 'Cl^-' },
+    { label: 'e⁻', latex: 'e^-' },
+    { label: '→', latex: '\\rightarrow' },
+    { label: '⇌', latex: '\\rightleftharpoons' },
+    { label: '↑', latex: '\\uparrow' },
+    { label: '↓', latex: '\\downarrow' },
+    { label: 'Δ', latex: '\\Delta' },
+    { label: '°C', latex: '^{\\circ}C' },
+    { label: 'mol', latex: '\\text{mol}' },
+    { label: '(aq)', latex: '(aq)' },
+    { label: '(l)', latex: '(l)' },
+    { label: '(g)', latex: '(g)' }
   ],
 
   physics: [
-    'v=d/t','a=(v-u)/t','F=ma','E=mc^2','V=IR',
-    'P=W/t','p=mv','\\rho=m/V','W=Fd',
-    'KE=\\frac{1}{2}mv^2','PE=mgh',
-    'g=9.8 m/s^2','\\lambda','f=1/T','c=3\\times10^8'
+    { label: 'v', latex: 'v = \\frac{d}{t}' },
+    { label: 'a', latex: 'a = \\frac{v-u}{t}' },
+    { label: 'F', latex: 'F = ma' },
+    { label: 'E', latex: 'E = mc^2' },
+    { label: 'V', latex: 'V = IR' },
+    { label: 'P', latex: 'P = \\frac{W}{t}' },
+    { label: 'p', latex: 'p = mv' },
+    { label: 'ρ', latex: '\\rho = \\frac{m}{V}' },
+    { label: 'W', latex: 'W = Fd' },
+    { label: 'KE', latex: 'KE = \\frac{1}{2}mv^2' },
+    { label: 'PE', latex: 'PE = mgh' },
+    { label: 'λ', latex: '\\lambda' },
+    { label: 'f', latex: 'f = \\frac{1}{T}' },
+    { label: 'c', latex: 'c = 3 \\times 10^8' }
   ]
 }
 
@@ -165,10 +198,11 @@ const TOOLBAR = {
   {TOOLBAR[activeTab].map((t,i)=>(
     <button
       key={i}
-      onClick={()=>insertText(t)}
+      onClick={()=>insertText(t.latex)}
       style={styles.toolBtn}
+      title={t.latex}
     >
-      {t}
+      {t.label}
     </button>
   ))}
 </div>
@@ -221,11 +255,13 @@ const styles = {
 },
 
 toolBtn:{
-  padding:'5px 8px',
-  fontSize:12,
+  padding:'6px 10px',
+  fontSize:14,
   border:'1px solid #ddd',
-  borderRadius:5,
-  background:'#f8fafc',
-  cursor:'pointer'
+  borderRadius:6,
+  background:'#ffffff',
+  cursor:'pointer',
+  minWidth:40,
+  textAlign:'center'
 }
 }
