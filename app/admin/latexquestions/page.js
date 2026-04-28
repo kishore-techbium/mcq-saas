@@ -87,12 +87,22 @@ function processExcel(){
 
   reader.onload = (e) => {
     const data = new Uint8Array(e.target.result)
-
-    const workbook = XLSX.read(data, { type: 'array' })
-    const sheet = workbook.Sheets[workbook.SheetNames[0]]
-
-    const json = XLSX.utils.sheet_to_json(sheet)
-
+    let json = []
+    
+    if (excelFile.name.endsWith('.csv')) {
+      const text = new TextDecoder().decode(data)
+      const workbook = XLSX.read(text, { type: 'string' })
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      json = XLSX.utils.sheet_to_json(sheet)
+    } else {
+      const workbook = XLSX.read(data, { type: 'array' })
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      json = XLSX.utils.sheet_to_json(sheet)
+    }
+if(!json.length){
+  alert('File is empty or format incorrect')
+  return
+}
     const updated = json.map((row, index) => {
 
       const converted = {
@@ -285,7 +295,7 @@ const TOOLBAR = {
           <div style={{marginBottom:15}}>
             <input
               type="file"
-              accept=".xlsx,.xls"
+              accept=".xlsx,.xls,.csv"
               onChange={(e)=>setExcelFile(e.target.files[0])}
             />
             {previewRows.length > 0 && (
