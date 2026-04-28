@@ -1,9 +1,15 @@
 'use client'
-import { useState } from 'react'
+
+import { useEffect, useState } from 'react'
+import { supabase } from '../../../lib/supabase'
+import { getAdminCollege } from '../../../lib/getAdminCollege'
 import 'katex/dist/katex.min.css'
 import { BlockMath, InlineMath } from 'react-katex'
 
-export default function AddQuestion() {
+export default function LatexQuestionsPage() {
+  const [collegeId, setCollegeId] = useState(null)
+  const [adminName, setAdminName] = useState('')
+
   const [question, setQuestion] = useState('')
   const [optionA, setOptionA] = useState('')
   const [optionB, setOptionB] = useState('')
@@ -11,18 +17,90 @@ export default function AddQuestion() {
   const [optionD, setOptionD] = useState('')
   const [answer, setAnswer] = useState('A')
 
+  const [loading, setLoading] = useState(true)
+
+  /* ================= AUTH + COLLEGE ================= */
+
+  useEffect(() => {
+    async function init() {
+      const data = await getAdminCollege()
+
+      if (!data) {
+        window.location.href = '/'
+        return
+      }
+
+      setCollegeId(data.collegeId)
+      setAdminName(data.adminName)
+      setLoading(false)
+    }
+
+    init()
+  }, [])
+
+  /* ================= SAVE QUESTION ================= */
+
+  async function saveQuestion() {
+    if (!question) {
+      alert('Question cannot be empty')
+      return
+    }
+
+    const { error } = await supabase.from('question_bank').insert({
+      college_id: collegeId,
+      question,
+      option_a: optionA,
+      option_b: optionB,
+      option_c: optionC,
+      option_d: optionD,
+      correct_answer: answer
+    })
+
+    if (!error) {
+      alert('✅ Question saved successfully')
+
+      // reset form
+      setQuestion('')
+      setOptionA('')
+      setOptionB('')
+      setOptionC('')
+      setOptionD('')
+      setAnswer('A')
+    } else {
+      alert('❌ Error saving question')
+      console.error(error)
+    }
+  }
+
+  if (loading) {
+    return <p style={{ padding: 30 }}>Loading...</p>
+  }
+
   return (
     <div style={styles.page}>
-      <h1 style={styles.heading}>➕ Add Question (LaTeX Supported)</h1>
+      {/* HEADER */}
+      <div style={styles.header}>
+        <div>
+          <h1>Add LaTeX Question</h1>
+          <p>Welcome, {adminName}</p>
+        </div>
+
+        <button
+          onClick={() => (window.location.href = '/admin')}
+          style={styles.backBtn}
+        >
+          ← Back to Dashboard
+        </button>
+      </div>
 
       <div style={styles.container}>
         
-        {/* LEFT SIDE INPUT */}
+        {/* INPUT */}
         <div style={styles.inputBox}>
           <h3>📝 Enter Question</h3>
 
           <textarea
-            placeholder="Type LaTeX here: e.g. \frac{x^2}{y}"
+            placeholder="Example: \frac{x^2}{y}"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             style={styles.textarea}
@@ -42,10 +120,12 @@ export default function AddQuestion() {
             <option>D</option>
           </select>
 
-          <button style={styles.saveBtn}>💾 Save Question</button>
+          <button onClick={saveQuestion} style={styles.saveBtn}>
+            💾 Save Question
+          </button>
         </div>
 
-        {/* RIGHT SIDE PREVIEW */}
+        {/* PREVIEW */}
         <div style={styles.previewBox}>
           <h3>👁️ Live Preview</h3>
 
@@ -66,15 +146,25 @@ export default function AddQuestion() {
   )
 }
 
+/* ================= STYLES ================= */
+
 const styles = {
   page: {
     padding: 40,
     background: '#f8fafc',
     minHeight: '100vh'
   },
-  heading: {
-    fontSize: 28,
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
     marginBottom: 20
+  },
+  backBtn: {
+    padding: '10px 16px',
+    background: '#64748b',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 8
   },
   container: {
     display: 'grid',
@@ -94,7 +184,6 @@ const styles = {
   textarea: {
     width: '100%',
     height: 120,
-    marginTop: 10,
     marginBottom: 15,
     padding: 10
   },
@@ -105,11 +194,10 @@ const styles = {
   },
   select: {
     width: '100%',
-    padding: 10,
-    marginTop: 10
+    padding: 10
   },
   saveBtn: {
-    marginTop: 15,
+    marginTop: 10,
     padding: 12,
     background: '#2563eb',
     color: '#fff',
