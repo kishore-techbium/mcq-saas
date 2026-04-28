@@ -541,6 +541,7 @@ function openLatexEditor(row, index){
 
   </div>
 )
+}
 /* ================== STYLES ================== */
 
 const container={maxWidth:900,margin:'auto',padding:30}
@@ -554,6 +555,7 @@ const toolbarBtn = {
   background:'#f8fafc',
   cursor:'pointer'
 }
+
 const fileBox={
   border:'1px solid #ddd',
   padding:10,
