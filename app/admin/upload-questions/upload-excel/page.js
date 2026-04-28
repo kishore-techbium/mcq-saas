@@ -11,14 +11,6 @@ import renderMathInElement from 'katex/contrib/auto-render'
 
 const BATCH_SIZE = 25
 
-useEffect(() => {
-  renderMathInElement(document.body, {
-    delimiters: [
-      {left: '$', right: '$', display: false},
-      {left: '$$', right: '$$', display: true}
-    ]
-  })
-}, [batches, editorValue])
 
 export default function UploadExcelPage(){
 
@@ -72,6 +64,16 @@ export default function UploadExcelPage(){
   ]
 }
 
+useEffect(() => {
+  renderMathInElement(document.body, {
+    delimiters: [
+      {left: '$', right: '$', display: false},
+      {left: '$$', right: '$$', display: true}
+    ]
+  })
+}, [batches, editorValue])
+
+  
   function showToast(msg,type='success'){
     setToast({msg,type})
     setTimeout(()=>setToast(null),3000)
