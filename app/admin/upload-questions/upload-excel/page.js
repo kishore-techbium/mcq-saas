@@ -240,10 +240,7 @@ rows.forEach((r, i) => {
   }
 })
 
-if (imageErrors.length) {
-  setErrors(imageErrors)
-  return showToast('Image validation failed', 'error')
-}
+
     const enriched = rows.map(r=>({
       ...r,
       rejected:false,
