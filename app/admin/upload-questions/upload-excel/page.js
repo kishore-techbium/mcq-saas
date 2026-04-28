@@ -114,14 +114,18 @@ export default function UploadExcelPage(){
 }
 
 useEffect(() => {
-  renderMathInElement(document.body, {
+  if (!contentRef.current) return
+
+  // clear previous rendering
+  contentRef.current.innerHTML = contentRef.current.innerHTML
+
+  renderMathInElement(contentRef.current, {
     delimiters: [
-      {left: '$', right: '$', display: false},
-      {left: '$$', right: '$$', display: true}
+      { left: '$', right: '$', display: false },
+      { left: '$$', right: '$$', display: true }
     ]
   })
 }, [batches, editorValue])
-
   
   function showToast(msg,type='success'){
     setToast({msg,type})
@@ -390,7 +394,7 @@ function openLatexEditor(row, index){
   setEditorValue(row.question || '')
 }
 function insertLatex(value){
-  setEditorValue(prev => prev + ' ' + value)
+  setEditorValue(prev => prev + '\n' + value + ' ')
 }
   const batch = batches[currentBatch] || []
 
@@ -595,7 +599,10 @@ function insertLatex(value){
 
           {/* PREVIEW */}
           <div style={{marginTop:10, background:'#f1f5f9', padding:10}}>
-          <div style={{whiteSpace:'pre-wrap'}}>
+          <div style={{
+            whiteSpace:'pre-wrap',
+            lineHeight: '1.6'
+          }}>
             {editorValue}
           </div>
           </div>
