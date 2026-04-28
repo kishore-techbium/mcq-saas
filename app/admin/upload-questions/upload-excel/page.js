@@ -113,19 +113,6 @@ export default function UploadExcelPage(){
   ]
 }
 
-useEffect(() => {
-  if (!contentRef.current) return
-
-  // clear previous rendering
-  contentRef.current.innerHTML = contentRef.current.innerHTML
-
-  renderMathInElement(contentRef.current, {
-    delimiters: [
-      { left: '$', right: '$', display: false },
-      { left: '$$', right: '$$', display: true }
-    ]
-  })
-}, [batches, editorValue])
   
   function showToast(msg,type='success'){
     setToast({msg,type})
@@ -471,9 +458,20 @@ function insertLatex(value){
                 marginBottom:10,
                 borderRadius:6
               }}>
-          <div style={{whiteSpace:'pre-wrap'}}>
-            {r.question}
-          </div>
+<div
+  ref={(el) => {
+    if(el){
+      el.innerHTML = r.question
+      renderMathInElement(el, {
+        delimiters: [
+          { left: '$', right: '$', display: false },
+          { left: '$$', right: '$$', display: true }
+        ]
+      })
+    }
+  }}
+  style={{whiteSpace:'pre-wrap'}}
+/>
               </div>
             )}
 
