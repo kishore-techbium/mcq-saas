@@ -202,16 +202,17 @@ m.subtopic === (r.subtopic || '')
 
     const buffer = await excelFile.arrayBuffer()
     const wb = XLSX.read(buffer)
-    const rawRows = XLSX.utils.sheet_to_json(
+  const rawRows = XLSX.utils.sheet_to_json(
   wb.Sheets[wb.SheetNames[0]],
-  { defval: '' }   // 🔥 VERY IMPORTANT
+  { defval: '' }
 )
-console.log('Parsed Rows:', rows)
 
-// remove empty rows completely
 const rows = rawRows.filter(r =>
   r && Object.keys(r).length > 0
 )
+
+// ✅ NOW it's safe
+console.log('Parsed Rows:', rows)
 
     const masterErrors = await validateMaster(rows)
 
