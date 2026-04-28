@@ -34,20 +34,29 @@ const [processedData, setProcessedData] = useState([])
   /* ================= AUTO WRAP ================= */
 
  function autoWrap(text){
-  if(!text) return ''
 
-  let t = text
+  if(text === null || text === undefined) return ''
 
-  const hasMath = /[\^\/_=]/.test(t)
+  // 🔥 force string conversion
+  let t = String(text)
 
+  // fraction m/V → \frac{m}{V}
   t = t.replace(/(\w+)\/(\w+)/g, '\\frac{$1}{$2}')
+
+  // power x^2 → x^{2}
   t = t.replace(/(\w)\^(\w+)/g, '$1^{$2}')
+
+  // chemical H2O → H_{2}O
   t = t.replace(/([A-Za-z])(\d+)/g, '$1_{$2}')
+
+  // rho
   t = t.replace(/ρ/g, '\\rho')
+
+  // wrap only if math exists
+  const hasMath = /[\^\/_=]/.test(t)
 
   return hasMath ? `$${t}$` : t
 }
-
   /* ================= LIVE UPDATE ================= */
 
   useEffect(() => {
@@ -107,7 +116,7 @@ if(!json.length){
 
       const converted = {
         ...row,
-        question: autoWrap(row.question || ''),
+        question: autoWrap(row.question),
         option_a: autoWrap(row.option_a || ''),
         option_b: autoWrap(row.option_b || ''),
         option_c: autoWrap(row.option_c || ''),
