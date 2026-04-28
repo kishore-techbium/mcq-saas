@@ -41,18 +41,9 @@ export default function LatexQuestionsPage() {
     t = t.replace(/([A-Za-z])(\d+)/g, '$1_{$2}')
     t = t.replace(/ρ/g, '\\rho')
 
-    // wrap only math patterns
     t = t.replace(/(\\[a-zA-Z]+|\w+\^{\w+}|\w+_\{\w+\}|\\frac\{.*?\}\{.*?\})/g, m => `$${m}$`)
 
     return t
-  }
-
-  /* ================= VALIDATION ================= */
-
-  function validateLatex(text){
-    if(!text) return true
-    const count = (text.match(/\$/g) || []).length
-    return count % 2 === 0
   }
 
   /* ================= LIVE UPDATE ================= */
@@ -61,11 +52,12 @@ export default function LatexQuestionsPage() {
     setOutputText(autoWrap(inputText))
   }, [inputText])
 
-  /* ================= PREVIEW RENDER ================= */
+  /* ================= PREVIEW FIX ================= */
 
   useEffect(() => {
     if(previewRef.current){
       previewRef.current.innerHTML = outputText
+
       renderMathInElement(previewRef.current, {
         delimiters: [
           { left: '$', right: '$', display: false },
@@ -82,7 +74,7 @@ export default function LatexQuestionsPage() {
     alert('✅ Copied')
   }
 
-  /* ================= INSERT AT CURSOR ================= */
+  /* ================= INSERT ================= */
 
   function insertText(value){
     const textarea = document.getElementById('inputBox')
@@ -108,76 +100,103 @@ export default function LatexQuestionsPage() {
   const TOOLBAR = {
     math: [
       { label: 'x²', latex: 'x^2' },
+      { label: 'xⁿ', latex: 'x^n' },
       { label: '√', latex: '\\sqrt{x}' },
       { label: 'frac', latex: 'a/b' },
       { label: 'log', latex: '\\log(x)' },
+      { label: 'ln', latex: '\\ln(x)' },
       { label: 'sin', latex: '\\sin(x)' },
+      { label: 'cos', latex: '\\cos(x)' },
+      { label: 'tan', latex: '\\tan(x)' },
       { label: '∫', latex: '\\int x dx' },
-      { label: 'Σ', latex: '\\sum_{i=1}^{n} i' }
+      { label: 'Σ', latex: '\\sum_{i=1}^{n} i' },
+      { label: 'lim', latex: '\\lim_{x \\to a}' },
+      { label: 'π', latex: '\\pi' },
+      { label: 'θ', latex: '\\theta' }
     ],
+
     chemistry: [
       { label: 'H₂O', latex: 'H2O' },
       { label: 'CO₂', latex: 'CO2' },
+      { label: 'NH₃', latex: 'NH3' },
       { label: 'Na⁺', latex: 'Na^+' },
       { label: 'Cl⁻', latex: 'Cl^-' },
+      { label: 'e⁻', latex: 'e^-' },
       { label: '→', latex: '\\rightarrow' },
-      { label: '⇌', latex: '\\rightleftharpoons' }
+      { label: '⇌', latex: '\\rightleftharpoons' },
+      { label: '(aq)', latex: '(aq)' },
+      { label: '(l)', latex: '(l)' },
+      { label: '(g)', latex: '(g)' },
+      { label: 'Δ', latex: '\\Delta' }
     ],
+
     physics: [
-      { label: 'F=ma', latex: 'F=ma' },
       { label: 'v=d/t', latex: 'v=d/t' },
+      { label: 'a=(v-u)/t', latex: 'a=(v-u)/t' },
+      { label: 'F=ma', latex: 'F=ma' },
       { label: 'E=mc²', latex: 'E=mc^2' },
-      { label: 'ρ=m/V', latex: 'ρ=m/V' }
+      { label: 'V=IR', latex: 'V=IR' },
+      { label: 'P=W/t', latex: 'P=W/t' },
+      { label: 'p=mv', latex: 'p=mv' },
+      { label: 'ρ=m/V', latex: 'ρ=m/V' },
+      { label: 'KE', latex: 'KE=1/2 mv^2' },
+      { label: 'PE', latex: 'PE=mgh' },
+      { label: 'λ', latex: '\\lambda' }
     ]
   }
 
   if (loading) return <p>Loading...</p>
 
-  const isValid = validateLatex(outputText)
-
   return (
     <div style={styles.page}>
 
-      <h1>🧠 LaTeX Helper Tool</h1>
+      <h1>LaTeX Helper</h1>
       <p>Welcome, {adminName}</p>
 
-      <div style={{color:isValid?'green':'red'}}>
-        {isValid ? '✅ Valid LaTeX' : '❌ Check formatting'}
+      <div style={styles.container}>
+
+        {/* LEFT SIDE */}
+        <div style={styles.left}>
+
+          {/* TABS */}
+          <div style={{marginBottom:10}}>
+            <button onClick={()=>setActiveTab('math')}>Math</button>
+            <button onClick={()=>setActiveTab('chemistry')}>Chem</button>
+            <button onClick={()=>setActiveTab('physics')}>Physics</button>
+          </div>
+
+          {/* TOOLBAR */}
+          <div>
+            {TOOLBAR[activeTab].map((t,i)=>(
+              <button key={i} onClick={()=>insertText(t.latex)} style={styles.btn}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* INPUT */}
+          <textarea
+            id="inputBox"
+            value={inputText}
+            onChange={(e)=>setInputText(e.target.value)}
+            style={styles.textarea}
+          />
+
+          {/* OUTPUT */}
+          <h4>Copy to Excel</h4>
+          <button onClick={copyToClipboard} style={styles.copyBtn}>Copy</button>
+
+          <textarea value={outputText} readOnly style={styles.output}/>
+
+        </div>
+
+        {/* RIGHT SIDE */}
+        <div style={styles.right}>
+          <h3>Preview</h3>
+          <div ref={previewRef} style={styles.preview}></div>
+        </div>
+
       </div>
-
-      {/* TABS */}
-      <div style={{marginBottom:10}}>
-        <button onClick={()=>setActiveTab('math')} style={styles.tab}>Math</button>
-        <button onClick={()=>setActiveTab('chemistry')} style={styles.tab}>Chem</button>
-        <button onClick={()=>setActiveTab('physics')} style={styles.tab}>Physics</button>
-      </div>
-
-      {/* TOOLBAR */}
-      <div>
-        {TOOLBAR[activeTab].map((t,i)=>(
-          <button key={i} onClick={()=>insertText(t.latex)} style={styles.btn}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* INPUT */}
-      <textarea
-        id="inputBox"
-        value={inputText}
-        onChange={(e)=>setInputText(e.target.value)}
-        style={styles.textarea}
-      />
-
-      {/* OUTPUT */}
-      <h3>📋 Copy this to Excel</h3>
-      <button onClick={copyToClipboard} style={styles.copyBtn}>Copy</button>
-
-      <textarea value={outputText} readOnly style={styles.output}/>
-
-      {/* PREVIEW */}
-      <h3>👁️ Preview</h3>
-      <div ref={previewRef} style={styles.preview}></div>
 
     </div>
   )
@@ -186,11 +205,13 @@ export default function LatexQuestionsPage() {
 /* ================= STYLES ================= */
 
 const styles = {
-  page:{padding:30,maxWidth:900,margin:'auto'},
-  textarea:{width:'100%',height:120,marginBottom:10},
-  output:{width:'100%',height:120,background:'#f1f5f9'},
+  page:{padding:30},
+  container:{display:'flex',gap:20},
+  left:{flex:1},
+  right:{flex:1},
+  textarea:{width:'100%',height:120,marginTop:10},
+  output:{width:'100%',height:120,marginTop:10},
   preview:{background:'#fff',padding:20,border:'1px solid #ddd'},
-  btn:{margin:5,padding:'6px 10px'},
-  tab:{marginRight:10,padding:'6px 12px'},
-  copyBtn:{marginBottom:10,padding:'6px 10px',background:'green',color:'#fff'}
+  btn:{margin:5},
+  copyBtn:{background:'green',color:'#fff',padding:6,marginTop:5}
 }
