@@ -9,6 +9,7 @@ import { BlockMath, InlineMath } from 'react-katex'
 export default function LatexQuestionsPage() {
   const [collegeId, setCollegeId] = useState(null)
   const [adminName, setAdminName] = useState('')
+  const [loading, setLoading] = useState(true)
 
   const [question, setQuestion] = useState('')
   const [optionA, setOptionA] = useState('')
@@ -17,9 +18,7 @@ export default function LatexQuestionsPage() {
   const [optionD, setOptionD] = useState('')
   const [answer, setAnswer] = useState('A')
 
-  const [loading, setLoading] = useState(true)
-
-  /* ================= AUTH + COLLEGE ================= */
+  /* ================= AUTH ================= */
 
   useEffect(() => {
     async function init() {
@@ -38,7 +37,76 @@ export default function LatexQuestionsPage() {
     init()
   }, [])
 
-  /* ================= SAVE QUESTION ================= */
+  /* ================= TOOLBAR DATA ================= */
+
+  const TOOLBAR = {
+    math: [
+      { label: 'x²', latex: 'x^{2}' },
+      { label: 'xⁿ', latex: 'x^{n}' },
+      { label: '√x', latex: '\\sqrt{x}' },
+      { label: 'Fraction', latex: '\\frac{a}{b}' },
+      { label: '(a+b)²', latex: '(a+b)^{2}' },
+      { label: 'log', latex: '\\log(x)' },
+      { label: 'sin', latex: '\\sin(x)' },
+      { label: 'cos', latex: '\\cos(x)' },
+      { label: 'tan', latex: '\\tan(x)' },
+      { label: 'limit', latex: '\\lim_{x \\to a}' },
+      { label: '∫', latex: '\\int x \\, dx' },
+      { label: 'Σ', latex: '\\sum_{i=1}^{n} i' }
+    ],
+
+    chemistry: [
+      { label: 'H₂O', latex: 'H_{2}O' },
+      { label: 'CO₂', latex: 'CO_{2}' },
+      { label: 'H₂SO₄', latex: 'H_{2}SO_{4}' },
+      { label: 'Reaction', latex: 'A + B \\rightarrow C' },
+      { label: 'Equilibrium', latex: 'A \\rightleftharpoons B' },
+      { label: 'ΔH', latex: '\\Delta H' },
+      { label: 'State', latex: 'H_{2}O_{(l)}' },
+      { label: 'Electron', latex: 'e^{-}' },
+      { label: 'Na⁺', latex: 'Na^{+}' }
+    ],
+
+    physics: [
+      { label: 'v=d/t', latex: 'v = \\frac{d}{t}' },
+      { label: 'a=(v-u)/t', latex: 'a = \\frac{v-u}{t}' },
+      { label: 'F=ma', latex: 'F = ma' },
+      { label: 'E=mc²', latex: 'E = mc^{2}' },
+      { label: 'V=IR', latex: 'V = IR' },
+      { label: 'P=W/t', latex: 'P = \\frac{W}{t}' },
+      { label: 'p=mv', latex: 'p = mv' },
+      { label: 'ρ=m/V', latex: '\\rho = \\frac{m}{V}' },
+      { label: 'W=Fd', latex: 'W = Fd' }
+    ]
+  }
+
+  /* ================= INSERT FUNCTION ================= */
+
+  function insertLatex(value) {
+    const textarea = document.getElementById('questionBox')
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+
+    const newText =
+      question.substring(0, start) +
+      value +
+      question.substring(end)
+
+    setQuestion(newText)
+
+    setTimeout(() => {
+      textarea.focus()
+
+      const pos = value.includes('{')
+        ? start + value.indexOf('{') + 1
+        : start + value.length
+
+      textarea.selectionStart = textarea.selectionEnd = pos
+    }, 0)
+  }
+
+  /* ================= SAVE ================= */
 
   async function saveQuestion() {
     if (!question) {
@@ -57,9 +125,8 @@ export default function LatexQuestionsPage() {
     })
 
     if (!error) {
-      alert('✅ Question saved successfully')
+      alert('✅ Question saved')
 
-      // reset form
       setQuestion('')
       setOptionA('')
       setOptionB('')
@@ -67,7 +134,7 @@ export default function LatexQuestionsPage() {
       setOptionD('')
       setAnswer('A')
     } else {
-      alert('❌ Error saving question')
+      alert('❌ Error saving')
       console.error(error)
     }
   }
@@ -89,18 +156,22 @@ export default function LatexQuestionsPage() {
           onClick={() => (window.location.href = '/admin')}
           style={styles.backBtn}
         >
-          ← Back to Dashboard
+          ← Back
         </button>
       </div>
 
       <div style={styles.container}>
-        
+
         {/* INPUT */}
         <div style={styles.inputBox}>
           <h3>📝 Enter Question</h3>
 
+          <Toolbar title="🧮 Math" items={TOOLBAR.math} onInsert={insertLatex} />
+          <Toolbar title="⚗️ Chemistry" items={TOOLBAR.chemistry} onInsert={insertLatex} />
+          <Toolbar title="⚛️ Physics" items={TOOLBAR.physics} onInsert={insertLatex} />
+
           <textarea
-            placeholder="Example: \frac{x^2}{y}"
+            id="questionBox"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             style={styles.textarea}
@@ -130,7 +201,7 @@ export default function LatexQuestionsPage() {
           <h3>👁️ Live Preview</h3>
 
           <div style={styles.previewCard}>
-            {question ? <BlockMath>{question}</BlockMath> : <p>Preview will appear here</p>}
+            {question ? <BlockMath>{question}</BlockMath> : <p>Preview here</p>}
 
             <div style={{ marginTop: 20 }}>
               <p>A: <InlineMath math={optionA || ''} /></p>
@@ -146,19 +217,33 @@ export default function LatexQuestionsPage() {
   )
 }
 
+/* ================= TOOLBAR COMPONENT ================= */
+
+function Toolbar({ title, items, onInsert }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <strong>{title}</strong>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 5 }}>
+        {items.map((item, i) => (
+          <button
+            key={i}
+            style={styles.toolbarBtn}
+            onClick={() => onInsert(item.latex)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /* ================= STYLES ================= */
 
 const styles = {
-  page: {
-    padding: 40,
-    background: '#f8fafc',
-    minHeight: '100vh'
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    marginBottom: 20
-  },
+  page: { padding: 40, background: '#f8fafc', minHeight: '100vh' },
+  header: { display: 'flex', justifyContent: 'space-between', marginBottom: 20 },
+
   backBtn: {
     padding: '10px 16px',
     background: '#64748b',
@@ -166,36 +251,35 @@ const styles = {
     border: 'none',
     borderRadius: 8
   },
+
   container: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
     gap: 20
   },
-  inputBox: {
-    background: '#fff',
-    padding: 20,
-    borderRadius: 12
-  },
-  previewBox: {
-    background: '#fff',
-    padding: 20,
-    borderRadius: 12
-  },
+
+  inputBox: { background: '#fff', padding: 20, borderRadius: 12 },
+  previewBox: { background: '#fff', padding: 20, borderRadius: 12 },
+
   textarea: {
     width: '100%',
     height: 120,
+    marginTop: 10,
     marginBottom: 15,
     padding: 10
   },
+
   input: {
     width: '100%',
     marginBottom: 10,
     padding: 10
   },
+
   select: {
     width: '100%',
     padding: 10
   },
+
   saveBtn: {
     marginTop: 10,
     padding: 12,
@@ -204,9 +288,18 @@ const styles = {
     border: 'none',
     borderRadius: 8
   },
+
   previewCard: {
     background: '#f1f5f9',
     padding: 20,
     borderRadius: 10
+  },
+
+  toolbarBtn: {
+    padding: '6px 10px',
+    border: '1px solid #ccc',
+    borderRadius: 6,
+    background: '#f8fafc',
+    cursor: 'pointer'
   }
 }
