@@ -31,20 +31,27 @@ export default function LatexQuestionsPage() {
 
   /* ================= AUTO WRAP ================= */
 
-  function autoWrap(text){
-    if(!text) return ''
+ function autoWrap(text){
 
-    let t = text
+  if(!text) return ''
 
-    t = t.replace(/(\w+)\/(\w+)/g, '\\frac{$1}{$2}')
-    t = t.replace(/(\w)\^(\w+)/g, '$1^{$2}')
-    t = t.replace(/([A-Za-z])(\d+)/g, '$1_{$2}')
-    t = t.replace(/ρ/g, '\\rho')
+  let t = text
 
-    t = t.replace(/(\\[a-zA-Z]+|\w+\^{\w+}|\w+_\{\w+\}|\\frac\{.*?\}\{.*?\})/g, m => `$${m}$`)
+  // fraction m/V → \frac{m}{V}
+  t = t.replace(/(\w+)\/(\w+)/g, '\\frac{$1}{$2}')
 
-    return t
-  }
+  // power x^2 → x^{2}
+  t = t.replace(/(\w)\^(\w+)/g, '$1^{$2}')
+
+  // chemical H2O → H_{2}O
+  t = t.replace(/([A-Za-z])(\d+)/g, '$1_{$2}')
+
+  // rho
+  t = t.replace(/ρ/g, '\\rho')
+
+  // 🔥 wrap full expressions (NOT pieces)
+  return `$${t}$`
+}
 
   /* ================= LIVE UPDATE ================= */
 
