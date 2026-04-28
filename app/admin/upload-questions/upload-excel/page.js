@@ -40,6 +40,7 @@ export default function UploadExcelPage(){
   // ✅ NEW STATES
   const [exams,setExams] = useState([])
   const [selectedExam,setSelectedExam] = useState('')
+  const [activeTab, setActiveTab] = useState('math')
   const TOOLBAR = {
   math: [
     { label: 'x²', latex: 'x^{2}' },
@@ -565,36 +566,25 @@ function insertLatex(value){
           <h3>LaTeX Editor</h3>
 
           {/* TOOLBAR */}
-          <div style={{marginBottom:10}}>
+          {/* 🔥 TAB BUTTONS */}
+<div style={{marginBottom:10}}>
+  <button onClick={()=>setActiveTab('math')} style={tabBtn}>Math</button>
+  <button onClick={()=>setActiveTab('chemistry')} style={tabBtn}>Chem</button>
+  <button onClick={()=>setActiveTab('physics')} style={tabBtn}>Physics</button>
+</div>
 
-            <div>
-              <b>Math:</b>
-              {TOOLBAR.math.map((t,i)=>(
-                <button key={i} onClick={()=>insertLatex(t.latex)} style={toolbarBtn}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
-            <div style={{marginTop:8}}>
-              <b>Chem:</b>
-              {TOOLBAR.chemistry.map((t,i)=>(
-                <button key={i} onClick={()=>insertLatex(t.latex)} style={toolbarBtn}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
-            <div style={{marginTop:8}}>
-              <b>Physics:</b>
-              {TOOLBAR.physics.map((t,i)=>(
-                <button key={i} onClick={()=>insertLatex(t.latex)} style={toolbarBtn}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
-          </div>
+{/* 🔥 TOOLBAR ITEMS */}
+<div style={{marginBottom:10}}>
+  {TOOLBAR[activeTab].map((t,i)=>(
+    <button
+      key={i}
+      onClick={()=>insertLatex(t.latex)}
+      style={toolbarBtn}
+    >
+      {t.label}
+    </button>
+  ))}
+</div>
 
           {/* TEXTAREA */}
           <textarea
