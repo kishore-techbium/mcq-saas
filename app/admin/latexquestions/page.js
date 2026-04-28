@@ -103,54 +103,32 @@ export default function LatexQuestionsPage() {
   }
 
   /* ================= TOOLBAR ================= */
+const TOOLBAR = {
+  math: [
+    'x^2','x^n','\\sqrt{x}','\\frac{a}{b}','\\log(x)','\\ln(x)',
+    '\\sin(x)','\\cos(x)','\\tan(x)','\\cot(x)','\\sec(x)','\\csc(x)',
+    '\\int x dx','\\int_{a}^{b} f(x) dx',
+    '\\sum_{i=1}^{n} i','\\lim_{x \\to a}',
+    '\\pi','\\theta','\\infty','\\approx','\\neq','\\leq','\\geq'
+  ],
 
-  const TOOLBAR = {
-    math: [
-      { label: 'x²', latex: 'x^2' },
-      { label: 'xⁿ', latex: 'x^n' },
-      { label: '√', latex: '\\sqrt{x}' },
-      { label: 'frac', latex: 'a/b' },
-      { label: 'log', latex: '\\log(x)' },
-      { label: 'ln', latex: '\\ln(x)' },
-      { label: 'sin', latex: '\\sin(x)' },
-      { label: 'cos', latex: '\\cos(x)' },
-      { label: 'tan', latex: '\\tan(x)' },
-      { label: '∫', latex: '\\int x dx' },
-      { label: 'Σ', latex: '\\sum_{i=1}^{n} i' },
-      { label: 'lim', latex: '\\lim_{x \\to a}' },
-      { label: 'π', latex: '\\pi' },
-      { label: 'θ', latex: '\\theta' }
-    ],
+  chemistry: [
+    'H2O','CO2','NH3','H2SO4',
+    'Na^+','Cl^-','e^-',
+    '\\rightarrow','\\rightleftharpoons',
+    '\\uparrow','\\downarrow',
+    '\\Delta','^{\\circ}C',
+    '(aq)','(l)','(g)','(s)',
+    '\\text{mol}'
+  ],
 
-    chemistry: [
-      { label: 'H₂O', latex: 'H2O' },
-      { label: 'CO₂', latex: 'CO2' },
-      { label: 'NH₃', latex: 'NH3' },
-      { label: 'Na⁺', latex: 'Na^+' },
-      { label: 'Cl⁻', latex: 'Cl^-' },
-      { label: 'e⁻', latex: 'e^-' },
-      { label: '→', latex: '\\rightarrow' },
-      { label: '⇌', latex: '\\rightleftharpoons' },
-      { label: '(aq)', latex: '(aq)' },
-      { label: '(l)', latex: '(l)' },
-      { label: '(g)', latex: '(g)' },
-      { label: 'Δ', latex: '\\Delta' }
-    ],
-
-    physics: [
-      { label: 'v=d/t', latex: 'v=d/t' },
-      { label: 'a=(v-u)/t', latex: 'a=(v-u)/t' },
-      { label: 'F=ma', latex: 'F=ma' },
-      { label: 'E=mc²', latex: 'E=mc^2' },
-      { label: 'V=IR', latex: 'V=IR' },
-      { label: 'P=W/t', latex: 'P=W/t' },
-      { label: 'p=mv', latex: 'p=mv' },
-      { label: 'ρ=m/V', latex: 'ρ=m/V' },
-      { label: 'KE', latex: 'KE=1/2 mv^2' },
-      { label: 'PE', latex: 'PE=mgh' },
-      { label: 'λ', latex: '\\lambda' }
-    ]
-  }
+  physics: [
+    'v=d/t','a=(v-u)/t','F=ma','E=mc^2','V=IR',
+    'P=W/t','p=mv','\\rho=m/V','W=Fd',
+    'KE=\\frac{1}{2}mv^2','PE=mgh',
+    'g=9.8 m/s^2','\\lambda','f=1/T','c=3\\times10^8'
+  ]
+}
 
   if (loading) return <p>Loading...</p>
 
@@ -166,20 +144,34 @@ export default function LatexQuestionsPage() {
         <div style={styles.left}>
 
           {/* TABS */}
-          <div style={{marginBottom:10}}>
-            <button onClick={()=>setActiveTab('math')}>Math</button>
-            <button onClick={()=>setActiveTab('chemistry')}>Chem</button>
-            <button onClick={()=>setActiveTab('physics')}>Physics</button>
-          </div>
+        <div style={styles.tabs}>
+          {['math','chemistry','physics'].map(tab=>(
+            <button
+              key={tab}
+              onClick={()=>setActiveTab(tab)}
+              style={{
+                ...styles.tab,
+                background: activeTab===tab ? '#2563eb' : '#e5e7eb',
+                color: activeTab===tab ? '#fff' : '#000'
+              }}
+            >
+              {tab.toUpperCase()}
+            </button>
+          ))}
+        </div>         
 
           {/* TOOLBAR */}
-          <div>
-            {TOOLBAR[activeTab].map((t,i)=>(
-              <button key={i} onClick={()=>insertText(t.latex)} style={styles.btn}>
-                {t.label}
-              </button>
-            ))}
-          </div>
+         <div style={styles.toolbarContainer}>
+  {TOOLBAR[activeTab].map((t,i)=>(
+    <button
+      key={i}
+      onClick={()=>insertText(t)}
+      style={styles.toolBtn}
+    >
+      {t}
+    </button>
+  ))}
+</div>
 
           {/* INPUT */}
           <textarea
@@ -220,5 +212,20 @@ const styles = {
   output:{width:'100%',height:120,marginTop:10},
   preview:{background:'#fff',padding:20,border:'1px solid #ddd'},
   btn:{margin:5},
-  copyBtn:{background:'green',color:'#fff',padding:6,marginTop:5}
+  copyBtn:{background:'green',color:'#fff',padding:6,marginTop:5},
+  toolbarContainer:{
+  display:'flex',
+  flexWrap:'wrap',
+  gap:6,
+  marginBottom:10
+},
+
+toolBtn:{
+  padding:'5px 8px',
+  fontSize:12,
+  border:'1px solid #ddd',
+  borderRadius:5,
+  background:'#f8fafc',
+  cursor:'pointer'
+}
 }
