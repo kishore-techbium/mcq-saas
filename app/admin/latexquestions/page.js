@@ -110,19 +110,31 @@ const TOOLBAR = {
     { label: '√', latex: '\\sqrt{x}' },
     { label: '∛', latex: '\\sqrt[3]{x}' },
     { label: '½', latex: '\\frac{a}{b}' },
+
     { label: '∫', latex: '\\int x dx' },
     { label: '∫ₐᵇ', latex: '\\int_{a}^{b} f(x) dx' },
     { label: 'Σ', latex: '\\sum_{i=1}^{n} i' },
-    { label: '∂', latex: '\\partial' },
+
     { label: 'd/dx', latex: '\\frac{d}{dx}' },
+    { label: '∂', latex: '\\partial' },
+
     { label: 'lim', latex: '\\lim_{x \\to a}' },
+
     { label: '∞', latex: '\\infty' },
     { label: 'π', latex: '\\pi' },
     { label: 'θ', latex: '\\theta' },
+
     { label: '≈', latex: '\\approx' },
     { label: '≠', latex: '\\neq' },
     { label: '≤', latex: '\\leq' },
-    { label: '≥', latex: '\\geq' }
+    { label: '≥', latex: '\\geq' },
+
+    { label: '→', latex: '\\rightarrow' },
+    { label: '←', latex: '\\leftarrow' },
+    { label: '↔', latex: '\\leftrightarrow' },
+
+    { label: '|x|', latex: '|x|' },
+    { label: '( )', latex: '(x)' }
   ],
 
   chemistry: [
@@ -130,36 +142,49 @@ const TOOLBAR = {
     { label: 'CO₂', latex: 'CO2' },
     { label: 'NH₃', latex: 'NH3' },
     { label: 'H₂SO₄', latex: 'H2SO4' },
+
     { label: 'Na⁺', latex: 'Na^+' },
     { label: 'Cl⁻', latex: 'Cl^-' },
     { label: 'e⁻', latex: 'e^-' },
+
     { label: '→', latex: '\\rightarrow' },
     { label: '⇌', latex: '\\rightleftharpoons' },
+
     { label: '↑', latex: '\\uparrow' },
     { label: '↓', latex: '\\downarrow' },
+
     { label: 'Δ', latex: '\\Delta' },
     { label: '°C', latex: '^{\\circ}C' },
-    { label: 'mol', latex: '\\text{mol}' },
+
     { label: '(aq)', latex: '(aq)' },
     { label: '(l)', latex: '(l)' },
-    { label: '(g)', latex: '(g)' }
+    { label: '(g)', latex: '(g)' },
+    { label: '(s)', latex: '(s)' },
+
+    { label: 'mol', latex: '\\text{mol}' }
   ],
 
   physics: [
-    { label: 'v', latex: 'v = \\frac{d}{t}' },
-    { label: 'a', latex: 'a = \\frac{v-u}{t}' },
-    { label: 'F', latex: 'F = ma' },
-    { label: 'E', latex: 'E = mc^2' },
-    { label: 'V', latex: 'V = IR' },
-    { label: 'P', latex: 'P = \\frac{W}{t}' },
-    { label: 'p', latex: 'p = mv' },
-    { label: 'ρ', latex: '\\rho = \\frac{m}{V}' },
-    { label: 'W', latex: 'W = Fd' },
-    { label: 'KE', latex: 'KE = \\frac{1}{2}mv^2' },
-    { label: 'PE', latex: 'PE = mgh' },
+    { label: 'v=d/t', latex: 'v=d/t' },
+    { label: 'a=(v-u)/t', latex: 'a=(v-u)/t' },
+    { label: 'F=ma', latex: 'F=ma' },
+    { label: 'E=mc²', latex: 'E=mc^2' },
+
+    { label: 'V=IR', latex: 'V=IR' },
+    { label: 'P=W/t', latex: 'P=W/t' },
+    { label: 'p=mv', latex: 'p=mv' },
+
+    { label: 'ρ=m/V', latex: '\\rho=m/V' },
+    { label: 'W=Fd', latex: 'W=Fd' },
+
+    { label: 'KE=½mv²', latex: 'KE=\\frac{1}{2}mv^2' },
+    { label: 'PE=mgh', latex: 'PE=mgh' },
+
+    { label: 'g=9.8', latex: 'g=9.8\\,m/s^2' },
     { label: 'λ', latex: '\\lambda' },
-    { label: 'f', latex: 'f = \\frac{1}{T}' },
-    { label: 'c', latex: 'c = 3 \\times 10^8' }
+
+    { label: 'f=1/T', latex: 'f=1/T' },
+    { label: 'c=3×10⁸', latex: 'c=3\\times10^8' }
   ]
 }
 
@@ -256,12 +281,12 @@ const styles = {
 
 toolBtn:{
   padding:'6px 10px',
-  fontSize:14,
+  fontSize:13,
   border:'1px solid #ddd',
   borderRadius:6,
-  background:'#ffffff',
+  background:'#fff',
   cursor:'pointer',
-  minWidth:40,
+  minWidth:55,
   textAlign:'center'
 }
 }
