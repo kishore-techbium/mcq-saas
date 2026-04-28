@@ -223,12 +223,13 @@ async function regenerateCode() {
           </button>
 
           <br />
-<button
-  onClick={() => (window.location.href = '/admin/latexquestions')}
-  style={styles.latexBtn}
->
-  ➕ Add Question (LaTeX)
-</button>
+          <button
+            onClick={() => (window.location.href = '/admin/latexquestions')}
+            style={styles.latexBtn}
+          >
+            ➕ Add Question (LaTeX)
+          </button>
+          <br />
           <button onClick={logoutAdmin} style={styles.logoutBtn}>
             Logout
           </button>
