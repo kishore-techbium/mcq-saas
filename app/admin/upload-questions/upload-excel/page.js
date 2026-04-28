@@ -4,6 +4,7 @@ import { supabase } from '../../../../lib/supabase'
 import { useState, useEffect } from 'react'   // ✅ added useEffect
 import * as XLSX from 'xlsx'
 import JSZip from 'jszip'
+import { BlockMath } from 'react-katex'
 import { getAdminCollege } from '../../../../lib/getAdminCollege'
 
 const BATCH_SIZE = 25
@@ -13,6 +14,9 @@ export default function UploadExcelPage(){
   const [excelFile,setExcelFile] = useState(null)
   const [zipFile,setZipFile] = useState(null)
 
+  const [editingIndex, setEditingIndex] = useState(null)
+  const [editorValue, setEditorValue] = useState('')
+  
   const [batches,setBatches] = useState([])
   const [currentBatch,setCurrentBatch] = useState(0)
 
@@ -296,126 +300,260 @@ await supabase.from('exam_questions').insert([{
     copy[currentBatch][i].rejected=!copy[currentBatch][i].rejected
     setBatches(copy)
   }
-
+function openLatexEditor(row, index){
+  setEditingIndex(index)
+  setEditorValue(row.question || '')
+}
   const batch = batches[currentBatch] || []
 
   return (
-    <div style={container}>
+  <div style={container}>
 
-      <h2 style={title}>📊 Excel Upload</h2>
+    <h2 style={title}>📊 Excel Upload</h2>
 
-      {/* ✅ NEW EXAM DROPDOWN */}
-      <div style={fileBox}>
-        <label>🎯 Select Exam</label>
-        <select
-          value={selectedExam}
-          onChange={e=>setSelectedExam(e.target.value)}
-          style={{width:'100%',padding:8}}
-        >
-          <option value="">Select Exam</option>
-          {exams.map(e=>(
-            <option key={e.id} value={e.id}>{e.title}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* FILE INPUTS */}
-      <div style={fileBox}>
-        <label>📄 Select Excel File</label>
-        <input type="file" onChange={e=>setExcelFile(e.target.files[0])}/>
-        <div>{excelFile?.name}</div>
-      </div>
-
-      <div style={fileBox}>
-        <label>🖼️ Select Images ZIP (optional)</label>
-        <input type="file" onChange={e=>setZipFile(e.target.files[0])}/>
-        <div>{zipFile?.name}</div>
-      </div>
-
-      <button onClick={handlePreview} style={btn}>Preview</button>
-
-      {errors.length>0 && (
-        <div style={errorBox}>
-          {errors.map((e,i)=>(
-  <div key={i} style={{marginBottom:10}}>
-    <b>Row {e.row}</b> - {e.message}
-    <div style={{fontSize:12,color:'#555'}}>
-      {e.data.subject} | {e.data.chapter} | {e.data.subtopic}
+    {/* EXAM DROPDOWN */}
+    <div style={fileBox}>
+      <label>🎯 Select Exam</label>
+      <select
+        value={selectedExam}
+        onChange={e=>setSelectedExam(e.target.value)}
+        style={{width:'100%',padding:8}}
+      >
+        <option value="">Select Exam</option>
+        {exams.map(e=>(
+          <option key={e.id} value={e.id}>{e.title}</option>
+        ))}
+      </select>
     </div>
-  </div>
-))}
-        </div>
-      )}
 
-      {batch.length>0 && (
-        <>
-          <h3>Batch {currentBatch+1} / {batches.length}</h3>
+    {/* FILE INPUTS */}
+    <div style={fileBox}>
+      <label>📄 Select Excel File</label>
+      <input type="file" onChange={e=>setExcelFile(e.target.files[0])}/>
+      <div>{excelFile?.name}</div>
+    </div>
 
-          {batch.map((r,i)=>(
-            <div key={i} style={card}>
-              <b>Q{i+1}</b>
+    <div style={fileBox}>
+      <label>🖼️ Select Images ZIP (optional)</label>
+      <input type="file" onChange={e=>setZipFile(e.target.files[0])}/>
+      <div>{zipFile?.name}</div>
+    </div>
 
-              <textarea
-                value={r.question}
-                onChange={e=>updateField(i,'question',e.target.value)}
+    <button onClick={handlePreview} style={btn}>Preview</button>
+
+    {/* ERRORS */}
+    {errors.length>0 && (
+      <div style={errorBox}>
+        {errors.map((e,i)=>(
+          <div key={i} style={{marginBottom:10}}>
+            <b>Row {e.row}</b> - {e.message}
+            <div style={{fontSize:12,color:'#555'}}>
+              {e.data.subject} | {e.data.chapter} | {e.data.subtopic}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+
+    {/* BATCH DISPLAY */}
+    {batch.length>0 && (
+      <>
+        <h3>Batch {currentBatch+1} / {batches.length}</h3>
+
+        {batch.map((r,i)=>(
+          <div key={i} style={card}>
+            <b>Q{i+1}</b>
+
+            {/* TEXTAREA */}
+            <textarea
+              value={r.question || ''}
+              onChange={e=>updateField(i,'question',e.target.value)}
+              style={input}
+            />
+
+            {/* PREVIEW */}
+            {r.question && (
+              <div style={{
+                background:'#f1f5f9',
+                padding:10,
+                marginBottom:10,
+                borderRadius:6
+              }}>
+                <BlockMath>{r.question}</BlockMath>
+              </div>
+            )}
+
+            {/* ✅ ADVANCED EDIT BUTTON (CORRECT PLACE) */}
+            <button
+              onClick={() => openLatexEditor(r, i)}
+              style={{
+                marginBottom:10,
+                background:'#059669',
+                color:'#fff',
+                padding:'6px 10px',
+                border:'none',
+                borderRadius:6
+              }}
+            >
+              ✏️ Advanced Edit
+            </button>
+
+            {/* IMAGE */}
+            {r.image_name && imageMap[r.image_name] && (
+              <img
+                src={URL.createObjectURL(imageMap[r.image_name])}
+                style={{maxWidth:200, marginBottom:10}}
+              />
+            )}
+
+            {/* OPTIONS */}
+            {['option_a','option_b','option_c','option_d'].map(op=>(
+              <input
+                key={op}
+                value={r[op]}
+                onChange={e=>updateField(i,op,e.target.value)}
                 style={input}
               />
-              {/* 🔥 QUESTION IMAGE PREVIEW */}
-{r.image_name && imageMap[r.image_name] && (
-  <img
-    src={URL.createObjectURL(imageMap[r.image_name])}
-    style={{maxWidth:200, marginBottom:10}}
-  />
-)}
+            ))}
 
-              {['option_a','option_b','option_c','option_d'].map(op=>(
-                <input key={op}
-                  value={r[op]}
-                  onChange={e=>updateField(i,op,e.target.value)}
-                  style={input}
-                />
+            {/* EXPLANATION IMAGE */}
+            {r.explanation_image_name && imageMap[r.explanation_image_name] && (
+              <img
+                src={URL.createObjectURL(imageMap[r.explanation_image_name])}
+                style={{maxWidth:200, marginTop:10}}
+              />
+            )}
+
+            {/* REJECT */}
+            <button onClick={()=>toggleReject(i)} style={rejectBtn}>
+              {r.rejected ? 'Undo Reject' : 'Reject'}
+            </button>
+
+          </div>
+        ))}
+
+        <button onClick={uploadBatch} style={uploadBtn}>
+          {uploading ? 'Uploading...' : 'Upload Batch'}
+        </button>
+      </>
+    )}
+
+    {/* STATS */}
+    {globalStats.total > 0 && (
+      <div style={statsBox}>
+        <b>Summary</b><br/>
+        Total: {globalStats.total} <br/>
+        Uploaded: {globalStats.uploaded} <br/>
+        Rejected: {globalStats.rejected} <br/>
+        Edited: {globalStats.edited}
+      </div>
+    )}
+
+    {/* TOAST */}
+    {toast && (
+      <div style={toastStyle}>{toast.msg}</div>
+    )}
+
+    {/* 🔥 POPUP EDITOR WITH TOOLBAR */}
+    {editingIndex !== null && (
+      <div style={{
+        position:'fixed',
+        top:0,
+        left:0,
+        width:'100%',
+        height:'100%',
+        background:'rgba(0,0,0,0.5)',
+        display:'flex',
+        justifyContent:'center',
+        alignItems:'center'
+      }}>
+        <div style={{
+          background:'#fff',
+          padding:20,
+          width:'650px',
+          borderRadius:10
+        }}>
+          <h3>LaTeX Editor</h3>
+
+          {/* TOOLBAR */}
+          <div style={{marginBottom:10}}>
+
+            <div>
+              <b>Math:</b>
+              {TOOLBAR.math.map((t,i)=>(
+                <button key={i} onClick={()=>setEditorValue(prev => prev + ' ' + t.latex)} style={toolbarBtn}>
+                  {t.label}
+                </button>
               ))}
-{/* 🔥 EXPLANATION IMAGE PREVIEW */}
-{r.explanation_image_name && imageMap[r.explanation_image_name] && (
-  <img
-    src={URL.createObjectURL(imageMap[r.explanation_image_name])}
-    style={{maxWidth:200, marginTop:10}}
-  />
-)}
-              <button onClick={()=>toggleReject(i)} style={rejectBtn}>
-                {r.rejected ? 'Undo Reject' : 'Reject'}
-              </button>
             </div>
-          ))}
 
-          <button onClick={uploadBatch} style={uploadBtn}>
-            {uploading ? 'Uploading...' : 'Upload Batch'}
-          </button>
-        </>
-      )}
+            <div style={{marginTop:8}}>
+              <b>Chem:</b>
+              {TOOLBAR.chemistry.map((t,i)=>(
+                <button key={i} onClick={()=>setEditorValue(prev => prev + ' ' + t.latex)} style={toolbarBtn}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
 
-      {globalStats.total > 0 && (
-        <div style={statsBox}>
-          <b>Summary</b><br/>
-          Total: {globalStats.total} <br/>
-          Uploaded: {globalStats.uploaded} <br/>
-          Rejected: {globalStats.rejected} <br/>
-          Edited: {globalStats.edited}
+            <div style={{marginTop:8}}>
+              <b>Physics:</b>
+              {TOOLBAR.physics.map((t,i)=>(
+                <button key={i} onClick={()=>setEditorValue(prev => prev + ' ' + t.latex)} style={toolbarBtn}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+          </div>
+
+          {/* TEXTAREA */}
+          <textarea
+            value={editorValue}
+            onChange={(e)=>setEditorValue(e.target.value)}
+            style={{width:'100%',height:120}}
+          />
+
+          {/* PREVIEW */}
+          <div style={{marginTop:10, background:'#f1f5f9', padding:10}}>
+            <BlockMath>{editorValue}</BlockMath>
+          </div>
+
+          {/* ACTIONS */}
+          <div style={{marginTop:15}}>
+            <button
+              onClick={()=>{
+                updateField(editingIndex,'question',editorValue)
+                setEditingIndex(null)
+              }}
+              style={{marginRight:10}}
+            >
+              ✅ Save
+            </button>
+
+            <button onClick={()=>setEditingIndex(null)}>
+              Cancel
+            </button>
+          </div>
         </div>
-      )}
+      </div>
+    )}
 
-      {toast && (
-        <div style={toastStyle}>{toast.msg}</div>
-      )}
-
-    </div>
-  )
-}
+  </div>
+)
 /* ================== STYLES ================== */
 
 const container={maxWidth:900,margin:'auto',padding:30}
 const title={fontSize:24,marginBottom:20}
-
+const toolbarBtn = {
+  marginRight:5,
+  marginTop:5,
+  padding:'5px 8px',
+  border:'1px solid #ccc',
+  borderRadius:5,
+  background:'#f8fafc',
+  cursor:'pointer'
+}
 const fileBox={
   border:'1px solid #ddd',
   padding:10,
