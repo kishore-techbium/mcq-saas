@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { getAdminCollege } from '../../../lib/getAdminCollege'
+import * as XLSX from 'xlsx'
 import 'katex/dist/katex.min.css'
 import renderMathInElement from 'katex/contrib/auto-render'
 
@@ -9,10 +10,11 @@ export default function LatexQuestionsPage() {
 
   const [adminName, setAdminName] = useState('')
   const [loading, setLoading] = useState(true)
-
+const [previewRows, setPreviewRows] = useState([])
+const [processedData, setProcessedData] = useState([])
   const [inputText, setInputText] = useState('')
   const [outputText, setOutputText] = useState('')
-
+  const [excelFile, setExcelFile] = useState(null)
   const [activeTab, setActiveTab] = useState('math')
 
   const previewRef = useRef(null)
@@ -32,25 +34,18 @@ export default function LatexQuestionsPage() {
   /* ================= AUTO WRAP ================= */
 
  function autoWrap(text){
-
   if(!text) return ''
 
   let t = text
 
-  // fraction m/V → \frac{m}{V}
+  const hasMath = /[\^\/_=]/.test(t)
+
   t = t.replace(/(\w+)\/(\w+)/g, '\\frac{$1}{$2}')
-
-  // power x^2 → x^{2}
   t = t.replace(/(\w)\^(\w+)/g, '$1^{$2}')
-
-  // chemical H2O → H_{2}O
   t = t.replace(/([A-Za-z])(\d+)/g, '$1_{$2}')
-
-  // rho
   t = t.replace(/ρ/g, '\\rho')
 
-  // 🔥 wrap full expressions (NOT pieces)
-  return `$${t}$`
+  return hasMath ? `$${t}$` : t
 }
 
   /* ================= LIVE UPDATE ================= */
@@ -80,7 +75,59 @@ export default function LatexQuestionsPage() {
     navigator.clipboard.writeText(outputText)
     alert('✅ Copied')
   }
+    /* ================= EXCEL PROCESSING ================= */
+function processExcel(){
 
+  if(!excelFile){
+    alert('Please upload file')
+    return
+  }
+
+  const reader = new FileReader()
+
+  reader.onload = (e) => {
+    const data = new Uint8Array(e.target.result)
+
+    const workbook = XLSX.read(data, { type: 'array' })
+    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+
+    const json = XLSX.utils.sheet_to_json(sheet)
+
+    const updated = json.map((row, index) => {
+
+      const converted = {
+        ...row,
+        question: autoWrap(row.question || ''),
+        option_a: autoWrap(row.option_a || ''),
+        option_b: autoWrap(row.option_b || ''),
+        option_c: autoWrap(row.option_c || ''),
+        option_d: autoWrap(row.option_d || ''),
+        explanation: autoWrap(row.explanation || '')
+      }
+
+      return {
+        original: row,
+        converted,
+        index
+      }
+    })
+
+    setPreviewRows(updated.slice(0, 20))   // show first 20
+    setProcessedData(updated.map(r => r.converted))
+  }
+
+  reader.readAsArrayBuffer(excelFile)
+}
+
+function downloadExcel(){
+
+  const sheet = XLSX.utils.json_to_sheet(processedData)
+  const workbook = XLSX.utils.book_new()
+
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Converted')
+
+  XLSX.writeFile(workbook, 'latex_converted.xlsx')
+}
   /* ================= INSERT ================= */
 
   function insertText(value){
@@ -101,6 +148,7 @@ export default function LatexQuestionsPage() {
       textarea.selectionStart = textarea.selectionEnd = start + value.length
     },0)
   }
+  
 
   /* ================= TOOLBAR ================= */
 const TOOLBAR = {
@@ -230,6 +278,108 @@ const TOOLBAR = {
       {t.label}
     </button>
   ))}
+</div>
+<button onClick={processExcel} style={{marginTop:10}}>
+  🚀 Convert Excel
+</button>
+          <div style={{marginBottom:15}}>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={(e)=>setExcelFile(e.target.files[0])}
+            />
+            {previewRows.length > 0 && (
+            <div style={{marginTop:20}}>
+
+              <h3>🔍 Preview (Before → After)</h3>
+
+              <div style={{maxHeight:400, overflow:'auto', border:'1px solid #ddd'}}>
+
+                {previewRows.map((row, i)=>(
+                  <div key={i} style={{padding:10, borderBottom:'1px solid #eee'}}>
+                      <b>Row {row.index + 1}</b>
+
+                      {/* ORIGINAL */}
+                      <div style={{marginTop:5}}>
+                        <b>Original:</b>
+                        <div>{row.original.question}</div>
+                      </div>
+
+                      {/* CONVERTED QUESTION */}
+                      <div style={{marginTop:5}}>
+                        <b>Converted:</b>
+                        <div
+                          ref={(el) => {
+                            if(el){
+                              el.innerHTML = row.converted.question
+                              renderMathInElement(el, {
+                                delimiters: [
+                                  { left: '$', right: '$', display: false },
+                                  { left: '$$', right: '$$', display: true }
+                                ]
+                              })
+                            }
+                          }}
+                          style={{color:'green'}}
+                        />
+                      </div>
+
+                      {/* OPTIONS */}
+                      <div style={{marginTop:8}}>
+                        <b>Options:</b>
+
+                        {['option_a','option_b','option_c','option_d'].map((op, idx)=>(
+                          <div key={op} style={{marginLeft:10}}>
+                            <b>{String.fromCharCode(65+idx)}:</b>
+
+                            <span
+                              ref={(el) => {
+                                if(el){
+                                  el.innerHTML = row.converted[op] || ''
+                                  renderMathInElement(el, {
+                                    delimiters: [
+                                      { left: '$', right: '$', display: false },
+                                      { left: '$$', right: '$$', display: true }
+                                    ]
+                                  })
+                                }
+                              }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* EXPLANATION */}
+                      <div style={{marginTop:8}}>
+                        <b>Explanation:</b>
+
+                        <div
+                          ref={(el) => {
+                            if(el){
+                              el.innerHTML = row.converted.explanation || ''
+                              renderMathInElement(el, {
+                                delimiters: [
+                                  { left: '$', right: '$', display: false },
+                                  { left: '$$', right: '$$', display: true }
+                                ]
+                              })
+                            }
+                          }}
+                        />
+                      </div>
+                    
+                  </div>
+                ))}
+
+              </div>
+
+            </div>
+          )}
+  {processedData.length > 0 && (
+  <button onClick={downloadExcel} style={{marginTop:15}}>
+    📥 Download Converted Excel
+  </button>
+)}
 </div>
 
           {/* INPUT */}
