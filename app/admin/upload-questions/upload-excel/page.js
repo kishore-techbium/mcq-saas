@@ -675,6 +675,13 @@ const rejectBtn={
   border:'none',
   borderRadius:5
 }
+const tabBtn={
+  background:'#ef4444',
+  color:'#fff',
+  padding:'6px 10px',
+  border:'none',
+  borderRadius:5
+}
 
 const statsBox={
   background:'#ecfdf5',
