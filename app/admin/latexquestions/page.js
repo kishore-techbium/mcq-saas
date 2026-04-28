@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { getAdminCollege } from '../../../lib/getAdminCollege'
 import 'katex/dist/katex.min.css'
 import renderMathInElement from 'katex/contrib/auto-render'
@@ -15,76 +15,93 @@ export default function LatexQuestionsPage() {
 
   const [activeTab, setActiveTab] = useState('math')
 
+  const previewRef = useRef(null)
+
   /* ================= AUTH ================= */
 
   useEffect(() => {
     async function init() {
       const data = await getAdminCollege()
-
-      if (!data) {
-        window.location.href = '/'
-        return
-      }
-
+      if (!data) window.location.href = '/'
       setAdminName(data.adminName)
       setLoading(false)
     }
-
     init()
   }, [])
 
   /* ================= AUTO WRAP ================= */
 
   function autoWrap(text){
-
     if(!text) return ''
 
     let t = text
 
-    // fractions
     t = t.replace(/(\w+)\/(\w+)/g, '\\frac{$1}{$2}')
-
-    // powers
     t = t.replace(/(\w)\^(\w+)/g, '$1^{$2}')
-
-    // subscripts (H2 -> H_{2})
     t = t.replace(/([A-Za-z])(\d+)/g, '$1_{$2}')
-
-    // rho
     t = t.replace(/ρ/g, '\\rho')
 
-    // wrap math parts
-    t = t.replace(/(\\[a-zA-Z]+|\w+\^{\w+}|\w+_\{\w+\}|\\frac\{.*?\}\{.*?\}|=)/g, (m) => `$${m}$`)
+    // wrap only math patterns
+    t = t.replace(/(\\[a-zA-Z]+|\w+\^{\w+}|\w+_\{\w+\}|\\frac\{.*?\}\{.*?\})/g, m => `$${m}$`)
 
     return t
   }
-  function copyToClipboard(){
-  if(!outputText){
-    alert('Nothing to copy')
-    return
-  }
 
-  navigator.clipboard.writeText(outputText)
-  alert('✅ Copied to clipboard')
-}
+  /* ================= VALIDATION ================= */
+
+  function validateLatex(text){
+    if(!text) return true
+    const count = (text.match(/\$/g) || []).length
+    return count % 2 === 0
+  }
 
   /* ================= LIVE UPDATE ================= */
 
   useEffect(() => {
-    const wrapped = autoWrap(inputText)
-    setOutputText(wrapped)
+    setOutputText(autoWrap(inputText))
   }, [inputText])
 
-  /* ================= RENDER ================= */
+  /* ================= PREVIEW RENDER ================= */
 
   useEffect(() => {
-    renderMathInElement(document.body, {
-      delimiters: [
-        { left: '$', right: '$', display: false },
-        { left: '$$', right: '$$', display: true }
-      ]
-    })
+    if(previewRef.current){
+      previewRef.current.innerHTML = outputText
+      renderMathInElement(previewRef.current, {
+        delimiters: [
+          { left: '$', right: '$', display: false },
+          { left: '$$', right: '$$', display: true }
+        ]
+      })
+    }
   }, [outputText])
+
+  /* ================= COPY ================= */
+
+  function copyToClipboard(){
+    navigator.clipboard.writeText(outputText)
+    alert('✅ Copied')
+  }
+
+  /* ================= INSERT AT CURSOR ================= */
+
+  function insertText(value){
+    const textarea = document.getElementById('inputBox')
+
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+
+    const newText =
+      inputText.substring(0, start) +
+      value +
+      inputText.substring(end)
+
+    setInputText(newText)
+
+    setTimeout(()=>{
+      textarea.focus()
+      textarea.selectionStart = textarea.selectionEnd = start + value.length
+    },0)
+  }
 
   /* ================= TOOLBAR ================= */
 
@@ -95,55 +112,38 @@ export default function LatexQuestionsPage() {
       { label: 'frac', latex: 'a/b' },
       { label: 'log', latex: '\\log(x)' },
       { label: 'sin', latex: '\\sin(x)' },
-      { label: 'cos', latex: '\\cos(x)' },
-      { label: 'tan', latex: '\\tan(x)' },
       { label: '∫', latex: '\\int x dx' },
-      { label: 'Σ', latex: '\\sum_{i=1}^{n} i' },
-      { label: 'π', latex: '\\pi' },
-      { label: 'θ', latex: '\\theta' }
+      { label: 'Σ', latex: '\\sum_{i=1}^{n} i' }
     ],
-
     chemistry: [
       { label: 'H₂O', latex: 'H2O' },
       { label: 'CO₂', latex: 'CO2' },
-      { label: 'NH₃', latex: 'NH3' },
       { label: 'Na⁺', latex: 'Na^+' },
       { label: 'Cl⁻', latex: 'Cl^-' },
-      { label: 'e⁻', latex: 'e^-' },
       { label: '→', latex: '\\rightarrow' },
-      { label: '⇌', latex: '\\rightleftharpoons' },
-      { label: '(aq)', latex: '(aq)' },
-      { label: '(l)', latex: '(l)' },
-      { label: '(g)', latex: '(g)' },
-      { label: 'Δ', latex: '\\Delta' }
+      { label: '⇌', latex: '\\rightleftharpoons' }
     ],
-
     physics: [
-      { label: 'v=d/t', latex: 'v=d/t' },
-      { label: 'a=(v-u)/t', latex: 'a=(v-u)/t' },
       { label: 'F=ma', latex: 'F=ma' },
+      { label: 'v=d/t', latex: 'v=d/t' },
       { label: 'E=mc²', latex: 'E=mc^2' },
-      { label: 'V=IR', latex: 'V=IR' },
-      { label: 'P=W/t', latex: 'P=W/t' },
-      { label: 'p=mv', latex: 'p=mv' },
-      { label: 'ρ=m/V', latex: 'ρ=m/V' },
-      { label: 'KE', latex: 'KE=1/2 mv^2' },
-      { label: 'PE', latex: 'PE=mgh' },
-      { label: 'λ', latex: '\\lambda' }
+      { label: 'ρ=m/V', latex: 'ρ=m/V' }
     ]
   }
 
-  function insertText(value){
-    setInputText(prev => prev + ' ' + value)
-  }
-
   if (loading) return <p>Loading...</p>
+
+  const isValid = validateLatex(outputText)
 
   return (
     <div style={styles.page}>
 
       <h1>🧠 LaTeX Helper Tool</h1>
       <p>Welcome, {adminName}</p>
+
+      <div style={{color:isValid?'green':'red'}}>
+        {isValid ? '✅ Valid LaTeX' : '❌ Check formatting'}
+      </div>
 
       {/* TABS */}
       <div style={{marginBottom:10}}>
@@ -153,7 +153,7 @@ export default function LatexQuestionsPage() {
       </div>
 
       {/* TOOLBAR */}
-      <div style={{marginBottom:15}}>
+      <div>
         {TOOLBAR[activeTab].map((t,i)=>(
           <button key={i} onClick={()=>insertText(t.latex)} style={styles.btn}>
             {t.label}
@@ -163,32 +163,21 @@ export default function LatexQuestionsPage() {
 
       {/* INPUT */}
       <textarea
+        id="inputBox"
         value={inputText}
         onChange={(e)=>setInputText(e.target.value)}
-        placeholder="Type normally: x^2, H2O, m/V..."
         style={styles.textarea}
       />
 
-      {/* OUTPUT (copy to excel) */}
-    <h3>📋 Auto Wrapped (copy this to Excel)</h3>
+      {/* OUTPUT */}
+      <h3>📋 Copy this to Excel</h3>
+      <button onClick={copyToClipboard} style={styles.copyBtn}>Copy</button>
 
-<div style={{display:'flex', gap:10, marginBottom:10}}>
-  <button onClick={copyToClipboard} style={styles.copyBtn}>
-    📋 Copy
-  </button>
-</div>
-
-<textarea
-  value={outputText}
-  readOnly
-  style={styles.outputTextarea}
-/>
+      <textarea value={outputText} readOnly style={styles.output}/>
 
       {/* PREVIEW */}
       <h3>👁️ Preview</h3>
-      <div style={styles.preview}>
-        {outputText}
-      </div>
+      <div ref={previewRef} style={styles.preview}></div>
 
     </div>
   )
@@ -197,26 +186,11 @@ export default function LatexQuestionsPage() {
 /* ================= STYLES ================= */
 
 const styles = {
-  copyBtn:{
-  padding:'8px 12px',
-  background:'#16a34a',
-  color:'#fff',
-  border:'none',
-  borderRadius:6,
-  cursor:'pointer'
-},
-
-outputTextarea:{
-  width:'100%',
-  height:120,
-  padding:10,
-  background:'#f1f5f9',
-  border:'1px solid #ddd'
-},
   page:{padding:30,maxWidth:900,margin:'auto'},
-  textarea:{width:'100%',height:120,padding:10,marginBottom:10},
-  outputBox:{background:'#f1f5f9',padding:10,marginBottom:20},
+  textarea:{width:'100%',height:120,marginBottom:10},
+  output:{width:'100%',height:120,background:'#f1f5f9'},
   preview:{background:'#fff',padding:20,border:'1px solid #ddd'},
   btn:{margin:5,padding:'6px 10px'},
-  tab:{marginRight:10,padding:'6px 12px'}
+  tab:{marginRight:10,padding:'6px 12px'},
+  copyBtn:{marginBottom:10,padding:'6px 10px',background:'green',color:'#fff'}
 }
