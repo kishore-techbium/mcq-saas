@@ -32,18 +32,20 @@ export default function UploadExcelPage(){
 
   /* ================= RENDER ================= */
   function renderContent(el, text){
-    if(!el) return
+  if(!el) return
 
-    const value = text === null || text === undefined ? '' : String(text)
+  const value = text === null || text === undefined ? '' : String(text)
 
-    if(value.includes('$')){
-      el.innerHTML = value
-      renderMathInElement(el)
-    } else {
-      el.textContent = value
-    }
-  }
+  el.innerHTML = value
 
+  renderMathInElement(el, {
+    delimiters: [
+      { left: '$$', right: '$$', display: true },
+      { left: '$', right: '$', display: false }
+    ],
+    throwOnError: false
+  })
+}
   /* ================= ZIP ================= */
   async function processZip(file){
     if(!file) return {}
@@ -229,15 +231,52 @@ export default function UploadExcelPage(){
         return (
         <div key={i} style={{display:'flex',gap:20,marginBottom:20,border:'1px solid #ddd',padding:10}}>
 
-          <div style={{flex:1}}>
-            <textarea value={r.question || ''} onChange={e=>updateField(i,'question',e.target.value)} />
+          <div style={{
+  flex:1,
+  minWidth:400
+}}>
+            <textarea
+  value={r.question || ''}
+  onChange={e=>updateField(i,'question',e.target.value)}
+  style={{
+    width:'100%',
+    minHeight:80,
+    marginBottom:6,
+    padding:6
+  }}
+/>
             {['option_a','option_b','option_c','option_d'].map(op=>(
-              <textarea key={op} value={r[op] || ''} onChange={e=>updateField(i,op,e.target.value)} />
+              <textarea
+  value={r[op] || ''}
+  onChange={e=>updateField(i,op,e.target.value)}
+  style={{
+    width:'100%',
+    minHeight:50,
+    marginBottom:6,
+    padding:6,
+    border:'1px solid #ccc',
+    borderRadius:4
+  }}
+/>
             ))}
-            <textarea value={r.explanation || ''} onChange={e=>updateField(i,'explanation',e.target.value)} />
+            <textarea
+  value={r.explanation || ''}
+  onChange={e=>updateField(i,'explanation',e.target.value)}
+  style={{
+    width:'100%',
+    minHeight:70,
+    marginTop:8,
+    padding:6,
+    border:'1px solid #ccc',
+    borderRadius:4
+  }}
+/>
           </div>
 
-          <div style={{flex:1}}>
+          <div style={{
+  flex:1,
+  minWidth:400
+}}>
             <div ref={el=>renderContent(el,r.question)} />
 
             {qImg && imageMap[qImg] && (
