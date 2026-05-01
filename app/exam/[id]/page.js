@@ -57,6 +57,7 @@ export default function ExamPage({ params }) {
   const [finalScore, setFinalScore] = useState(null)
   const [exam, setExam] = useState(null)
   const [questions, setQuestions] = useState([])
+  const [zoomImg,setZoomImg] = useState(null)
   const [answers, setAnswers] = useState({})
   const [currentIndex, setCurrentIndex] = useState(0)
   const [timeSpent, setTimeSpent] = useState({})
@@ -693,12 +694,14 @@ if (!q) {
     el.innerHTML = q.question || ''
 
     // 🔥 add lazy loading automatically
-    const imgs = el.querySelectorAll('img')
-    imgs.forEach(img => {
-      img.loading = 'lazy'
-      img.style.maxWidth = '250px'
-    })
+const imgs = el.querySelectorAll('img')
+imgs.forEach(img => {
+  img.loading = 'lazy'
+  img.style.maxWidth = '100%'
+  img.style.cursor = 'zoom-in'
 
+  img.onclick = () => setZoomImg(img.src)
+})
     renderMathInElement(el, {
       delimiters: [
         { left: '$$', right: '$$', display: true },
@@ -833,28 +836,54 @@ if (!q) {
         You still have time left. Are you sure you want to submit?
       </p>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-        <button
-          style={styles.secondaryBtn}
-          onClick={() => setShowConfirm(false)}
-        >
-          Cancel
-        </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+              <button
+                style={styles.secondaryBtn}
+                onClick={() => setShowConfirm(false)}
+              >
+                Cancel
+              </button>
 
-        <button
-          style={styles.primaryBtn}
-onClick={() => {
-  setShowConfirm(false)
-  if (!submitted) submitExam()
-}}
-        >
-          Submit
-        </button>
-      </div>
+              <button
+                style={styles.primaryBtn}
+                onClick={() => {
+                  setShowConfirm(false)
+                  if (!submitted) submitExam()
+                }}
+              >
+                Submit
+              </button>
+            </div>
     </div>
+    
   </div>
 )}  
-   
+   {zoomImg && (
+  <div
+    onClick={() => setZoomImg(null)}
+    style={{
+      position:'fixed',
+      top:0,
+      left:0,
+      width:'100%',
+      height:'100%',
+      background:'rgba(0,0,0,0.8)',
+      display:'flex',
+      alignItems:'center',
+      justifyContent:'center',
+      zIndex:9999
+    }}
+  >
+    <img
+      src={zoomImg}
+      style={{
+        maxWidth:'90%',
+        maxHeight:'90%',
+        borderRadius:10
+      }}
+    />
+  </div>
+)}
     </div>
    
   )
