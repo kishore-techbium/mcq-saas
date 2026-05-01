@@ -274,8 +274,6 @@ return (
     {/* ✅ MAIN UI STARTS HERE */}
     <h2>📊 Excel Upload</h2>
 
-      <h2>📊 Excel Upload</h2>
-
       <input type="file" accept=".xlsx,.xls,.csv"
         onChange={e=>setExcelFile(e.target.files[0])} />
 
