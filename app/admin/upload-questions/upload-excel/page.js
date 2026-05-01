@@ -139,68 +139,93 @@ export default function UploadExcelPage(){
   }
 
   /* ================= UPLOAD ================= */
-  async function uploadAll(){
+  async function uploadBatch(){
 
-    if(!batches.length){
-      alert('No data to upload')
+  if(!selectedExam){
+    return showToast('Please select exam','error')
+  }
+
+  setUploading(true)
+
+  const collegeId = await getAdminCollege()
+  const batch = batches[currentBatch]
+
+  let batchUploaded = 0
+
+  for(let r of batch){
+
+    let q = r.question || ''
+    let e = r.explanation || ''
+
+    const qImg = (r.image_name || '').trim().toLowerCase()
+    const eImg = (r.explanation_image_name || '').trim().toLowerCase()
+
+    // upload question image
+    if(qImg && imageMap[qImg]){
+      const url = await uploadImage(imageMap[qImg], qImg)
+      q += `<br><img src="${url}" />`
+    }
+
+    // upload explanation image
+    if(eImg && imageMap[eImg]){
+      const url = await uploadImage(imageMap[eImg], eImg)
+      e += `<br><img src="${url}" />`
+    }
+
+    const payload = {
+      exam_category: r.exam_category || '',
+      subject: r.subject || '',
+      chapter: r.chapter || '',
+      subtopic: r.subtopic || '',
+      difficulty: r.difficulty || '',
+
+      question: q,
+      option_a: r.option_a || '',
+      option_b: r.option_b || '',
+      option_c: r.option_c || '',
+      option_d: r.option_d || '',
+      correct_answer: r.correct_answer || '',
+
+      explanation: e,
+
+      college_id: collegeId,
+      is_active: true
+    }
+
+    const { data, error } = await supabase
+      .from('question_bank')
+      .insert([payload])
+      .select()
+
+    if(error){
+      console.error(error)
+      showToast(`Error uploading question`, 'error')
+      setUploading(false)
       return
     }
 
-    setUploading(true)
-    setProgress(0)
-    setStatus('Uploading images...')
+    batchUploaded++
 
-    const uploadedImages = await uploadImages()
-
-    const totalBatches = batches.length
-
-    for(let b=0;b<totalBatches;b++){
-
-      setStatus(`Uploading batch ${b+1} of ${totalBatches}`)
-
-      const payload = batches[b].map(q => {
-
-        const qImg = (q.image_name || '').trim().toLowerCase()
-        const eImg = (q.explanation_image_name || '').trim().toLowerCase()
-
-        return {
-          exam_category: q.exam_category,
-          subject: q.subject,
-          chapter: q.chapter,
-          subtopic: q.subtopic,
-          difficulty: q.difficulty,
-
-          question: q.question,
-          option_a: q.option_a,
-          option_b: q.option_b,
-          option_c: q.option_c,
-          option_d: q.option_d,
-          correct_answer: q.correct_answer,
-
-          explanation: q.explanation,
-
-          image_url: uploadedImages[qImg] || null,
-          explanation_image_url: uploadedImages[eImg] || null
-        }
-      })
-
-      const { error } = await supabase.from('questions').insert(payload)
-
-      if(error){
-        console.error(error)
-        showToast(`❌ Error in batch ${b+1}`,'error')
-        setUploading(false)
-        return
-      }
-
-      const percent = Math.round(((b+1)/totalBatches)*100)
-      setProgress(percent)
+    // map to exam
+    if(data && data.length > 0){
+      await supabase.from('exam_questions').insert([{
+        exam_id: selectedExam,
+        question_id: data[0].id,
+        college_id: collegeId
+      }])
     }
-
-    setUploading(false)
-    setStatus('')
-    showToast('✅ All questions uploaded successfully')
   }
+
+  setUploading(false)
+
+  // move to next batch
+  if(currentBatch + 1 < batches.length){
+    setCurrentBatch(currentBatch + 1)
+    showToast(`Batch ${currentBatch+1} uploaded`)
+  }else{
+    showToast('All batches completed ✅')
+  }
+}
 
   const batch = batches[currentBatch] || []
 
@@ -310,8 +335,10 @@ export default function UploadExcelPage(){
 
       <br/>
 
-      <button onClick={uploadAll} disabled={uploading}>
-        🚀 Upload All
+      <button onClick={uploadBatch} disabled={uploading}>
+  {uploading ? 'Uploading...' : 'Upload Batch'}
+</button>
+        🚀 Upload
       </button>
 
       {uploading && (
