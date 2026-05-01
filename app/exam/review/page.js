@@ -212,6 +212,7 @@ if (!timeSpentMap[q.id]) {
   ref={el => {
     if (!el) return
 
+    el.innerHTML = ''
     el.innerHTML = q.question || ''
 
     // 🔥 fix images
@@ -280,8 +281,13 @@ if (!timeSpentMap[q.id]) {
   ref={el => {
     if (!el) return
 
+    // ✅ clear previous render
+    el.innerHTML = ''
+
+    // ✅ set fresh content
     el.innerHTML = text || ''
 
+    // ✅ render latex
     renderMathInElement(el, {
       delimiters: [
         { left: '$$', right: '$$', display: true },
@@ -305,7 +311,8 @@ if (!timeSpentMap[q.id]) {
   ref={el => {
     if (!el) return
 
-    el.innerHTML = q.explanation || ''
+    el.innerHTML = ''
+el.innerHTML = q.explanation || ''
 
     const imgs = el.querySelectorAll('img')
     imgs.forEach(img => {
