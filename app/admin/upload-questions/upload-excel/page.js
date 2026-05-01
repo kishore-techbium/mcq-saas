@@ -338,8 +338,7 @@ export default function UploadExcelPage(){
       <button onClick={uploadBatch} disabled={uploading}>
   {uploading ? 'Uploading...' : 'Upload Batch'}
 </button>
-        🚀 Upload
-      </button>
+        
 
       {uploading && (
         <div style={{marginTop:15}}>
