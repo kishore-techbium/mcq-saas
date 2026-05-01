@@ -57,8 +57,7 @@ export default function UploadExcelPage(){
       if(!fileObj.dir){
 
         // remove folder path + trim spaces
-        const cleanName = fileObj.name.split('/').pop().trim()
-
+        const cleanName = fileObj.name.split('/').pop().trim().toLowerCase()
         map[cleanName] = await fileObj.async('blob')
       }
     }
@@ -208,12 +207,14 @@ export default function UploadExcelPage(){
             />
 
             {/* QUESTION IMAGE */}
-            {r.image_name?.trim() && imageMap[r.image_name.trim()] && (
-              <img
-                src={URL.createObjectURL(imageMap[r.image_name.trim()])}
-                style={{maxWidth:200, marginTop:10}}
-              />
-            )}
+          const qImg = (r.image_name || '').trim().toLowerCase()
+
+{qImg && imageMap[qImg] && (
+  <img
+    src={URL.createObjectURL(imageMap[qImg])}
+    style={{maxWidth:200, marginTop:10}}
+  />
+)}
 
             {/* OPTIONS */}
             {['option_a','option_b','option_c','option_d'].map((op,idx)=>(
@@ -238,12 +239,14 @@ export default function UploadExcelPage(){
             )}
 
             {/* EXPLANATION IMAGE */}
-            {r.explanation_image_name?.trim() && imageMap[r.explanation_image_name.trim()] && (
+            const expImg = (r.explanation_image_name || '').trim().toLowerCase()
+            
+            {expImg && imageMap[expImg] && (
               <img
-                src={URL.createObjectURL(imageMap[r.explanation_image_name.trim()])}
+                src={URL.createObjectURL(imageMap[expImg])}
                 style={{maxWidth:200, marginTop:10}}
               />
-            )}
+            )}           
 
           </div>
 
