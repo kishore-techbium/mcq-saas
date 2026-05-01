@@ -75,7 +75,26 @@ export default function UploadExcelPage(){
     setBatches(temp)
     setCurrentBatch(0)
   }
+function formatLatex(text){
 
+  if(!text) return ''
+
+  let t = String(text)
+
+  // Fix chemical formulas
+  t = t.replace(/([A-Za-z])(\d+)/g, '$1_{$2}')
+
+  // Fix fractions
+  t = t.replace(/(\b\w+)\/(\w+\b)/g, '\\frac{$1}{$2}')
+
+  // Fix power
+  t = t.replace(/(\w)\^(\w+)/g, '$1^{$2}')
+
+  // Add spacing for readability
+  t = t.replace(/;/g, ';\\;')
+
+  return `$${t}$`
+}
   // ================= UPDATE =================
   function updateField(i,field,value){
     const copy=[...batches]
@@ -144,8 +163,8 @@ export default function UploadExcelPage(){
             <div
               ref={(el)=>{
                 if(el){
-                  el.innerHTML = r.question || ''
-                  renderMathInElement(el)
+el.innerHTML = formatLatex(r.question)
+renderMathInElement(el)
                 }
               }}
             />
@@ -166,7 +185,7 @@ export default function UploadExcelPage(){
                 <span
                   ref={(el)=>{
                     if(el){
-                      el.innerHTML = r[op] || ''
+                      el.innerHTML = formatLatex(r[op])
                       renderMathInElement(el)
                     }
                   }}
