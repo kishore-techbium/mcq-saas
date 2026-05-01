@@ -91,10 +91,19 @@ export default function UploadExcelPage(){
     setImageMap(zipMap)
 
     const enriched = rows.map(r=>({
-      ...r,
-      rejected:false
-    }))
 
+  ...r,
+
+  // 🔥 normalize names
+  image_name: r.image_name || r['Image Name'] || '',
+  explanation_image_name:
+    r.explanation_image_name ||
+    r['Explanation Image Name'] ||
+    r['explanation image name'] ||
+    '',
+
+  rejected:false
+}))
     const temp=[]
     for(let i=0;i<enriched.length;i+=BATCH_SIZE){
       temp.push(enriched.slice(i,i+BATCH_SIZE))
