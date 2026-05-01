@@ -247,9 +247,11 @@ if (!timeSpentMap[q.id]) {
 )}
 </div>
 
-            {['A','B','C','D'].map(opt => {
+{['A','B','C','D'].map((opt, index) => {
 
-              const text = q[`option_${opt.toLowerCase()}`]
+  const text = q.options
+    ? q.options[index]                     // ✅ new format
+    : q[`option_${opt.toLowerCase()}`]     // ✅ old format
 
               let bg = '#fff'
               let color = '#333'
