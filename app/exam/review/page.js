@@ -2,13 +2,17 @@
 
 import { supabase } from '../../../lib/supabase'
 import { getCurrentUser } from '../../../lib/auth'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import renderMathInElement from 'katex/contrib/auto-render'
+import 'katex/dist/katex.min.css'
+
 
 export default function ExamReview() {
 
   const [session, setSession] = useState(null)
   const [questions, setQuestions] = useState([])
   const [exam, setExam] = useState(null)
+  const [zoomImg,setZoomImg] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -204,7 +208,31 @@ if (!timeSpentMap[q.id]) {
 
            <div style={{ fontWeight: 600 }}>
   Q{index + 1}.
-  <div dangerouslySetInnerHTML={{ __html: q.question }} />
+  <div
+  ref={el => {
+    if (!el) return
+
+    el.innerHTML = q.question || ''
+
+    // 🔥 fix images
+    const imgs = el.querySelectorAll('img')
+    imgs.forEach(img => {
+      img.loading = 'lazy'
+      img.style.maxWidth = '100%'
+      img.style.cursor = 'zoom-in'
+      img.onclick = () => setZoomImg(img.src)
+    })
+
+    // 🔥 render latex
+    renderMathInElement(el, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false }
+      ],
+      throwOnError: false
+    })
+  }}
+/>
     {/* ⏱ TIME INFO */}
 {(
  <div style={{
@@ -247,8 +275,21 @@ if (!timeSpentMap[q.id]) {
                   }}
                 >
                   {opt}. 
+
 <span
-  dangerouslySetInnerHTML={{ __html: text }}
+  ref={el => {
+    if (!el) return
+
+    el.innerHTML = text || ''
+
+    renderMathInElement(el, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false }
+      ],
+      throwOnError: false
+    })
+  }}
 />
                 </div>
               )
@@ -259,9 +300,31 @@ if (!timeSpentMap[q.id]) {
             {q.explanation && (
               <div style={styles.explanationBox}>
                 <b>Explanation:</b>
-                <div
-  dangerouslySetInnerHTML={{ __html: q.explanation }}
-/>
+  
+<div
+  ref={el => {
+    if (!el) return
+
+    el.innerHTML = q.explanation || ''
+
+    const imgs = el.querySelectorAll('img')
+    imgs.forEach(img => {
+      img.loading = 'lazy'
+      img.style.maxWidth = '100%'
+      img.style.cursor = 'zoom-in'
+      img.onclick = () => setZoomImg(img.src)
+    })
+
+    renderMathInElement(el, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false }
+      ],
+      throwOnError: false
+    })
+  }}
+/>  
+
               </div>
             )}
 
@@ -271,14 +334,42 @@ if (!timeSpentMap[q.id]) {
       })}
 
       <button
-        style={styles.backBtn}
-        onClick={() => window.location.href = '/dashboard'}
-      >
-        Back to Dashboard
-      </button>
+  style={styles.backBtn}
+  onClick={() => window.location.href = '/dashboard'}
+>
+  Back to Dashboard
+</button>
 
-    </div>
-  )
+{/* 🔥 ADD ZOOM MODAL HERE */}
+{zoomImg && (
+  <div
+    onClick={() => setZoomImg(null)}
+    style={{
+      position:'fixed',
+      top:0,
+      left:0,
+      width:'100%',
+      height:'100%',
+      background:'rgba(0,0,0,0.8)',
+      display:'flex',
+      alignItems:'center',
+      justifyContent:'center',
+      zIndex:9999
+    }}
+  >
+    <img
+      src={zoomImg}
+      style={{
+        maxWidth:'90%',
+        maxHeight:'90%',
+        borderRadius:10
+      }}
+    />
+  </div>
+)}
+
+</div>
+)
 }
 
 const styles = {
