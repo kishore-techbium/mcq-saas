@@ -3,6 +3,8 @@
 import { supabase } from '../../../lib/supabase'
 import { getCurrentUser } from '../../../lib/auth'
 import { useEffect, useRef, useState } from 'react'
+import renderMathInElement from 'katex/contrib/auto-render'
+import 'katex/dist/katex.min.css'
 
 function shuffleBySubject(questions) {
   const grouped = {}
@@ -71,7 +73,7 @@ export default function ExamPage({ params }) {
   const [fullscreenExitCount, setFullscreenExitCount] = useState(0)
   const [copyCount, setCopyCount] = useState(0)
   const [fastAnswerCount, setFastAnswerCount] = useState(0)
-
+  const questionRef = useRef(null)
   /* 🎥 PROCTORING REFS */
   const collegeIdRef = useRef(null)
   const videoRef = useRef(null)
@@ -120,6 +122,41 @@ useEffect(() => {
     init()
     return () => stopProctoring()
   }, [])
+  useEffect(() => {
+  if (!questionRef.current) return
+
+  renderMathInElement(questionRef.current, {
+    delimiters: [
+      { left: '$$', right: '$$', display: true },
+      { left: '$', right: '$', display: false }
+    ],
+    throwOnError: false
+  })
+}, [currentIndex])
+  useEffect(() => {
+  const next = questions[currentIndex + 1]
+  if (!next) return
+
+  // 🔥 preload question image
+  const match = next.question?.match(/src="(.*?)"/)
+  if (match && match[1]) {
+    const img = new Image()
+    img.src = match[1]
+  }
+
+  // 🔥 preload options
+  ;['option_a','option_b','option_c','option_d'].forEach(opt=>{
+    const val = next[opt]
+    if(val && val.includes('<img')){
+      const m = val.match(/src="(.*?)"/)
+      if(m && m[1]){
+        const img = new Image()
+        img.src = m[1]
+      }
+    }
+  })
+
+}, [currentIndex, questions])
   // 🔐 Integrity event listeners (SAFE)
 useEffect(() => {
   const handleVisibility = () => {
@@ -247,6 +284,17 @@ if (
 }
 
 setQuestions(finalQuestions)
+// 🔥 preload first 3 questions (fast start)
+for(let i=0;i<3;i++){
+  const q = finalQuestions[i]
+  if(!q) continue
+
+  const match = q.question?.match(/src="(.*?)"/)
+  if(match && match[1]){
+    const img = new Image()
+    img.src = match[1]
+  }
+}
 
 // 🔥 START tracking FIRST question properly
 setCurrentIndex(prev => {
@@ -639,7 +687,27 @@ if (!q) {
             Question {currentIndex + 1} of {questions.length}
           </h3>
 
-          <div dangerouslySetInnerHTML={{ __html: q.question }} />
+<div
+  ref={el => {
+    if (!el) return
+    el.innerHTML = q.question || ''
+
+    // 🔥 add lazy loading automatically
+    const imgs = el.querySelectorAll('img')
+    imgs.forEach(img => {
+      img.loading = 'lazy'
+      img.style.maxWidth = '250px'
+    })
+
+    renderMathInElement(el, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false }
+      ],
+      throwOnError: false
+    })
+  }}
+/>
 
           {['A','B','C','D'].map(opt => (
             <label key={opt} style={styles.option}>
@@ -648,11 +716,20 @@ if (!q) {
                 checked={answers[q.id] === opt}
                 onChange={() => selectAnswer(opt)}
               />
-             <span
-  dangerouslySetInnerHTML={{
-    __html: q.options
+                  <span
+  ref={el => {
+    if (!el) return
+    el.innerHTML = q.options
       ? q.options[opt.charCodeAt(0) - 65]
       : q[`option_${opt.toLowerCase()}`]
+
+    renderMathInElement(el, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false }
+      ],
+      throwOnError: false
+    })
   }}
 />
             </label>
