@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { getAdminCollege } from '../../../../lib/getAdminCollege'
+
 import * as XLSX from 'xlsx'
 import JSZip from 'jszip'
 import { supabase } from '../../../../lib/supabase'
@@ -13,7 +15,8 @@ export default function UploadExcelPage(){
 
   const [excelFile,setExcelFile] = useState(null)
   const [zipFile,setZipFile] = useState(null)
-
+const [exams,setExams] = useState([])
+const [selectedExam,setSelectedExam] = useState('')
   const [batches,setBatches] = useState([])
   const [currentBatch,setCurrentBatch] = useState(0)
 
@@ -24,6 +27,26 @@ export default function UploadExcelPage(){
   const [status,setStatus] = useState('')
   const [toast,setToast] = useState(null)
 
+useEffect(()=>{
+  loadExams()
+},[])
+
+async function loadExams(){
+
+  const collegeId = await getAdminCollege()
+
+  const { data, error } = await supabase
+    .from('exams')
+    .select('id,title')
+    .eq('college_id', collegeId)
+
+  if(error){
+    console.error('EXAM FETCH ERROR:', error)
+  }else{
+    setExams(data || [])
+  }
+}
+  
   /* ================= TOAST ================= */
   function showToast(msg,type='success'){
     setToast({msg,type})
@@ -141,9 +164,7 @@ export default function UploadExcelPage(){
   /* ================= UPLOAD ================= */
   async function uploadBatch(){
 
-  if(!selectedExam){
-    return showToast('Please select exam','error')
-  }
+  
 
   setUploading(true)
 
@@ -207,13 +228,13 @@ export default function UploadExcelPage(){
     batchUploaded++
 
     // map to exam
-    if(data && data.length > 0){
-      await supabase.from('exam_questions').insert([{
-        exam_id: selectedExam,
-        question_id: data[0].id,
-        college_id: collegeId
-      }])
-    }
+if(selectedExam && data && data.length > 0){
+  await supabase.from('exam_questions').insert([{
+    exam_id: selectedExam,
+    question_id: data[0].id,
+    college_id: collegeId
+  }])
+}
   }
 
   setUploading(false)
@@ -230,6 +251,23 @@ export default function UploadExcelPage(){
   const batch = batches[currentBatch] || []
 
   return (
+    <div style={{marginBottom:15}}>
+  <label><b>🎯 Select Exam (optional)</b></label><br/>
+
+  <select
+    value={selectedExam}
+    onChange={e=>setSelectedExam(e.target.value)}
+    style={{width:'100%',padding:8}}
+  >
+    <option value="">No Exam Mapping</option>
+
+    {exams.map(e=>(
+      <option key={e.id} value={e.id}>
+        {e.title}
+      </option>
+    ))}
+  </select>
+</div>
     <div style={{maxWidth:1100,margin:'auto',padding:20}}>
 
       <h2>📊 Excel Upload</h2>
