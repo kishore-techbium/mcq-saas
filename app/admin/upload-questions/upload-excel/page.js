@@ -182,86 +182,94 @@ async function loadExams(){
 
   /* ================= UPLOAD ================= */
   async function uploadBatch(){
-setUploading(true)
-setProgress(0)
-setStatus('Starting upload...')
 
-const collegeId = await getAdminCollege()
-const batch = batches[currentBatch]
+  try{
 
-let batchUploaded = 0
+    setUploading(true)
+    setProgress(0)
+    setStatus('Starting upload...')
 
-for(let r of batch){
+    const collegeId = await getAdminCollege()
+    const batch = batches[currentBatch]
 
-  setStatus(`Uploading question ${batchUploaded + 1} of ${batch.length}`)
+    let batchUploaded = 0
 
-  let q = r.question || ''
-  let e = r.explanation || ''
+    for(let r of batch){
 
-  const qImg = (r.image_name || '').trim().toLowerCase()
-  const eImg = (r.explanation_image_name || '').trim().toLowerCase()
+      setStatus(`Uploading question ${batchUploaded + 1} of ${batch.length}`)
 
-  if(qImg && imageMap[qImg]){
-    const url = await uploadImage(imageMap[qImg], qImg)
-    q += `<br><img src="${url}" />`
-  }
+      let q = r.question || ''
+      let e = r.explanation || ''
 
-  if(eImg && imageMap[eImg]){
-    const url = await uploadImage(imageMap[eImg], eImg)
-    e += `<br><img src="${url}" />`
-  }
+      const qImg = (r.image_name || '').trim().toLowerCase()
+      const eImg = (r.explanation_image_name || '').trim().toLowerCase()
 
-  const payload = {
-    exam_category: r.exam_category || '',
-    subject: r.subject || '',
-    chapter: r.chapter || '',
-    subtopic: r.subtopic || '',
-    difficulty: r.difficulty || '',
-    question: q,
-    option_a: r.option_a || '',
-    option_b: r.option_b || '',
-    option_c: r.option_c || '',
-    option_d: r.option_d || '',
-    correct_answer: r.correct_answer || '',
-    explanation: e,
-    college_id: collegeId,
-    is_active: true
-  }
+      if(qImg && imageMap[qImg]){
+        const url = await uploadImage(imageMap[qImg], qImg)
+        if(url) q += `<br><img src="${url}" />`
+      }
 
-  const { data, error } = await supabase
-    .from('question_bank')
-    .insert([payload])
-    .select()
+      if(eImg && imageMap[eImg]){
+        const url = await uploadImage(imageMap[eImg], eImg)
+        if(url) e += `<br><img src="${url}" />`
+      }
 
-  if(error){
-    console.error(error)
-    showToast(`Error uploading question`, 'error')
+      const payload = {
+        exam_category: r.exam_category || '',
+        subject: r.subject || '',
+        chapter: r.chapter || '',
+        subtopic: r.subtopic || '',
+        difficulty: r.difficulty || '',
+        question: q,
+        option_a: r.option_a || '',
+        option_b: r.option_b || '',
+        option_c: r.option_c || '',
+        option_d: r.option_d || '',
+        correct_answer: r.correct_answer || '',
+        explanation: e,
+        college_id: collegeId,
+        is_active: true
+      }
+
+      const { data, error } = await supabase
+        .from('question_bank')
+        .insert([payload])
+        .select()
+
+      if(error){
+        console.error(error)
+        showToast(`Error uploading question`, 'error')
+        setUploading(false)
+        return
+      }
+
+      batchUploaded++
+
+      const percent = Math.round((batchUploaded / batch.length) * 100)
+      setProgress(percent)
+
+      if(selectedExam && data && data.length > 0){
+        await supabase.from('exam_questions').insert([{
+          exam_id: selectedExam,
+          question_id: data[0].id,
+          college_id: collegeId
+        }])
+      }
+    }
+
     setUploading(false)
-    return
-  }
 
-  batchUploaded++
+    if(currentBatch + 1 < batches.length){
+      setCurrentBatch(currentBatch + 1)
+      showToast(`Batch ${currentBatch+1} uploaded`)
+    }else{
+      showToast('All batches completed ✅')
+    }
 
-  const percent = Math.round((batchUploaded / batch.length) * 100)
-  setProgress(percent)
-
-  if(selectedExam && data && data.length > 0){
-    await supabase.from('exam_questions').insert([{
-      exam_id: selectedExam,
-      question_id: data[0].id,
-      college_id: collegeId
-    }])
-  }
-}  
-
-  setUploading(false)
-
-  // move to next batch
-  if(currentBatch + 1 < batches.length){
-    setCurrentBatch(currentBatch + 1)
-    showToast(`Batch ${currentBatch+1} uploaded`)
-  }else{
-    showToast('All batches completed ✅')
+  }catch(err){
+    console.error('UPLOAD CRASH:', err)
+    showToast('Unexpected error occurred', 'error')
+    setUploading(false)
   }
 }
 
@@ -327,8 +335,9 @@ return (
     padding:6
   }}
 />
-            {['option_a','option_b','option_c','option_d'].map(op=>(
-              <textarea
+{['option_a','option_b','option_c','option_d'].map(op=>(
+  <textarea
+    key={op}
   value={r[op] || ''}
   onChange={e=>updateField(i,op,e.target.value)}
   style={{
