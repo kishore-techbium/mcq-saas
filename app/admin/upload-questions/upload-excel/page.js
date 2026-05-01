@@ -207,14 +207,15 @@ export default function UploadExcelPage(){
             />
 
             {/* QUESTION IMAGE */}
-          const qImg = (r.image_name || '').trim().toLowerCase()
-
-{qImg && imageMap[qImg] && (
-  <img
-    src={URL.createObjectURL(imageMap[qImg])}
-    style={{maxWidth:200, marginTop:10}}
-  />
-)}
+{(() => {
+  const qImg = (r.image_name || '').trim().toLowerCase()
+  return qImg && imageMap[qImg] ? (
+    <img
+      src={URL.createObjectURL(imageMap[qImg])}
+      style={{maxWidth:200, marginTop:10}}
+    />
+  ) : null
+})()}
 
             {/* OPTIONS */}
             {['option_a','option_b','option_c','option_d'].map((op,idx)=>(
@@ -239,14 +240,15 @@ export default function UploadExcelPage(){
             )}
 
             {/* EXPLANATION IMAGE */}
-            const expImg = (r.explanation_image_name || '').trim().toLowerCase()
-            
-            {expImg && imageMap[expImg] && (
-              <img
-                src={URL.createObjectURL(imageMap[expImg])}
-                style={{maxWidth:200, marginTop:10}}
-              />
-            )}           
+{(() => {
+  const expImg = (r.explanation_image_name || '').trim().toLowerCase()
+  return expImg && imageMap[expImg] ? (
+    <img
+      src={URL.createObjectURL(imageMap[expImg])}
+      style={{maxWidth:200, marginTop:10}}
+    />
+  ) : null
+})()}
 
           </div>
 
