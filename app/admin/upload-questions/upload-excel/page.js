@@ -135,6 +135,25 @@ async function loadExams(){
   }
 
   /* ================= IMAGE UPLOAD ================= */
+  async function uploadImage(blob, name){
+
+  const fileName = `question_images/${Date.now()}_${name}`
+
+  const { error } = await supabase.storage
+    .from('question-images')
+    .upload(fileName, blob)
+
+  if(error){
+    console.error('IMAGE UPLOAD ERROR:', error)
+    return null
+  }
+
+  const { data } = supabase.storage
+    .from('question-images')
+    .getPublicUrl(fileName)
+
+  return data.publicUrl
+}
   async function uploadImages(){
 
     const uploadedMap = {}
@@ -163,79 +182,77 @@ async function loadExams(){
 
   /* ================= UPLOAD ================= */
   async function uploadBatch(){
+setUploading(true)
+setProgress(0)
+setStatus('Starting upload...')
 
-  
+const collegeId = await getAdminCollege()
+const batch = batches[currentBatch]
 
-  setUploading(true)
+let batchUploaded = 0
 
-  const collegeId = await getAdminCollege()
-  const batch = batches[currentBatch]
+for(let r of batch){
 
-  let batchUploaded = 0
+  setStatus(`Uploading question ${batchUploaded + 1} of ${batch.length}`)
 
-  for(let r of batch){
+  let q = r.question || ''
+  let e = r.explanation || ''
 
-    let q = r.question || ''
-    let e = r.explanation || ''
+  const qImg = (r.image_name || '').trim().toLowerCase()
+  const eImg = (r.explanation_image_name || '').trim().toLowerCase()
 
-    const qImg = (r.image_name || '').trim().toLowerCase()
-    const eImg = (r.explanation_image_name || '').trim().toLowerCase()
-
-    // upload question image
-    if(qImg && imageMap[qImg]){
-      const url = await uploadImage(imageMap[qImg], qImg)
-      q += `<br><img src="${url}" />`
-    }
-
-    // upload explanation image
-    if(eImg && imageMap[eImg]){
-      const url = await uploadImage(imageMap[eImg], eImg)
-      e += `<br><img src="${url}" />`
-    }
-
-    const payload = {
-      exam_category: r.exam_category || '',
-      subject: r.subject || '',
-      chapter: r.chapter || '',
-      subtopic: r.subtopic || '',
-      difficulty: r.difficulty || '',
-
-      question: q,
-      option_a: r.option_a || '',
-      option_b: r.option_b || '',
-      option_c: r.option_c || '',
-      option_d: r.option_d || '',
-      correct_answer: r.correct_answer || '',
-
-      explanation: e,
-
-      college_id: collegeId,
-      is_active: true
-    }
-
-    const { data, error } = await supabase
-      .from('question_bank')
-      .insert([payload])
-      .select()
-
-    if(error){
-      console.error(error)
-      showToast(`Error uploading question`, 'error')
-      setUploading(false)
-      return
-    }
-
-    batchUploaded++
-
-    // map to exam
-if(selectedExam && data && data.length > 0){
-  await supabase.from('exam_questions').insert([{
-    exam_id: selectedExam,
-    question_id: data[0].id,
-    college_id: collegeId
-  }])
-}
+  if(qImg && imageMap[qImg]){
+    const url = await uploadImage(imageMap[qImg], qImg)
+    q += `<br><img src="${url}" />`
   }
+
+  if(eImg && imageMap[eImg]){
+    const url = await uploadImage(imageMap[eImg], eImg)
+    e += `<br><img src="${url}" />`
+  }
+
+  const payload = {
+    exam_category: r.exam_category || '',
+    subject: r.subject || '',
+    chapter: r.chapter || '',
+    subtopic: r.subtopic || '',
+    difficulty: r.difficulty || '',
+    question: q,
+    option_a: r.option_a || '',
+    option_b: r.option_b || '',
+    option_c: r.option_c || '',
+    option_d: r.option_d || '',
+    correct_answer: r.correct_answer || '',
+    explanation: e,
+    college_id: collegeId,
+    is_active: true
+  }
+
+  const { data, error } = await supabase
+    .from('question_bank')
+    .insert([payload])
+    .select()
+
+  if(error){
+    console.error(error)
+    showToast(`Error uploading question`, 'error')
+    setUploading(false)
+    return
+  }
+
+  batchUploaded++
+
+  const percent = Math.round((batchUploaded / batch.length) * 100)
+  setProgress(percent)
+
+  if(selectedExam && data && data.length > 0){
+    await supabase.from('exam_questions').insert([{
+      exam_id: selectedExam,
+      question_id: data[0].id,
+      college_id: collegeId
+    }])
+  }
+}  
 
   setUploading(false)
 
