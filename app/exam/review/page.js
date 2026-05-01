@@ -247,11 +247,9 @@ if (!timeSpentMap[q.id]) {
 )}
 </div>
 
-{['A','B','C','D'].map((opt, index) => {
+            {['A','B','C','D'].map(opt => {
 
-  const text = q.options
-    ? q.options[index]                     // ✅ new format
-    : q[`option_${opt.toLowerCase()}`]     // ✅ old format
+              const text = q[`option_${opt.toLowerCase()}`]
 
               let bg = '#fff'
               let color = '#333'
@@ -283,19 +281,20 @@ if (!timeSpentMap[q.id]) {
   ref={el => {
     if (!el) return
 
-    // ✅ clear previous render
+    // 🔥 reset content (important for React reuse)
     el.innerHTML = ''
 
-    // ✅ set fresh content
+    // 🔥 set content
     el.innerHTML = text || ''
 
-    // ✅ render latex
+    // 🔥 render latex safely (without breaking images)
     renderMathInElement(el, {
       delimiters: [
         { left: '$$', right: '$$', display: true },
         { left: '$', right: '$', display: false }
       ],
-      throwOnError: false
+      throwOnError: false,
+      ignoredTags: ['script','noscript','style','textarea','pre','code','img']
     })
   }}
 />
@@ -313,9 +312,20 @@ if (!timeSpentMap[q.id]) {
   ref={el => {
     if (!el) return
 
-    el.innerHTML = ''
-el.innerHTML = q.explanation || ''
+    // 🔥 set HTML
+    el.innerHTML = q.explanation || ''
 
+    // 🔥 render latex first (safe)
+    renderMathInElement(el, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false }
+      ],
+      throwOnError: false,
+      ignoredTags: ['script','noscript','style','textarea','pre','code','img']
+    })
+
+    // 🔥 then fix images
     const imgs = el.querySelectorAll('img')
     imgs.forEach(img => {
       img.loading = 'lazy'
@@ -323,16 +333,8 @@ el.innerHTML = q.explanation || ''
       img.style.cursor = 'zoom-in'
       img.onclick = () => setZoomImg(img.src)
     })
-
-    renderMathInElement(el, {
-      delimiters: [
-        { left: '$$', right: '$$', display: true },
-        { left: '$', right: '$', display: false }
-      ],
-      throwOnError: false
-    })
   }}
-/>  
+/>
 
               </div>
             )}
