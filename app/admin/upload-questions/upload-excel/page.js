@@ -21,26 +21,29 @@ export default function UploadExcelPage(){
   /* ================= RENDER FUNCTION ================= */
 
   function renderContent(el, text){
-    if(!el) return
 
-    const value = text || ''
+  if(!el) return
 
-    const hasLatex = value.includes('$')
+  // ✅ ALWAYS convert to string
+  const value = text === null || text === undefined
+    ? ''
+    : String(text)
 
-    if(hasLatex){
-      el.innerHTML = value
+  const hasLatex = value.includes('$')
 
-      renderMathInElement(el, {
-        delimiters: [
-          { left: '$', right: '$', display: false },
-          { left: '$$', right: '$$', display: true }
-        ]
-      })
-    } else {
-      el.textContent = value
-    }
+  if(hasLatex){
+    el.innerHTML = value
+
+    renderMathInElement(el, {
+      delimiters: [
+        { left: '$', right: '$', display: false },
+        { left: '$$', right: '$$', display: true }
+      ]
+    })
+  } else {
+    el.textContent = value
   }
-
+}
   /* ================= ZIP PROCESS ================= */
 
   async function processZip(file){
