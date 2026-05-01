@@ -249,26 +249,30 @@ if(selectedExam && data && data.length > 0){
 }
 
   const batch = batches[currentBatch] || []
+return (
+  <div style={{maxWidth:1100,margin:'auto',padding:20}}>
 
-  return (
+    {/* ✅ EXAM DROPDOWN */}
     <div style={{marginBottom:15}}>
-  <label><b>🎯 Select Exam (optional)</b></label><br/>
+      <label><b>🎯 Select Exam (optional)</b></label><br/>
 
-  <select
-    value={selectedExam}
-    onChange={e=>setSelectedExam(e.target.value)}
-    style={{width:'100%',padding:8}}
-  >
-    <option value="">No Exam Mapping</option>
+      <select
+        value={selectedExam}
+        onChange={e=>setSelectedExam(e.target.value)}
+        style={{width:'100%',padding:8}}
+      >
+        <option value="">No Exam Mapping</option>
 
-    {exams.map(e=>(
-      <option key={e.id} value={e.id}>
-        {e.title}
-      </option>
-    ))}
-  </select>
-</div>
-    <div style={{maxWidth:1100,margin:'auto',padding:20}}>
+        {exams.map(e=>(
+          <option key={e.id} value={e.id}>
+            {e.title}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {/* ✅ MAIN UI STARTS HERE */}
+    <h2>📊 Excel Upload</h2>
 
       <h2>📊 Excel Upload</h2>
 
