@@ -18,7 +18,31 @@ export default function UploadExcelPage(){
 
   const [imageMap,setImageMap] = useState({})
 
-  // ================= ZIP =================
+  /* ================= RENDER FUNCTION ================= */
+
+  function renderContent(el, text){
+    if(!el) return
+
+    const value = text || ''
+
+    const hasLatex = value.includes('$')
+
+    if(hasLatex){
+      el.innerHTML = value
+
+      renderMathInElement(el, {
+        delimiters: [
+          { left: '$', right: '$', display: false },
+          { left: '$$', right: '$$', display: true }
+        ]
+      })
+    } else {
+      el.textContent = value
+    }
+  }
+
+  /* ================= ZIP PROCESS ================= */
+
   async function processZip(file){
     if(!file) return {}
 
@@ -29,23 +53,24 @@ export default function UploadExcelPage(){
       const fileObj = zip.files[f]
       if(!fileObj.dir){
 
-        // 🔥 FIX: remove folder path
+        // remove folder path + trim spaces
         const cleanName = fileObj.name.split('/').pop().trim()
 
         map[cleanName] = await fileObj.async('blob')
       }
     }
 
-    console.log('ZIP FILES:', Object.keys(map)) // ✅ DEBUG
+    console.log('ZIP FILES:', Object.keys(map))
 
     return map
   }
 
-  // ================= PREVIEW =================
+  /* ================= PREVIEW ================= */
+
   async function handlePreview(){
 
     if(!excelFile){
-      alert('Upload Excel file first')
+      alert('Please upload Excel file')
       return
     }
 
@@ -75,27 +100,9 @@ export default function UploadExcelPage(){
     setBatches(temp)
     setCurrentBatch(0)
   }
-function formatLatex(text){
 
-  if(!text) return ''
+  /* ================= UPDATE ================= */
 
-  let t = String(text)
-
-  // Fix chemical formulas
-  t = t.replace(/([A-Za-z])(\d+)/g, '$1_{$2}')
-
-  // Fix fractions
-  t = t.replace(/(\b\w+)\/(\w+\b)/g, '\\frac{$1}{$2}')
-
-  // Fix power
-  t = t.replace(/(\w)\^(\w+)/g, '$1^{$2}')
-
-  // Add spacing for readability
-  t = t.replace(/;/g, ';\\;')
-
-  return `$${t}$`
-}
-  // ================= UPDATE =================
   function updateField(i,field,value){
     const copy=[...batches]
     copy[currentBatch][i][field]=value
@@ -109,17 +116,34 @@ function formatLatex(text){
 
       <h2>📊 Excel Upload</h2>
 
-      {/* FILE INPUTS */}
-      <input type="file" onChange={e=>setExcelFile(e.target.files[0])}/>
-      <br/><br/>
-      <input type="file" onChange={e=>setZipFile(e.target.files[0])}/>
-      <br/><br/>
+      {/* ================= FILE INPUTS ================= */}
+
+      <div style={{marginBottom:15}}>
+        <label><b>📄 Upload Excel File</b></label><br/>
+        <input
+          type="file"
+          accept=".xlsx,.xls,.csv"
+          onChange={e=>setExcelFile(e.target.files[0])}
+        />
+        <div>{excelFile?.name}</div>
+      </div>
+
+      <div style={{marginBottom:15}}>
+        <label><b>🖼️ Upload Images ZIP (optional)</b></label><br/>
+        <input
+          type="file"
+          accept=".zip"
+          onChange={e=>setZipFile(e.target.files[0])}
+        />
+        <div>{zipFile?.name}</div>
+      </div>
 
       <button onClick={handlePreview}>Preview</button>
 
       <br/><br/>
 
-      {/* QUESTIONS */}
+      {/* ================= QUESTIONS ================= */}
+
       {batch.map((r,i)=>(
 
         <div key={i} style={{
@@ -130,7 +154,7 @@ function formatLatex(text){
           padding:10
         }}>
 
-          {/* ================= LEFT SIDE (EDIT) ================= */}
+          {/* ================= LEFT (EDIT) ================= */}
           <div style={{flex:1}}>
 
             <b>Q{i+1}</b>
@@ -150,9 +174,16 @@ function formatLatex(text){
               />
             ))}
 
+            <textarea
+              value={r.explanation || ''}
+              onChange={e=>updateField(i,'explanation',e.target.value)}
+              placeholder="Explanation"
+              style={{width:'100%',height:70,marginTop:5}}
+            />
+
           </div>
 
-          {/* ================= RIGHT SIDE (PREVIEW) ================= */}
+          {/* ================= RIGHT (PREVIEW) ================= */}
           <div style={{
             flex:1,
             background:'#f8fafc',
@@ -161,12 +192,7 @@ function formatLatex(text){
 
             {/* QUESTION */}
             <div
-              ref={(el)=>{
-                if(el){
-el.innerHTML = formatLatex(r.question)
-renderMathInElement(el)
-                }
-              }}
+              ref={(el)=>renderContent(el, r.question)}
             />
 
             {/* QUESTION IMAGE */}
@@ -183,12 +209,7 @@ renderMathInElement(el)
                 <b>{String.fromCharCode(65+idx)}.</b>
 
                 <span
-                  ref={(el)=>{
-                    if(el){
-                      el.innerHTML = formatLatex(r[op])
-                      renderMathInElement(el)
-                    }
-                  }}
+                  ref={(el)=>renderContent(el, r[op])}
                 />
               </div>
             ))}
@@ -199,12 +220,7 @@ renderMathInElement(el)
                 <b>Explanation:</b>
 
                 <div
-                  ref={(el)=>{
-                    if(el){
-                      el.innerHTML = r.explanation || ''
-                      renderMathInElement(el)
-                    }
-                  }}
+                  ref={(el)=>renderContent(el, r.explanation)}
                 />
               </div>
             )}
