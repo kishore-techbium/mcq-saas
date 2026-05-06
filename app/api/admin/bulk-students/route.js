@@ -40,7 +40,24 @@ export async function POST(req) {
         { status: 400 }
       )
     }
+const {
+  data: parentCategories,
+  error: categoryError
+} = await supabase
+  .from('exam_categories')
+  .select('code,parent_code')
+  .eq('active', true)
 
+if (categoryError) {
+  throw categoryError
+}
+
+const validPreferences =
+  (parentCategories || [])
+    .filter(
+      c => c.code === c.parent_code
+    )
+    .map(c => c.code)
     /* ================= READ FILE ================= */
 
     const formData = await req.formData()
@@ -74,30 +91,57 @@ export async function POST(req) {
         failed++
         continue
       }
+const parsedStudyYear =
+  Number(study_year)
 
+if (
+  ![1,2,3,4,5,6,7,8,9,10]
+    .includes(parsedStudyYear)
+) {
+  failed++
+  continue
+}
+      if (
+        !validPreferences.includes(
+          exam_preference
+        )
+      ) {
+        failed++
+        continue
+      }
       try {
+
         const id = randomUUID()
 
-        await supabase.from('students').insert({
-          id,
-          user_id: id,
-          email: email.trim(),
-          first_name: first_name?.trim(),
-          last_name: last_name?.trim(),
-          login_id: login_id?.trim(),
-          password: password?.trim(),
-          exam_preference: exam_preference?.trim(),
-          phone: phone?.trim(),
-          address: address?.trim(),
-          study_year: Number(study_year),
-          role: 'student',
-          college_id: admin.college_id,
-          college_name: admin.college_name
-        })
+        const { error: insertError } =
+          await supabase
+            .from('students')
+            .insert({
+              id,
+              user_id: id,
+              email: email.trim(),
+              first_name: first_name?.trim(),
+              last_name: last_name?.trim(),
+              login_id: login_id?.trim(),
+              password: password?.trim(),
+              exam_preference: exam_preference?.trim(),
+              phone: phone?.trim(),
+              address: address?.trim(),
+              study_year: parsedStudyYear,
+              role: 'student',
+              college_id: admin.college_id,
+              college_name: admin.college_name
+            })
+
+        if (insertError) {
+          failed++
+          continue
+        }
 
         inserted++
 
       } catch (err) {
+
         console.error(err)
         failed++
       }
@@ -106,7 +150,12 @@ export async function POST(req) {
     return Response.json({ inserted, failed })
 
   } catch (err) {
+
     console.error(err)
-    return Response.json({ error: 'Upload failed' }, { status: 500 })
+
+    return Response.json(
+      { error: 'Upload failed' },
+      { status: 500 }
+    )
   }
 }
