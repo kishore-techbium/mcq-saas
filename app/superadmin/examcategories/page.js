@@ -7,9 +7,9 @@ export default function ExamCategoriesPage() {
 
   const [categories, setCategories] = useState([])
 
-  const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [parentCode, setParentCode] = useState('')
+
   const [msg, setMsg] = useState('')
 
   useEffect(() => {
@@ -30,19 +30,22 @@ export default function ExamCategoriesPage() {
 
   async function addCategory() {
 
-    if (!name || !code) {
-      setMsg('❌ Name and code required')
+    if (!code || !parentCode) {
+      setMsg('❌ Code and parent code required')
       return
     }
 
+    const finalCode = code.toUpperCase()
+    const finalParent = parentCode.toUpperCase()
+
     const { error } = await supabase
       .from('exam_categories')
-    .insert({
-      name: name.toUpperCase(),
-      code: code.toUpperCase(),
-      parent_code: parentCode.toUpperCase(),
-      active: true
-    })
+      .insert({
+        name: finalCode,
+        code: finalCode,
+        parent_code: finalParent,
+        active: true
+      })
 
     if (error) {
       setMsg('❌ ' + error.message)
@@ -51,7 +54,6 @@ export default function ExamCategoriesPage() {
 
     setMsg('✅ Category added')
 
-    setName('')
     setCode('')
     setParentCode('')
 
@@ -80,19 +82,16 @@ export default function ExamCategoriesPage() {
       <div style={styles.box}>
 
         <input
-          placeholder="Category Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          placeholder="Category Code"
+          value={code}
+          style={{ padding: 8 }}
+          onChange={(e) => setCode(e.target.value)}
         />
 
         <input
-          placeholder="Category Code"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-        />
-        <input
           placeholder="Parent Code"
-          value={code}
+          value={parentCode}
+          style={{ padding: 8 }}
           onChange={(e) => setParentCode(e.target.value)}
         />
 
@@ -105,112 +104,137 @@ export default function ExamCategoriesPage() {
 
       </div>
 
+      <p style={{ marginBottom: 20 }}>
+        Examples:
+        <br />
+        JEE → JEE
+        <br />
+        JEE_MAINS → JEE
+        <br />
+        CLASS_6 → SCHOOL
+      </p>
+
       {msg && <p>{msg}</p>}
 
-<h2 style={{ marginTop: 30 }}>
-  Available Exam Categories
-</h2>
+      <h2 style={{ marginTop: 30 }}>
+        Available Exam Categories
+      </h2>
 
-<table style={styles.table}>
+      <table style={styles.table}>
 
-  <thead>
+        <thead>
 
-    <tr style={styles.headerRow}>
-      <th style={styles.th}>Name</th>
-      <th style={styles.th}>Code</th>
-      <th style={styles.th}>Parent</th>
-      <th style={styles.th}>Status</th>
-    </tr>
+          <tr style={styles.headerRow}>
+            <th style={styles.th}>Code</th>
+            <th style={styles.th}>Parent</th>
+            <th style={styles.th}>Type</th>
+            <th style={styles.th}>Status</th>
+          </tr>
 
-  </thead>
+        </thead>
 
-  <tbody>
+        <tbody>
 
-    {categories.length === 0 && (
+          {categories.length === 0 && (
 
-      <tr>
-        <td
-          colSpan="3"
-          style={{
-            padding: 20,
-            textAlign: 'center'
-          }}
-        >
-          No categories found
-        </td>
-      </tr>
+            <tr>
+              <td
+                colSpan="4"
+                style={{
+                  padding: 20,
+                  textAlign: 'center'
+                }}
+              >
+                No categories found
+              </td>
+            </tr>
 
-    )}
+          )}
 
-    {categories.map(cat => (
+          {categories.map(cat => {
 
-      <tr key={cat.id} style={styles.tr}>
+            const isParent =
+              cat.code === cat.parent_code
 
-        <td style={styles.td}>
-          {cat.name}
-        </td>
+            return (
 
-        <td style={styles.td}>
-          {cat.code}
-        </td>
-        <td style={styles.td}>
-          {cat.parent_code}
-        </td>
-        <td style={styles.td}>
+              <tr key={cat.id} style={styles.tr}>
 
-          <button
-            onClick={() =>
-              toggleActive(cat.id, cat.active)
-            }
-            style={{
-              background: cat.active
-                ? '#16a34a'
-                : '#dc2626',
+                <td style={styles.td}>
+                  {cat.code}
+                </td>
 
-              color: '#fff',
-              border: 'none',
-              padding: '5px 10px',
-              borderRadius: 6,
-              cursor: 'pointer'
-            }}
-          >
-            {cat.active ? 'ACTIVE' : 'DISABLED'}
-          </button>
+                <td style={styles.td}>
+                  {cat.parent_code}
+                </td>
 
-        </td>
+                <td style={styles.td}>
+                  {isParent
+                    ? 'PARENT'
+                    : 'CHILD'}
+                </td>
 
-      </tr>
+                <td style={styles.td}>
 
-    ))}
+                  <button
+                    onClick={() =>
+                      toggleActive(
+                        cat.id,
+                        cat.active
+                      )
+                    }
+                    style={{
+                      background: cat.active
+                        ? '#16a34a'
+                        : '#dc2626',
 
-  </tbody>
+                      color: '#fff',
+                      border: 'none',
+                      padding: '5px 10px',
+                      borderRadius: 6,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {cat.active
+                      ? 'ACTIVE'
+                      : 'DISABLED'}
+                  </button>
 
-</table>
+                </td>
+
+              </tr>
+
+            )
+          })}
+
+        </tbody>
+
+      </table>
 
     </div>
   )
 }
 
 const styles = {
-headerRow: {
-  background: '#f1f5f9'
-},
 
-th: {
-  textAlign: 'left',
-  padding: 12,
-  borderBottom: '1px solid #ddd'
-},
+  headerRow: {
+    background: '#f1f5f9'
+  },
 
-td: {
-  padding: 12,
-  borderBottom: '1px solid #eee'
-},
+  th: {
+    textAlign: 'left',
+    padding: 12,
+    borderBottom: '1px solid #ddd'
+  },
 
-tr: {
-  background: '#fff'
-},
+  td: {
+    padding: 12,
+    borderBottom: '1px solid #eee'
+  },
 
+  tr: {
+    background: '#fff'
+  },
 
   box: {
     display: 'flex',
@@ -223,7 +247,8 @@ tr: {
     background: '#2563eb',
     color: '#fff',
     border: 'none',
-    borderRadius: 6
+    borderRadius: 6,
+    cursor: 'pointer'
   },
 
   table: {
