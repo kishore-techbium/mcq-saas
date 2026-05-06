@@ -478,7 +478,11 @@ if (sortBy === 'last_name') {
 >
   <option value="first_name">Sort: First Name</option>
   <option value="last_name">Sort: Last Name</option>
-  <option value="rank">Sort: Rank</option>
+  {role !== 'school_admin' && (
+  <option value="rank">
+    Sort: Rank
+  </option>
+)}
 </select>
     {/* BUTTONS */}
     <div style={styles.buttonGroup}>
