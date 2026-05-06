@@ -11,6 +11,7 @@ export default function StudentProfile() {
   const [examPref, setExamPref] = useState('')
   const [joinCode, setJoinCode] = useState('')
   const [categories, setCategories] = useState([])
+  const [studyYear, setStudyYear] = useState('')
   const [profile, setProfile] = useState({
     id: '',
     email: '',
@@ -77,6 +78,7 @@ export default function StudentProfile() {
     })
 
     setExamPref(user.exam_preference || '')
+    setStudyYear(user.study_year || '')
   }
 
   // ✅ IF NO PROFILE → CREATE BASIC ENTRY
@@ -113,7 +115,11 @@ async function fetchCategories() {
       .select('college_id')
       .eq('code', joinCode)
       .maybeSingle()
-
+if (!studyYear) {
+  alert('Please select study year/class')
+  setSaving(false)
+  return
+}
     if (!codeData || codeError) {
       alert('Invalid Join Code')
       setSaving(false)
@@ -140,8 +146,9 @@ async function fetchCategories() {
           phone: profile.phone || null,
           address: profile.address || null,
           college_id: collegeId,
-          college_name: college?.name || null,   // ✅ AUTO FILLED
+          college_name: college?.name || null,   
           exam_preference: examPref,
+          study_year: studyYear,
           user_id: userId
         },
         { onConflict: 'email' }
@@ -238,6 +245,82 @@ async function fetchCategories() {
           ))} 
           </div>
         </div>
+
+{/* STUDY YEAR */}
+
+<div style={styles.field}>
+
+  <label>Study Year / Class</label>
+
+  {/* JEE / NEET */}
+
+  {(examPref === 'JEE' ||
+    examPref === 'NEET') && (
+
+    <select
+      value={studyYear}
+      onChange={(e) =>
+        setStudyYear(e.target.value)
+      }
+      style={styles.input}
+    >
+      <option value="">
+        Select Year
+      </option>
+
+      <option value="1">
+        1st Year
+      </option>
+
+      <option value="2">
+        2nd Year
+      </option>
+
+    </select>
+  )}
+
+  {/* SCHOOL */}
+
+  {examPref === 'SCHOOL' && (
+
+    <select
+      value={studyYear}
+      onChange={(e) =>
+        setStudyYear(e.target.value)
+      }
+      style={styles.input}
+    >
+
+      <option value="">
+        Select Class
+      </option>
+
+      <option value="CLASS_IV">
+        CLASS_IV
+      </option>
+
+      <option value="CLASS_V">
+        CLASS_V
+      </option>
+              <option value="CLASS_V">
+        CLASS_VI
+      </option>
+              <option value="CLASS_V">
+        CLASS_VII
+      </option>
+      <option value="CLASS_V">
+        CLASS_VIII
+      </option>
+              <option value="CLASS_V">
+        CLASS_IX
+      </option>
+              <option value="CLASS_V">
+        CLASS_X
+      </option>
+    </select>
+  )}
+
+</div>
 
         {/* JOIN CODE */}
         <div style={styles.field}>
