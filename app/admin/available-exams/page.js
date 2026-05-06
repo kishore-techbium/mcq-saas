@@ -34,10 +34,13 @@ export default function AvailableExamsPage() {
         return
       }
 
-      if (user?.role !== 'admin') {
-        window.location.href = '/'
-        return
-      }
+if (
+  user?.role !== 'admin' &&
+  user?.role !== 'school_admin'
+) {
+  window.location.href = '/'
+  return
+}
 
       await loadExams()
     } catch (err) {
