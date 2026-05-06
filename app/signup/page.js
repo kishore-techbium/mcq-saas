@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-
+import { loadExamCategories } from '../../lib/loadExamCategories'
 export default function SignupPage() {
 
   const [firstName, setFirstName] = useState('')
@@ -12,10 +12,12 @@ export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [categories, setCategories] = useState([])
 
-  useEffect(() => {
-    getUser()
-  }, [])
+useEffect(() => {
+  getUser()
+  fetchCategories()
+}, [])
 
   async function getUser() {
     const { data } = await supabase.auth.getUser()
@@ -29,6 +31,13 @@ export default function SignupPage() {
     setLoading(false)
   }
 
+ async function fetchCategories() {
+
+  const data = await loadExamCategories()
+
+  setCategories(data)
+}
+  
   async function handleSignup() {
 
     setError('')
@@ -119,23 +128,23 @@ export default function SignupPage() {
           <label>Exam Preference *</label>
 
           <div style={{ display: 'flex', gap: 20, marginTop: 8 }}>
-            <label>
-              <input
-                type="radio"
-                value="NEET"
-                checked={exam === 'NEET'}
-                onChange={(e) => setExam(e.target.value)}
-              /> NEET UG
-            </label>
+            {categories.map(cat => (
 
-            <label>
+            <label key={cat.code}>
+          
               <input
                 type="radio"
-                value="JEE"
-                checked={exam === 'JEE'}
+                value={cat.code}
+                checked={exam === cat.code}
                 onChange={(e) => setExam(e.target.value)}
-              /> JEE MAINS
+              />
+          
+              {' '}
+              {cat.name}
+          
             </label>
+          
+          ))}
           </div>
         </div>
 
