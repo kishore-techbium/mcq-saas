@@ -19,7 +19,7 @@ export default function StudentListPage() {
   const [segment, setSegment] = useState('NEET_1')
   const [allStudents, setAllStudents] = useState([])
   const [search, setSearch] = useState('')
-  
+  const [role, setRole] = useState('')
   const [selectedStudents, setSelectedStudents] = useState([])
   const [yearCounts, setYearCounts] = useState({ first: 0, second: 0 })
   
@@ -29,6 +29,24 @@ useEffect(() => {
 
 
   async function fetchStudents() {
+const { data: auth } =
+  await supabase.auth.getUser()
+
+const email = auth?.user?.email
+
+const { data: currentUser } =
+  await supabase
+    .from('students')
+    .select('role')
+    .eq('email', email)
+    .single()
+
+setRole(currentUser?.role || '')
+if (
+  currentUser?.role === 'school_admin'
+) {
+  setSegment('CLASS_4')
+}
   setLoading(true)
 
   // 1️⃣ Fetch students
@@ -85,21 +103,33 @@ if (studentData) {
   })
 }
 // 🔥 FILTER GRAND TEST STATS
-const grandFiltered = (grandStats || []).filter(s => {
-  
-  const exam = examMap[s.exam_id]
-  const student = studentMap[s.student_id]
+const grandFiltered =
+  role === 'school_admin'
+    ? []
 
- return (
-  exam &&
-  student &&
-  (
-    (student.exam_preference === 'NEET' && exam.exam_category === 'NEET') ||
-    (student.exam_preference === 'JEE' && exam.exam_category.startsWith('JEE'))
-  ) &&
-  String(exam.target_year) === String(student.study_year).trim()
-)
-})
+    : (grandStats || []).filter(s => {
+
+        const exam = examMap[s.exam_id]
+        const student = studentMap[s.student_id]
+
+        return (
+          exam &&
+          student &&
+          (
+            (
+              student.exam_preference === 'NEET' &&
+              exam.exam_category === 'NEET_UG'
+            ) ||
+
+            (
+              student.exam_preference === 'JEE' &&
+              exam.exam_category.startsWith('JEE')
+            )
+          ) &&
+          String(exam.target_year) ===
+          String(student.study_year).trim()
+        )
+      })
 
 // 🔥 CALCULATE BEST SCORE PER STUDENT
 const scoreMap = {}
@@ -150,7 +180,11 @@ Object.keys(groups).forEach(key => {
   })
 })
 const merged = (studentData || [])
-  .filter(s => s.role !== 'admin')   // 🔥 ADD THIS
+  .filter(
+  s =>
+    s.role !== 'admin' &&
+    s.role !== 'school_admin'
+)
   .map(s => ({
     ...s,
     attempt_count: attemptMap[String(s.id)] || 0,
@@ -180,10 +214,17 @@ function downloadTemplate() {
     "study_year"
   ]
 
-  const csv = [
-    headers.join(','),
-    "student1@test.com,John,Doe,student1,1234,JEE,9876543210,Guntur"
-  ].join('\n')
+const sampleRow =
+  role === 'school_admin'
+
+    ? "student1@test.com,John,Doe,student1,1234,SCHOOL,9876543210,Guntur,4"
+
+    : "student1@test.com,John,Doe,student1,1234,JEE,9876543210,Guntur,1"
+
+const csv = [
+  headers.join(','),
+  sampleRow
+].join('\n')
 
   const blob = new Blob([csv], { type: 'text/csv' })
   const url = URL.createObjectURL(blob)
@@ -287,7 +328,18 @@ async function resetPassword(studentId) {
 
   const year = String(s.study_year || '')
     .trim()
+if (role === 'school_admin') {
 
+  if (
+    segment.startsWith('CLASS_')
+  ) {
+
+    const classNo =
+      segment.replace('CLASS_', '')
+
+    return year === classNo
+  }
+}
 
   if (segment === 'NEET_1') return pref === 'NEET' && year === '1'
   if (segment === 'NEET_2') return pref === 'NEET' && year === '2'
@@ -299,12 +351,42 @@ async function resetPassword(studentId) {
 
   // SORT
   if (sortBy === 'rank') {
-    filtered.sort((a, b) => {
-      const rankA = a.rank === '-' ? 9999 : Number(a.rank)
-      const rankB = b.rank === '-' ? 9999 : Number(b.rank)
-      return rankA - rankB
-    })
-  }
+
+  filtered.sort((a, b) => {
+
+    const rankA =
+      a.rank === '-'
+        ? 9999
+        : Number(a.rank)
+
+    const rankB =
+      b.rank === '-'
+        ? 9999
+        : Number(b.rank)
+
+    return rankA - rankB
+  })
+}
+
+if (sortBy === 'first_name') {
+
+  filtered.sort((a, b) =>
+    (a.first_name || '')
+      .localeCompare(
+        b.first_name || ''
+      )
+  )
+}
+
+if (sortBy === 'last_name') {
+
+  filtered.sort((a, b) =>
+    (a.last_name || '')
+      .localeCompare(
+        b.last_name || ''
+      )
+  )
+}
 
   return filtered
 })()
@@ -316,21 +398,51 @@ async function resetPassword(studentId) {
   <h1 style={styles.heading}>
   👨‍🎓 Registered Students 
 </h1>
-  <p style={styles.subHeading}>
-    Total students in college  1st Year: {yearCounts.first} | 2nd Year: {yearCounts.second}
-  </p>
+<p style={styles.subHeading}>
+
+  {role === 'school_admin'
+
+    ? `Total Students: ${allStudents.length}`
+
+    : `Total students in college
+       1st Year: ${yearCounts.first}
+       | 2nd Year: ${yearCounts.second}`
+  }
+
+</p>
 </div>
 
   <div style={styles.controlsRow}>
 
     <div style={styles.tabs}>
-  {[
-    { label: 'NEET - 1st Year', value: 'NEET_1' },
-    { label: 'NEET - 2nd Year', value: 'NEET_2' },    
-    { label: 'JEE - 1st Year', value: 'JEE_1' },
-    { label: 'JEE - 2nd Year', value: 'JEE_2' }
-    
-  ].map(tab => (
+  {
+  
+  role === 'school_admin'
+    ? [4,5,6,7,8,9,10].map(c => ({
+        label: `Class ${c}`,
+        value: `CLASS_${c}`
+      }))
+
+    : [
+        {
+          label: 'NEET - 1st Year',
+          value: 'NEET_1'
+        },
+        {
+          label: 'NEET - 2nd Year',
+          value: 'NEET_2'
+        },
+        {
+          label: 'JEE - 1st Year',
+          value: 'JEE_1'
+        },
+        {
+          label: 'JEE - 2nd Year',
+          value: 'JEE_2'
+        }
+      ]
+}
+  .map(tab => (
     <button
       key={tab.value}
         onClick={() => {
@@ -383,7 +495,7 @@ async function resetPassword(studentId) {
       <button style={styles.exportBtn} onClick={exportToExcel}>
         ⬇ Export
       </button>
-
+{role !== 'school_admin' && (
       <button
         style={styles.compareBtn}
         disabled={selectedStudents.length < 2}
@@ -398,6 +510,7 @@ async function resetPassword(studentId) {
       >
         Compare
       </button>
+)}
     </div>
 
   </div>
@@ -405,7 +518,12 @@ async function resetPassword(studentId) {
       {loading && <p>Loading students...</p>}
 
 {!loading && filteredStudents.length === 0 && (
-  <p>No students in {segmentLabelMap[segment]}</p>
+  <p>
+  No students in {
+    segmentLabelMap[segment] ||
+    segment.replace('_', ' ')
+  }
+</p>
 )}
 
       {!loading && filteredStudents.length > 0 && (
@@ -423,7 +541,11 @@ async function resetPassword(studentId) {
                 
                 <th style={styles.th}>Created At</th>
                 <th style={styles.th}>Attempts</th>
-                <th style={styles.th}>Grand Test Rank</th>
+                {role !== 'school_admin' && (
+  <th style={styles.th}>
+    Grand Test Rank
+  </th>
+)}
                 <th style={styles.th}>Access</th>
                 <th style={styles.th}>Reset Password</th>
                 <th style={styles.th}>Actions</th>
@@ -468,7 +590,18 @@ async function resetPassword(studentId) {
         <td style={styles.td}>{student.phone || '-'}</td>
 
         <td style={styles.td}>
-          {String(student.study_year).trim() === '1' ? '1st Year' : '2nd Year'}
+          {Number(student.study_year) <= 3
+
+  ? `${student.study_year}${
+      student.study_year == 1
+        ? 'st'
+        : student.study_year == 2
+        ? 'nd'
+        : 'rd'
+    } Year`
+
+  : `Class ${student.study_year}`
+}
         </td>
 
         <td style={styles.td}>
@@ -480,7 +613,7 @@ async function resetPassword(studentId) {
         <td style={styles.td}>
           {student.attempt_count || 0}
         </td>
-
+{role !== 'school_admin' && (
         <td
           style={{
             ...styles.td,
@@ -496,7 +629,7 @@ async function resetPassword(studentId) {
         >
           {student.rank === '-' ? '—' : student.rank}
         </td>
-
+  )}
         <td style={styles.td}>
           <button
             onClick={() =>
