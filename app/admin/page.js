@@ -5,9 +5,10 @@ import { useEffect, useState } from 'react'
 export default function AdminDashboard() {
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [status, setStatus] = useState('')
+  
   const [cleaning, setCleaning] = useState(false)
   const [progress, setProgress] = useState(0)
-
+  const [selectedCategory, setSelectedCategory] = useState('')
   // 🔥 NEW STATES
   const [collegeCode, setCollegeCode] = useState('')
   const [adminName, setAdminName] = useState('')
@@ -128,10 +129,19 @@ async function regenerateCode() {
     setProgress(0)
     setStatus('Scanning for duplicate questions...')
 
-    const { data: questions } = await supabase
-.from('question_bank')
-.select('*')
-.eq('college_id', collegeId)
+let query = supabase
+  .from('question_bank')
+  .select('*')
+  .eq('college_id', collegeId)
+
+if (selectedCategory) {
+  query = query.eq(
+    'exam_category',
+    selectedCategory
+  )
+}
+
+const { data: questions } = await query
     if (!questions || questions.length === 0) {
       setStatus('No questions found')
       setCleaning(false)
@@ -142,13 +152,18 @@ async function regenerateCode() {
     const duplicates = []
 
     for (const q of questions) {
+      const normalizedQuestion =
+      (q.question || '')
+        .replace(/<[^>]*>/g, '')
+        .trim()
+        .toLowerCase()
       const key = [
   q.college_id,
   q.exam_category,
   q.subject,
   q.chapter,
   q.subtopic,
-  (q.question || '').trim(),
+  normalizedQuestion,
   (q.option_a || '').trim(),
   (q.option_b || '').trim(),
   (q.option_c || '').trim(),
@@ -311,13 +326,31 @@ async function regenerateCode() {
         />
       </div>
 
-      <div style={styles.maintenance}>
-        <h2>🧹 Maintenance</h2>
-        <p style={{ color: '#555' }}>
-          Remove duplicate questions from the question bank
-        </p>
+    <div style={styles.maintenance}>
+  <h2>🧹 Maintenance</h2>
 
-        <button
+  <p style={{ color: '#555' }}>
+    Remove duplicate questions from the question bank
+  </p>
+
+  <input
+    placeholder="Optional Category Filter"
+    value={selectedCategory}
+    onChange={(e) =>
+      setSelectedCategory(e.target.value)
+    }
+    style={{
+  padding: 10,
+  borderRadius: 8,
+  border: '1px solid #ccc',
+  marginTop: 10,
+  marginBottom: 12,
+  width: 260,
+  display: 'block'
+}}
+  />
+
+  <button
           style={{
             ...styles.dangerBtn,
             opacity: cleaning ? 0.6 : 1
