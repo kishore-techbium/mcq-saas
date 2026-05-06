@@ -295,26 +295,26 @@ if (!studyYear) {
         Select Class
       </option>
 
-      <option value="CLASS_IV">
+      <option value="4">
         CLASS_IV
       </option>
 
-      <option value="CLASS_V">
+      <option value="5">
         CLASS_V
       </option>
-              <option value="CLASS_V">
+              <option value="6">
         CLASS_VI
       </option>
-              <option value="CLASS_V">
+              <option value="7">
         CLASS_VII
       </option>
-      <option value="CLASS_V">
+      <option value="8">
         CLASS_VIII
       </option>
-              <option value="CLASS_V">
+              <option value="9">
         CLASS_IX
       </option>
-              <option value="CLASS_V">
+              <option value="10">
         CLASS_X
       </option>
     </select>
