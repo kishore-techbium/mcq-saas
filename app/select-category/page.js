@@ -11,7 +11,7 @@ export default function SelectCategory() {
   const [studentName, setStudentName] = useState('')
   const [analytics, setAnalytics] = useState(null)
   const [categories, setCategories] = useState([])
-
+  const [studyYear, setStudyYear] = useState('')
 useEffect(() => {
   checkUser()
 }, [])
@@ -33,14 +33,16 @@ async function checkUser() {
   if (currentUser.type === 'google') {
     const { data: student } = await supabase
       .from('students')
-      .select('exam_preference, first_name')
+      .select('exam_preference, first_name, study_year')
       .eq('email', currentUser.email)
       .maybeSingle()
 
     setExamPref(student?.exam_preference)
-    await loadChildCategories(
-      student?.exam_preference
-    )
+    setStudyYear(student?.study_year || '')
+await loadChildCategories(
+  student?.exam_preference,
+  student?.study_year
+)
     setStudentName(student?.first_name || 'Student')
   }
 
@@ -49,23 +51,40 @@ async function checkUser() {
     const student = currentUser.user
 
     setExamPref(student.exam_preference)
-    await loadChildCategories(
-      student.exam_preference
-    )
+    setStudyYear(student.study_year || '')
+await loadChildCategories(
+  student.exam_preference,
+  student.study_year
+)
     setStudentName(student.first_name || 'Student')
   }
 }
 
-async function loadChildCategories(parentCode) {
+async function loadChildCategories(
+  parentCode,
+  studentStudyYear = ''
+) {
 
   const data = await loadExamCategories()
 
-  // ONLY CHILD CATEGORIES
-  const childCategories = data.filter(
+  let childCategories = data.filter(
     cat =>
       cat.parent_code === parentCode &&
       cat.code !== cat.parent_code
   )
+
+  // SCHOOL STUDENTS
+  // ONLY THEIR CLASS
+
+  if (
+    parentCode === 'SCHOOL' &&
+    studentStudyYear
+  ) {
+
+    childCategories = childCategories.filter(
+      cat => cat.code === studentStudyYear
+    )
+  }
 
   setCategories(childCategories)
 }
