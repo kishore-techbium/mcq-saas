@@ -1,18 +1,40 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 
 export default function CreateGlobalExam() {
-
+  
   const [title, setTitle] = useState('')
   const [examType, setExamType] = useState('WEEKLY_TEST')
-  const [examCategory, setExamCategory] = useState('JEE_MAINS')
+  const [examCategory, setExamCategory] = useState('')
   const [duration, setDuration] = useState('')
   const [targetYear, setTargetYear] = useState('1')
   const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)
+  const [categories, setCategories] = useState([])
 
+useEffect(() => {
+  loadCategories()
+}, [])
+
+async function loadCategories() {
+
+  const { data, error } = await supabase
+    .from('exam_categories')
+    .select('*')
+    .eq('active', true)
+    .order('name')
+
+  if (!error) {
+
+    setCategories(data || [])
+
+    if (data?.length > 0) {
+      setExamCategory(data[0].code)
+    }
+  }
+}
   async function createExam() {
 
     if (!title || !duration) {
@@ -67,10 +89,19 @@ export default function CreateGlobalExam() {
         onChange={e => setTitle(e.target.value)}
       /><br/><br/>
 
-      <select onChange={e => setExamCategory(e.target.value)}>
-        <option value="JEE_MAINS">JEE Mains</option>
-        <option value="JEE_ADVANCED">JEE Advanced</option>
-        <option value="NEET">NEET</option>
+      <select
+        value={examCategory}
+        onChange={e => setExamCategory(e.target.value)}
+      >
+        {categories.map(cat => (
+
+          <option
+            key={cat.code}
+            value={cat.code}
+          >
+            {cat.name}
+          </option>
+        ))}
       </select><br/><br/>
 
       <select onChange={e => setExamType(e.target.value)}>
