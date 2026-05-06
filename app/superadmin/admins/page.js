@@ -13,6 +13,7 @@ export default function Admins() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [phone, setPhone] = useState('')
+  const [role, setRole] = useState('admin')
 
   useEffect(() => {
     loadData()
@@ -22,7 +23,7 @@ export default function Admins() {
     const { data: admins } = await supabase
       .from('students')
       .select('*')
-      .eq('role', 'admin')
+      .in('role', ['admin', 'school_admin'])
 
     const { data: colleges } = await supabase
       .from('colleges')
@@ -52,7 +53,7 @@ if (!selectedCollege) {
 
 const { error } = await supabase.from('students').insert({
   email,
-  role: 'admin',
+  role,
   college_id: collegeId,
   college_name: selectedCollege.name,
   first_name: firstName || null,
@@ -70,6 +71,7 @@ if (error) {
     setFirstName('')
     setLastName('')
     setPhone('')
+    setRole('admin')
     loadData()
   }
 
@@ -89,7 +91,21 @@ if (error) {
         <input placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} style={styles.input} />
         <input placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} style={styles.input} />
         <input placeholder="Phone" value={phone} onChange={e => setPhone(e.target.value)} style={styles.input} />
+        <select
+          value={role}
+          onChange={e => setRole(e.target.value)}
+          style={styles.input}
+        >
 
+          <option value="admin">
+            College Admin
+          </option>
+
+          <option value="school_admin">
+            School Admin
+          </option>
+
+        </select>
         <select value={collegeId} onChange={e => setCollegeId(e.target.value)} style={styles.input}>
           <option value="">Select College</option>
           {colleges.map(c => (
@@ -108,6 +124,7 @@ if (error) {
             <th style={styles.th}>Email</th>
             <th style={styles.th}>Name</th>
             <th style={styles.th}>Phone</th>
+            <th style={styles.th}>Role</th>
             <th style={styles.th}>College</th>
             <th style={styles.th}>Action</th>
           </tr>
@@ -119,6 +136,7 @@ if (error) {
               <td style={styles.td}>{a.email}</td>
               <td style={styles.td}>{a.first_name} {a.last_name}</td>
               <td style={styles.td}>{a.phone}</td>
+              <td style={styles.td}>{a.role}</td>
               <td style={styles.td}>{getCollegeName(a.college_id)}</td>
               <td style={styles.td}>
                 <button onClick={() => deleteAdmin(a.id)} style={styles.deleteBtn}>
