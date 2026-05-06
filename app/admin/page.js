@@ -44,7 +44,9 @@ export default function AdminDashboard() {
         .eq('email', email)
         .single()
 
-      if (user?.role !== 'admin') {
+    if (
+  user?.role !== 'admin' &&
+  user?.role !== 'school_admin' {
         window.location.href = '/'
         return
       }
