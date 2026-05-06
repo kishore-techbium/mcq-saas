@@ -40,10 +40,11 @@ export default function BulkUpload() {
 
     const result = await res.json()
 
-    if (!res.ok) {
-      alert(result.error || 'Upload failed')
-      return
-    }
+if (!res.ok) {
+  setLoading(false)
+  alert(result.error || 'Upload failed')
+  return
+}
 
     alert(`✅ Inserted: ${result.inserted}\n❌ Failed: ${result.failed}`)
 
