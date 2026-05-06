@@ -296,26 +296,26 @@ if (!studyYear) {
       </option>
 
       <option value="4">
-        CLASS_IV
+        CLASS_4
       </option>
 
       <option value="5">
-        CLASS_V
+        CLASS_5
       </option>
               <option value="6">
-        CLASS_VI
+        CLASS_6
       </option>
               <option value="7">
-        CLASS_VII
+        CLASS_7
       </option>
       <option value="8">
-        CLASS_VIII
+        CLASS_8
       </option>
               <option value="9">
-        CLASS_IX
+        CLASS_9
       </option>
               <option value="10">
-        CLASS_X
+        CLASS_10
       </option>
     </select>
   )}
