@@ -2,17 +2,19 @@
 
 import { supabase } from '../../lib/supabase'
 import { getCurrentUser } from '../../lib/auth'
+import { loadExamCategories } from '../../lib/loadExamCategories'
 import { useEffect, useState } from 'react'
 
 export default function SelectCategory() {
 
   const [examPref, setExamPref] = useState('')
-  const [studentName, setStudentName] = useState('') // ✅ NEW
+  const [studentName, setStudentName] = useState('')
   const [analytics, setAnalytics] = useState(null)
+  const [categories, setCategories] = useState([])
 
-  useEffect(() => {
-    checkUser()
-  }, [])
+useEffect(() => {
+  checkUser()
+}, [])
 
 const [called, setCalled] = useState(false)
 async function checkUser() {
@@ -36,6 +38,9 @@ async function checkUser() {
       .maybeSingle()
 
     setExamPref(student?.exam_preference)
+    await loadChildCategories(
+      student?.exam_preference
+    )
     setStudentName(student?.first_name || 'Student')
   }
 
@@ -44,8 +49,25 @@ async function checkUser() {
     const student = currentUser.user
 
     setExamPref(student.exam_preference)
+    await loadChildCategories(
+      student.exam_preference
+    )
     setStudentName(student.first_name || 'Student')
   }
+}
+
+async function loadChildCategories(parentCode) {
+
+  const data = await loadExamCategories()
+
+  // ONLY CHILD CATEGORIES
+  const childCategories = data.filter(
+    cat =>
+      cat.parent_code === parentCode &&
+      cat.code !== cat.parent_code
+  )
+
+  setCategories(childCategories)
 }
 
   function go(cat) {
@@ -100,35 +122,30 @@ async function checkUser() {
         </p>
 
         <p style={{ color: '#2563eb', fontWeight: 600, marginBottom: 30 }}>
-          Showing exams for: {examPref === 'NEET' ? 'NEET UG' : 'JEE'}
+          Showing exams for: {examPref}
         </p>
 
-        {examPref === 'JEE' && (
-          <>
-            <button
-              style={{ ...styles.btn, background: '#2563eb' }}
-              onClick={() => go('JEE_MAINS')}
-            >
-              JEE Mains
-            </button>
+        {categories.map((cat, index) => (
 
-            <button
-              style={{ ...styles.btn, background: '#7c3aed' }}
-              onClick={() => go('JEE_ADVANCED')}
-            >
-              JEE Advanced
-            </button>
-          </>
-        )}
+  <button
+    key={cat.code}
+    style={{
+      ...styles.btn,
 
-        {examPref === 'NEET' && (
-          <button
-            style={{ ...styles.btn, background: '#16a34a' }}
-            onClick={() => go('NEET')}
-          >
-            NEET UG
-          </button>
-        )}
+      background:
+        index % 3 === 0
+          ? '#2563eb'
+          : index % 3 === 1
+          ? '#16a34a'
+          : '#7c3aed'
+    }}
+
+    onClick={() => go(cat.code)}
+  >
+    {cat.name}
+  </button>
+
+))}
 
       </div>
     </div>
