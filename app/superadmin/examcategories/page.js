@@ -9,7 +9,7 @@ export default function ExamCategoriesPage() {
 
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
-
+  const [parentCode, setParentCode] = useState('')
   const [msg, setMsg] = useState('')
 
   useEffect(() => {
@@ -37,11 +37,12 @@ export default function ExamCategoriesPage() {
 
     const { error } = await supabase
       .from('exam_categories')
-      .insert({
-        name,
-        code: code.toUpperCase(),
-        active: true
-      })
+    .insert({
+      name: name.toUpperCase(),
+      code: code.toUpperCase(),
+      parent_code: parentCode.toUpperCase(),
+      active: true
+    })
 
     if (error) {
       setMsg('❌ ' + error.message)
@@ -52,6 +53,7 @@ export default function ExamCategoriesPage() {
 
     setName('')
     setCode('')
+    setParentCode('')
 
     loadCategories()
   }
@@ -88,6 +90,11 @@ export default function ExamCategoriesPage() {
           value={code}
           onChange={(e) => setCode(e.target.value)}
         />
+        <input
+          placeholder="Parent Code"
+          value={code}
+          onChange={(e) => setParentCode(e.target.value)}
+        />
 
         <button
           onClick={addCategory}
@@ -111,6 +118,7 @@ export default function ExamCategoriesPage() {
     <tr style={styles.headerRow}>
       <th style={styles.th}>Name</th>
       <th style={styles.th}>Code</th>
+      <th style={styles.th}>Parent</th>
       <th style={styles.th}>Status</th>
     </tr>
 
@@ -145,7 +153,9 @@ export default function ExamCategoriesPage() {
         <td style={styles.td}>
           {cat.code}
         </td>
-
+        <td style={styles.td}>
+          {cat.parent_code}
+        </td>
         <td style={styles.td}>
 
           <button
