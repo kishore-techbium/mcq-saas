@@ -10,10 +10,13 @@ const [form, setForm] = useState({
   password: '',
   exam_preference: 'JEE',
   phone: '',
-  address: ''
+  address: '',
+  study_year: '1'
 })
 
 const [admin, setAdmin] = useState(null)
+const [role, setRole] = useState('')
+const [categories, setCategories] = useState([])
 
 useEffect(() => {
   fetchAdmin()
@@ -41,19 +44,62 @@ async function fetchAdmin() {
       return
     }
 
-    if (user.role !== 'admin') {
+    if (
+  user.role !== 'admin' &&
+  user.role !== 'school_admin'
+    ) {
       alert('Access denied')
       return
     }
 
     setAdmin(user)
-
+    setRole(user.role)
+    loadCategories(user.role)
   } catch (err) {
     console.error(err)
     alert('Error loading admin')
   }
 }
+async function loadCategories(currentRole) {
 
+  const { data, error } = await supabase
+    .from('exam_categories')
+    .select('*')
+    .eq('active', true)
+
+  if (error || !data) return
+
+  let parents = data.filter(
+    c => c.code === c.parent_code
+  )
+
+  // COLLEGE
+  if (currentRole === 'admin') {
+
+    parents = parents.filter(
+      p =>
+        p.code === 'JEE' ||
+        p.code === 'NEET'
+    )
+  }
+
+  // SCHOOL
+  if (currentRole === 'school_admin') {
+
+    parents = parents.filter(
+      p => p.code === 'SCHOOL'
+    )
+  }
+
+  setCategories(parents)
+
+  if (parents.length > 0) {
+    setForm(prev => ({
+      ...prev,
+      exam_preference: parents[0].code
+    }))
+  }
+}
 async function handleSubmit(e) {
   e.preventDefault()
 
@@ -80,7 +126,8 @@ const res = await fetch('/api/admin/create-student', {
     password: form.password,
     exam_preference: form.exam_preference,
     phone: form.phone,
-    address: form.address
+    address: form.address,
+    study_year: form.study_year
   })
 })
 
@@ -90,14 +137,6 @@ if (!res.ok) {
   alert(result.error || 'Failed')
   return
 }
-
-  
-
-  if (!res.ok) {
-    alert(data.error || 'Failed')
-    return
-  }
-
   alert('Student created successfully')
   window.location.href = '/admin/students'
 }
@@ -106,27 +145,28 @@ if (!res.ok) {
       <h1>Create Student Login</h1>
 
       <form onSubmit={handleSubmit}>
-    <label>
-  <input
-    type="radio"
-    name="exam"
-    value="JEE"
-    checked={form.exam_preference === 'JEE'}
-    onChange={e => setForm({ ...form, exam_preference: e.target.value })}
-  />
-  JEE
-</label>
+ <select
+  value={form.exam_preference}
+  onChange={e =>
+    setForm({
+      ...form,
+      exam_preference: e.target.value
+    })
+  }
+>
 
-<label>
-  <input
-    type="radio"
-    name="exam"
-    value="NEET"
-    checked={form.exam_preference === 'NEET'}
-    onChange={e => setForm({ ...form, exam_preference: e.target.value })}
-  />
-  NEET
-</label>   
+  {categories.map(cat => (
+
+    <option
+      key={cat.code}
+      value={cat.code}
+    >
+      {cat.name}
+    </option>
+
+  ))}
+
+</select>
     <br/><br/>
         <input placeholder="First Name"
           onChange={e => setForm({ ...form, first_name: e.target.value })}
@@ -157,6 +197,37 @@ if (!res.ok) {
         />
             
        <br/><br/>
+
+<select
+  value={form.study_year}
+  onChange={e =>
+    setForm({
+      ...form,
+      study_year: e.target.value
+    })
+  }
+>
+
+  {role === 'school_admin'
+
+    ? [4,5,6,7,8,9,10].map(c => (
+        <option key={c} value={c}>
+          Class {c}
+        </option>
+      ))
+
+    : [1,2,3].map(y => (
+        <option key={y} value={y}>
+          {y === 1
+          ? '1st Year'
+          : y === 2
+          ? '2nd Year'
+          : '3rd Year'}
+        </option>
+      ))
+  }
+
+</select>
        
         <button type="submit">Create</button>
       </form>
