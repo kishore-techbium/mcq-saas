@@ -31,6 +31,16 @@ export async function GET(req) {
       .eq('is_active', true)
 
     const assignedExamIds = (assignments || []).map(a => a.exam_id)
+    const { data: categoryRows } = await supabase
+  .from('exam_categories')
+  .select('code,parent_code')
+  .eq('active', true)
+
+const categoryMap = {}
+
+;(categoryRows || []).forEach(cat => {
+  categoryMap[cat.code] = cat.parent_code
+})
 
     // 🔥 3. Get exams (admin + global assigned)
     const { data: allExams } = await supabase
@@ -91,9 +101,11 @@ export async function GET(req) {
         const studentPref = st.exam_preference.toUpperCase()
         const examCat = exam.exam_category.toUpperCase()
 
+        const examParent =
+        categoryMap[examCat]
+    
         const categoryMatch =
-          (studentPref === 'JEE' && examCat.startsWith('JEE')) ||
-          (studentPref === 'NEET' && examCat === 'NEET')
+        studentPref === examParent
 
         const yearMatch =
           Number(st.study_year) === Number(exam.target_year)
@@ -107,8 +119,16 @@ export async function GET(req) {
         exam_category: exam.exam_category,
         exam_type: exam.exam_type,
         year_label:
-          exam.target_year == 1 ? '1st Year' :
-          exam.target_year == 2 ? '2nd Year' : '-',
+        Number(exam.target_year) === 1
+          ? '1st Year'
+      
+          : Number(exam.target_year) === 2
+          ? '2nd Year'
+      
+          : Number(exam.target_year) === 3
+          ? '3rd Year'
+      
+          : `Class ${exam.target_year}`,
 
         students: relatedStudents.length,
         attempts: s ? s.attempts : 0,
