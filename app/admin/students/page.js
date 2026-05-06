@@ -415,9 +415,10 @@ if (sortBy === 'last_name') {
   <div style={styles.controlsRow}>
 
     <div style={styles.tabs}>
-  {
   
+  {(
   role === 'school_admin'
+
     ? [4,5,6,7,8,9,10].map(c => ({
         label: `Class ${c}`,
         value: `CLASS_${c}`
@@ -441,8 +442,9 @@ if (sortBy === 'last_name') {
           value: 'JEE_2'
         }
       ]
-}
-  .map(tab => (
+
+).map(tab => (
+  
     <button
       key={tab.value}
         onClick={() => {
