@@ -100,7 +100,6 @@ export default function ExamCategoriesPage() {
 
       {msg && <p>{msg}</p>}
 
-      <table style={styles.table}>
 <h2 style={{ marginTop: 30 }}>
   Available Exam Categories
 </h2>
