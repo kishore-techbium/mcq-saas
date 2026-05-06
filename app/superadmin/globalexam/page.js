@@ -28,10 +28,15 @@ async function loadCategories() {
 
   if (!error) {
 
-    setCategories(data || [])
+    // ONLY CHILD CATEGORIES
+    const childCategories = (data || []).filter(
+      cat => cat.code !== cat.parent_code
+    )
 
-    if (data?.length > 0) {
-      setExamCategory(data[0].code)
+    setCategories(childCategories)
+
+    if (childCategories.length > 0) {
+      setExamCategory(childCategories[0].code)
     }
   }
 }
@@ -111,9 +116,7 @@ async function loadCategories() {
       </select><br/><br/>
 
 {(
-  examCategory === 'JEE' ||
-  examCategory === 'JEE_MAINS' ||
-  examCategory === 'JEE_ADVANCED' ||
+  examCategory.startsWith('JEE') ||
   examCategory === 'NEET'
 ) && (
   <>
