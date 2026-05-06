@@ -17,10 +17,11 @@ export default function CreateExamPage() {
   const [examTime, setExamTime] = useState('')
   const [saving, setSaving] = useState(false)
   const [targetYear, setTargetYear] = useState('1')
-
+  const [role, setRole] = useState('')
+  
 useEffect(() => {
   checkAdmin()
-  loadCategories()
+  
 
   // 👉 Set today's date
   const today = new Date()
@@ -35,7 +36,13 @@ useEffect(() => {
   setExamTime(formattedTime)
 
 }, [])
+useEffect(() => {
 
+  if (role) {
+    loadCategories()
+  }
+
+}, [role])
 useEffect(() => {
 
   if (
@@ -64,8 +71,11 @@ useEffect(() => {
       .select('role')
       .eq('email', email)
       .single()
-
-    if (user?.role !== 'admin') {
+    setRole(user?.role || '')
+    if (
+      user?.role !== 'admin' &&
+      user?.role !== 'school_admin'
+    ) {
       window.location.href = '/'
     }
   }
@@ -80,9 +90,29 @@ async function loadCategories() {
   if (!error && data) {
 
     // ONLY CHILD CATEGORIES
-    const childCategories = data.filter(
-      cat => cat.code !== cat.parent_code
+let childCategories = data.filter(
+  cat => cat.code !== cat.parent_code
+)
+
+// COLLEGE ADMIN
+if (role === 'admin') {
+
+  childCategories =
+    childCategories.filter(cat =>
+      cat.parent_code === 'JEE' ||
+      cat.parent_code === 'NEET'
     )
+}
+
+// SCHOOL ADMIN
+if (role === 'school_admin') {
+
+  childCategories =
+    childCategories.filter(
+      cat =>
+        cat.parent_code === 'SCHOOL'
+    )
+}
 
     setCategories(childCategories)
 
@@ -195,11 +225,7 @@ const user = auth.user
 <option value="GRAND_TEST">Grand Test</option>
             </select>
           </div>
-{(
-  examCategory === 'JEE_MAINS' ||
-  examCategory === 'JEE_ADVANCED' ||
-  examCategory === 'NEET'
-) && (
+{role === 'admin' && (
 
   <div style={styles.field}>
 
