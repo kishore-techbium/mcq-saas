@@ -17,8 +17,8 @@ export async function POST(req) {
       login_id,
       password,
       exam_preference,
-      phone,
-      address,
+      phone,address,
+      study_year,
       } = body
 
     /* ================= CLEAN INPUT ================= */
@@ -29,7 +29,19 @@ export async function POST(req) {
     last_name = last_name?.trim()
 
     /* ================= VALIDATION ================= */
+const parsedStudyYear =
+  Number(study_year)
 
+if (
+  ![1,2,3,4,5,6,7,8,9,10]
+    .includes(parsedStudyYear)
+) {
+
+  return Response.json(
+    { error: 'Invalid study year' },
+    { status: 400 }
+  )
+}
     if (!email || !first_name || !last_name || !login_id || !password || !exam_preference) {
       return Response.json(
         { error: 'Missing required fields' },
@@ -37,6 +49,35 @@ export async function POST(req) {
       )
     }
 
+const {
+  data: parentCategories,
+  error: categoryError
+} = await supabase
+  .from('exam_categories')
+  .select('code,parent_code')
+  .eq('active', true)
+
+if (categoryError) {
+  throw categoryError
+}
+
+const validPreferences =
+  (parentCategories || [])
+    .filter(
+      c => c.code === c.parent_code
+    )
+    .map(c => c.code)
+if (
+  !validPreferences.includes(
+    exam_preference
+  )
+) {
+
+  return Response.json(
+    { error: 'Invalid exam preference' },
+    { status: 400 }
+  )
+}
    /* ================= GET ADMIN COLLEGE ================= */
 
 const authHeader = req.headers.get('authorization')
@@ -71,6 +112,7 @@ if (adminError || !admin) {
 
 const adminCollegeId = admin.college_id
 const adminCollegeName = admin.college_name
+
     /* ================= CHECK DUPLICATE USERNAME ================= */
 
     const { data: existingUser, error: checkError } = await supabase
@@ -105,6 +147,7 @@ const adminCollegeName = admin.college_name
         login_id,
         password,
         exam_preference,
+        study_year: parsedStudyYear,
         role: 'student',
         college_id: adminCollegeId,
         college_name: adminCollegeName,
