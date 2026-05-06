@@ -104,7 +104,7 @@ if (studentData) {
 }
 // 🔥 FILTER GRAND TEST STATS
 const grandFiltered =
-  role === 'school_admin'
+  currentUser?.role === 'school_admin'
     ? []
 
     : (grandStats || []).filter(s => {
