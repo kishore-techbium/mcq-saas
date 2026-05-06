@@ -1,6 +1,7 @@
 'use client'
 
 import { supabase } from '../../../lib/supabase'
+import { loadExamCategories } from '../../../lib/loadExamCategories'
 import { useEffect, useState } from 'react'
 
 export default function StudentProfile() {
@@ -9,7 +10,7 @@ export default function StudentProfile() {
   const [message, setMessage] = useState('')
   const [examPref, setExamPref] = useState('')
   const [joinCode, setJoinCode] = useState('')
-
+  const [categories, setCategories] = useState([])
   const [profile, setProfile] = useState({
     id: '',
     email: '',
@@ -19,9 +20,10 @@ export default function StudentProfile() {
     address: ''
   })
 
-  useEffect(() => {
-    init()
-  }, [])
+useEffect(() => {
+  init()
+  fetchCategories()
+}, [])
 
   async function init() {
   setLoading(true)
@@ -88,6 +90,13 @@ export default function StudentProfile() {
   setLoading(false)
 }
 
+async function fetchCategories() {
+
+  const data = await loadExamCategories()
+
+  setCategories(data)
+}
+  
   async function saveProfile() {
     setSaving(true)
     setMessage('')
@@ -205,25 +214,23 @@ export default function StudentProfile() {
         <div style={styles.field}>
           <label>Exam Preference</label>
           <div style={{ display: 'flex', gap: 20 }}>
-            <label>
-              <input
-                type="radio"
-                value="JEE"
-                checked={examPref === 'JEE'}
-                onChange={(e) => setExamPref(e.target.value)}
-              />
-              JEE
-            </label>
+           {categories.map(cat => (
 
-            <label>
-              <input
-                type="radio"
-                value="NEET"
-                checked={examPref === 'NEET'}
-                onChange={(e) => setExamPref(e.target.value)}
-              />
-              NEET
-            </label>
+  <label key={cat.code}>
+
+    <input
+      type="radio"
+      value={cat.code}
+      checked={examPref === cat.code}
+      onChange={(e) => setExamPref(e.target.value)}
+    />
+
+    {' '}
+    {cat.name}
+
+  </label>
+
+))}
           </div>
         </div>
 
