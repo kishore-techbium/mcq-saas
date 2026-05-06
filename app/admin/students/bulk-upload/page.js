@@ -10,9 +10,10 @@ export default function BulkUpload() {
 
   /* ================= FETCH ADMIN ================= */
 
-  useEffect(() => {
-    
-  }, [])
+useEffect(() => {
+  
+}, [])
+
 
   /* ================= UPLOAD ================= */
 
