@@ -116,10 +116,15 @@ let studentQuery = supabase
 .neq('role', 'admin')   
 
 if (examCategory !== 'ALL') {
-  studentQuery = studentQuery.eq(
-    'exam_preference',
-    examCategory === 'JEE_MAINS' ? 'JEE' : 'NEET'
-  )
+const parentCategory =
+  examCategory.startsWith('JEE')
+    ? 'JEE'
+    : 'NEET'
+
+studentQuery = studentQuery.eq(
+  'exam_preference',
+  parentCategory
+)
 }
 
 if (targetYear !== 'ALL') {
