@@ -82,7 +82,7 @@ async function loadChildCategories(
   ) {
 
     childCategories = childCategories.filter(
-      cat => cat.code === studentStudyYear
+      cat => cat.code === `CLASS_${studentStudyYear}`
     )
   }
 
