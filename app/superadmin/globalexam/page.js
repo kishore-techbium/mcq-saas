@@ -110,10 +110,24 @@ async function loadCategories() {
         <option value="GRAND_TEST">Grand</option>
       </select><br/><br/>
 
-      <select onChange={e => setTargetYear(e.target.value)}>
-        <option value="1">1st Year</option>
-        <option value="2">2nd Year</option>
-      </select><br/><br/>
+{(
+  examCategory === 'JEE' ||
+  examCategory === 'JEE_MAINS' ||
+  examCategory === 'JEE_ADVANCED' ||
+  examCategory === 'NEET'
+) && (
+  <>
+    <select
+      value={targetYear}
+      onChange={e => setTargetYear(e.target.value)}
+    >
+      <option value="1">1st Year</option>
+      <option value="2">2nd Year</option>
+    </select>
+
+    <br/><br/>
+  </>
+)}
 
       <input
         type="number"
