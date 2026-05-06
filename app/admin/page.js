@@ -44,12 +44,13 @@ export default function AdminDashboard() {
         .eq('email', email)
         .single()
 
-    if (
+  if (
   user?.role !== 'admin' &&
-  user?.role !== 'school_admin' {
-        window.location.href = '/'
-        return
-      }
+  user?.role !== 'school_admin'
+) {
+  window.location.href = '/'
+  return
+}
 
       setAdminName(user.first_name || 'Admin')
       setCollegeId(user.college_id)
