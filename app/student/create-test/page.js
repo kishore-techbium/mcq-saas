@@ -48,12 +48,14 @@ const { data: student } = await supabase
 // ✅ store college_id for later use
 localStorage.setItem('college_id', student?.college_id)
 
-let cat = 'JEE_MAINS'
+const params = new URLSearchParams(window.location.search)
 
-if (student?.exam_preference === 'NEET') {
-  cat = 'NEET'
-} else if (student?.exam_preference === 'JEE') {
-  cat = 'JEE_MAINS'
+const cat = params.get('category')
+
+if (!cat) {
+  alert('Invalid category')
+  window.location.href = '/select-category'
+  return
 }
 
 // 🔥 TRY MULTIPLE CATEGORY FORMATS (fallback handling)
@@ -243,9 +245,10 @@ if (questionCount > count) setQuestionCount(count)
 /* ================= HELPERS ================= */
 
 function pretty(cat) {
-  if (cat === 'JEE_MAINS') return 'JEE Mains'
-  if (cat === 'NEET') return 'NEET'
-  return ''
+
+  if (!cat) return ''
+
+  return cat.replaceAll('_', ' ')
 }
 
 /* ================= STYLES ================= */
