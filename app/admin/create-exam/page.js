@@ -8,9 +8,9 @@ export default function CreateExamPage() {
 
   const [title, setTitle] = useState('')
   const [examType, setExamType] = useState('WEEKLY_TEST')
-  const [examCategory, setExamCategory] = useState('JEE_MAINS')
+  const [examCategory, setExamCategory] = useState('')
   const [duration, setDuration] = useState('')
-  
+  const [categories, setCategories] = useState([])
   const [cameraRequired, setCameraRequired] = useState(false)
   const [status, setStatus] = useState('')
   const [examDate, setExamDate] = useState('')
@@ -20,6 +20,7 @@ export default function CreateExamPage() {
 
 useEffect(() => {
   checkAdmin()
+  loadCategories()
 
   // 👉 Set today's date
   const today = new Date()
@@ -34,6 +35,20 @@ useEffect(() => {
   setExamTime(formattedTime)
 
 }, [])
+
+useEffect(() => {
+
+  if (
+    examCategory?.startsWith('CLASS_')
+  ) {
+
+    const classNumber =
+      examCategory.replace('CLASS_', '')
+
+    setTargetYear(classNumber)
+  }
+
+}, [examCategory])
   async function checkAdmin() {
     const { data } = await supabase.auth.getUser()
 
@@ -54,7 +69,30 @@ useEffect(() => {
       window.location.href = '/'
     }
   }
+async function loadCategories() {
 
+  const { data, error } = await supabase
+    .from('exam_categories')
+    .select('*')
+    .eq('active', true)
+    .order('name')
+
+  if (!error && data) {
+
+    // ONLY CHILD CATEGORIES
+    const childCategories = data.filter(
+      cat => cat.code !== cat.parent_code
+    )
+
+    setCategories(childCategories)
+
+    if (childCategories.length > 0) {
+      setExamCategory(
+        childCategories[0].code
+      )
+    }
+  }
+}
   async function createExam() {
 
     setStatus('')
@@ -132,9 +170,16 @@ const user = auth.user
               value={examCategory}
               onChange={e => setExamCategory(e.target.value)}
             >
-              <option value="JEE_MAINS">JEE Mains</option>
-              <option value="JEE_ADVANCED">JEE Advanced</option>
-              <option value="NEET">NEET</option>
+              {categories.map(cat => (
+
+              <option
+                key={cat.code}
+                value={cat.code}
+              >
+                {cat.name}
+              </option>
+
+            ))}
             </select>
           </div>
 
@@ -150,18 +195,63 @@ const user = auth.user
 <option value="GRAND_TEST">Grand Test</option>
             </select>
           </div>
-<div style={styles.field}>
-  <label style={styles.label}>Target Students</label>
-  <select
-    style={styles.input}
-    value={targetYear}
-    onChange={e => setTargetYear(e.target.value)}
-  >
-    <option value="2">2nd Year Only</option>
-    <option value="1">1st Year Only</option>
-    
-  </select>
-</div>
+{(
+  examCategory === 'JEE_MAINS' ||
+  examCategory === 'JEE_ADVANCED' ||
+  examCategory === 'NEET'
+) && (
+
+  <div style={styles.field}>
+
+    <label style={styles.label}>
+      Target Students
+    </label>
+
+    <select
+      style={styles.input}
+      value={targetYear}
+      onChange={e =>
+        setTargetYear(e.target.value)
+      }
+    >
+      <option value="1">
+        1st Year Only
+      </option>
+
+      <option value="2">
+        2nd Year Only
+      </option>
+
+      <option value="3">
+        3rd Year Only
+      </option>
+
+    </select>
+
+  </div>
+)}
+
+{examCategory?.startsWith('CLASS_') && (
+
+  <div style={styles.field}>
+
+    <label style={styles.label}>
+      Target Class
+    </label>
+
+    <input
+      style={styles.input}
+      value={
+        examCategory.replace(
+          'CLASS_',
+          'Class '
+        )
+      }
+      disabled
+    />
+
+  </div>
+)}
           <div style={styles.field}>
             <label style={styles.label}>Duration (minutes) *</label>
             <input
