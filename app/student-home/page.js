@@ -109,10 +109,13 @@ export default function StudentHome() {
 /* ================= HELPERS ================= */
 
 function pretty(cat) {
-  if (cat === 'JEE_MAINS') return 'JEE Mains'
-  if (cat === 'JEE_ADVANCED') return 'JEE Advanced'
-  if (cat === 'NEET') return 'NEET UG'
-  return ''
+
+  if (!cat) return ''
+
+  return cat
+    .replaceAll('_', ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase())
 }
 
 /* ================= STYLES ================= */
