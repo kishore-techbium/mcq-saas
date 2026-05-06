@@ -92,7 +92,13 @@ localStorage.removeItem('student')
       router.replace('/admin')
       return
     }
+    // 👨‍💼 SCHOOL ADMIN
+    if (user.role === 'school_admin') {
+      router.replace('/admin')
+      return
+    }
 
+    
     // 👨‍🎓 STUDENT
     if (user.role === 'student') {
 
