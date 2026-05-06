@@ -35,7 +35,11 @@ useEffect(() => {
 
   const data = await loadExamCategories()
 
-  setCategories(data)
+  const parentCategories = data.filter(
+  cat => cat.code === cat.parent_code
+)
+
+setCategories(parentCategories)
 }
   
   async function handleSignup() {
