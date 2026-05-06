@@ -1,8 +1,8 @@
 'use client'
 
 import { supabase } from '../../../lib/supabase'
-import { loadExamCategories } from '../../../lib/loadExamCategories'
 import { useEffect, useState } from 'react'
+import { loadExamCategories } from '../../../lib/loadExamCategories'
 
 export default function StudentProfile() {
   const [loading, setLoading] = useState(true)
@@ -20,7 +20,7 @@ export default function StudentProfile() {
     address: ''
   })
 
-useEffect(() => {
+  useEffect(() => {
   init()
   fetchCategories()
 }, [])
@@ -89,14 +89,17 @@ useEffect(() => {
 
   setLoading(false)
 }
-
 async function fetchCategories() {
 
   const data = await loadExamCategories()
 
-  setCategories(data)
+  // ONLY PARENT CATEGORIES
+  const parentCategories = data.filter(
+    cat => cat.code === cat.parent_code
+  )
+
+  setCategories(parentCategories)
 }
-  
   async function saveProfile() {
     setSaving(true)
     setMessage('')
@@ -214,23 +217,25 @@ async function fetchCategories() {
         <div style={styles.field}>
           <label>Exam Preference</label>
           <div style={{ display: 'flex', gap: 20 }}>
-           {categories.map(cat => (
+          {categories.map(cat => (
 
-  <label key={cat.code}>
+            <label key={cat.code}>
 
-    <input
-      type="radio"
-      value={cat.code}
-      checked={examPref === cat.code}
-      onChange={(e) => setExamPref(e.target.value)}
-    />
+              <input
+                type="radio"
+                value={cat.code}
+                checked={examPref === cat.code}
+                onChange={(e) =>
+                  setExamPref(e.target.value)
+                }
+              />
 
-    {' '}
-    {cat.name}
+              {' '}
+              {cat.name}
 
-  </label>
+            </label>
 
-))}
+          ))} 
           </div>
         </div>
 
