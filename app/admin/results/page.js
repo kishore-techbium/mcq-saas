@@ -3,7 +3,7 @@
 import { supabase } from '../../../lib/supabase'
 import { useEffect, useState } from 'react'
 import * as XLSX from 'xlsx'
-import { useAdminGuard } from '../../../lib/useAdminGuard'
+
 
 export default function AdminResults() {
   const [loading, setLoading] = useState(true)
@@ -14,16 +14,49 @@ export default function AdminResults() {
   const [sortField, setSortField] = useState(null)
   const [sortAsc, setSortAsc] = useState(true)
   const [page, setPage] = useState(1)
-
+  const [role, setRole] = useState('')
   const pageSize = 10
 
- const allowed = useAdminGuard()
 
 useEffect(() => {
-  if (allowed === null) return
-  if (!allowed) return
-  init()
-}, [allowed])
+  checkAdmin()
+}, [])
+
+useEffect(() => {
+
+  if (role) {
+    init()
+  }
+
+}, [role])
+async function checkAdmin() {
+
+  const { data } =
+    await supabase.auth.getUser()
+
+  if (!data?.user) {
+    window.location.href = '/'
+    return
+  }
+
+  const email = data.user.email
+
+  const { data: user } =
+    await supabase
+      .from('students')
+      .select('role')
+      .eq('email', email)
+      .single()
+
+  setRole(user?.role || '')
+
+  if (
+    user?.role !== 'admin' &&
+    user?.role !== 'school_admin'
+  ) {
+    window.location.href = '/'
+  }
+}
 
 async function init() {
   await loadResults()
