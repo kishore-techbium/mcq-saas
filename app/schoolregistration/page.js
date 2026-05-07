@@ -185,7 +185,7 @@ export default function SchoolRegistrationPage() {
 
 
         <div className="divider">
-          <span>OR REGISTER SCHOOL</span>
+
         </div>
 
         <form onSubmit={handleSubmit}>
