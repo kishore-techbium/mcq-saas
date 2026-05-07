@@ -59,7 +59,7 @@
   font-size:18px;
   line-height:1.8;
   margin-bottom:40px;
-  max-width:750px;
+  max-width:760px;
 }
 
 .grid{
@@ -89,7 +89,10 @@
   color:white;
   font-size:16px;
   outline:none;
-  transition:0.2s ease;
+}
+
+.field input::placeholder{
+  color:#64748b;
 }
 
 .field input:focus{
@@ -97,15 +100,11 @@
   box-shadow:0 0 0 4px rgba(6,182,212,0.15);
 }
 
-.field input::placeholder{
-  color:#64748b;
-}
-
 .full{
   grid-column:span 2;
 }
 
-button{
+.submit-btn{
   width:100%;
   height:68px;
   margin-top:35px;
@@ -119,7 +118,7 @@ button{
   transition:0.3s ease;
 }
 
-button:hover{
+.submit-btn:hover{
   transform:translateY(-2px);
   box-shadow:0 15px 40px rgba(79,70,229,0.35);
 }
