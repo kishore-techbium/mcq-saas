@@ -135,7 +135,7 @@ export default function SchoolRegistrationPage() {
         }
 
         setMessage(
-          "School registered successfully. Continue with Google login."
+          "School registered successfully"
         );
 
       }
@@ -183,12 +183,6 @@ export default function SchoolRegistrationPage() {
           through your school dashboard.
         </p>
 
-        <button
-          className="google-btn"
-          onClick={handleGoogleLogin}
-        >
-          Continue With Google
-        </button>
 
         <div className="divider">
           <span>OR REGISTER SCHOOL</span>
