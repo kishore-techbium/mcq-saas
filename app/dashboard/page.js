@@ -136,10 +136,11 @@ const res = await fetch('/api/exam/list', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    collegeId: userData.college_id,
-    category: cat,
-    studyYear: userData.study_year
-  })  
+  collegeId: userData.college_id,
+  category: cat,
+  studyYear: userData.study_year,
+  studentId: studentId
+})
 })
 
 const exams = await res.json()
