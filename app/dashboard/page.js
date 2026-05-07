@@ -142,8 +142,12 @@ const res = await fetch('/api/exam/list', {
   studentId: studentId
 })
 })
+console.log("FETCH STATUS:", res.status)
+const text = await res.text()
 
-const exams = await res.json()
+console.log("RAW RESPONSE:", text)
+
+const exams = JSON.parse(text)
  
     if (!exams || exams.length === 0) {
       setAvailableExams([])
