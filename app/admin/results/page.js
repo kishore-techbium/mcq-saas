@@ -17,19 +17,18 @@ export default function AdminResults() {
 
   const pageSize = 10
 
-  useEffect(() => {
-    init()
-  }, [])
+ const allowed = useAdminGuard()
 
+useEffect(() => {
+  if (allowed === null) return
+  if (!allowed) return
+  init()
+}, [allowed])
 
 async function init() {
-  const allowed = await useAdminGuard()
-  if (!allowed) return
-
-  await loadResults() // or loadExams / whatever
+  await loadResults()
   setLoading(false)
 }
-
 async function loadResults() {
   const { data: userData } = await supabase.auth.getUser()
 
