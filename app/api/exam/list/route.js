@@ -6,6 +6,7 @@ const supabase = createClient(
 )
 
 export async function POST(req) {
+  console.log('API HIT')
   try {
     const {
   collegeId,
