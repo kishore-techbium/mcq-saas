@@ -43,20 +43,13 @@ if (examIds.length > 0) {
     examIds.map(id => `"${id}"`).join(',')
 
   query = query.or(
-    `
-    and(college_id.eq.${collegeId},is_active.eq.true),
-    and(is_global.eq.true,is_active.eq.true),
-    id.in.(${formattedIds})
-    `
+    `and(college_id.eq.${collegeId},is_active.eq.true),and(is_global.eq.true,is_active.eq.true),id.in.(${formattedIds})`
   )
 
 } else {
 
   query = query.or(
-    `
-    and(college_id.eq.${collegeId},is_active.eq.true),
-    and(is_global.eq.true,is_active.eq.true)
-    `
+    `and(college_id.eq.${collegeId},is_active.eq.true),and(is_global.eq.true,is_active.eq.true)`
   )
 
 }
