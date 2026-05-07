@@ -24,6 +24,7 @@ export default function SuperAdminLayout({ children }) {
         <Link href="/superadmin/colleges">Colleges</Link>
         <Link href="/superadmin/admins">Admins</Link>
         <Link href="/superadmin/examcategories">Exam Categories</Link>
+        <Link href="/superadmin/approveschools">Approve Schools</Link>
         <button onClick={logout} style={styles.logout}>
           Logout
         </button>
