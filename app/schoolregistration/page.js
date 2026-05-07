@@ -3,8 +3,7 @@
 import "./page.css";
 
 import { useState } from "react";
-
-import { supabase } from '../../lib/supabase'
+import { supabase } from "@/lib/supabase";
 
 export default function SchoolRegistrationPage() {
 
@@ -31,18 +30,6 @@ export default function SchoolRegistrationPage() {
 
   };
 
-  const handleGoogleLogin = async () => {
-
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo:
-          `${window.location.origin}/schoolregistration`,
-      },
-    });
-
-  };
-
   const handleSubmit = async (e) => {
 
     e.preventDefault();
@@ -53,92 +40,50 @@ export default function SchoolRegistrationPage() {
 
     try {
 
-      // CHECK IF SCHOOL ADMIN ALREADY EXISTS
+      // CHECK DUPLICATE REQUEST
 
-      const { data: existingUser } = await supabase
-        .from("students")
-        .select("*")
-        .eq("phone", form.phone)
-        .eq("role", "school_admin")
-        .maybeSingle();
+      const { data: existingRequest } =
+        await supabase
+          .from("school_registration_requests")
+          .select("*")
+          .eq("phone", form.phone)
+          .maybeSingle();
 
-      // EXISTING SCHOOL
-
-      if (existingUser) {
-
-        const { error: updateError } = await supabase
-          .from("students")
-          .update({
-            first_name: form.firstName,
-            last_name: form.lastName,
-            email: form.email,
-            college_name: form.schoolName,
-            address: form.state,
-            district: form.district,
-            is_active: true,
-          })
-          .eq("id", existingUser.id);
-
-        if (updateError) {
-          throw updateError;
-        }
+      if (existingRequest) {
 
         setMessage(
-          "Existing school account updated successfully."
+          "A registration request already exists for this mobile number."
         );
 
-      } else {
+        setLoading(false);
 
-        // CREATE NEW SCHOOL ADMIN
-
-        const { data: collegeInsert, error: collegeError } =
-          await supabase
-            .from("colleges")
-            .insert([
-              {
-                name: form.schoolName,
-                type: "school",
-                district: form.district,
-                state: form.state,
-                is_active: true,
-              },
-            ])
-            .select()
-            .single();
-
-        if (collegeError) {
-          throw collegeError;
-        }
-
-        const collegeId = collegeInsert.id;
-
-        const { error: studentError } =
-          await supabase
-            .from("students")
-            .insert([
-              {
-                first_name: form.firstName,
-                last_name: form.lastName,
-                phone: form.phone,
-                email: form.email,
-                role: "school_admin",
-                college_id: collegeId,
-                college_name: form.schoolName,
-                address: form.state,
-                district: form.district,
-                is_active: true,
-              },
-            ]);
-
-        if (studentError) {
-          throw studentError;
-        }
-
-        setMessage(
-          "School registered successfully"
-        );
+        return;
 
       }
+
+      // CREATE REQUEST
+
+      const { error } = await supabase
+        .from("school_registration_requests")
+        .insert([
+          {
+            school_name: form.schoolName,
+            coordinator_first_name: form.firstName,
+            coordinator_last_name: form.lastName,
+            phone: form.phone,
+            email: form.email,
+            district: form.district,
+            state: form.state,
+          },
+        ]);
+
+      if (error) {
+        throw error;
+      }
+
+      setMessage(
+        "School registration request submitted successfully. Our team will contact you shortly."
+      );
 
       setForm({
         schoolName: "",
@@ -179,14 +124,9 @@ export default function SchoolRegistrationPage() {
 
         <p className="subtext">
           Register your school for Aurelius National Olympiad participation.
-          Student uploads can be completed later
-          through your school dashboard.
+          Our team will review your request and contact your coordinator for
+          onboarding, student uploads, and participation confirmation.
         </p>
-
-
-        <div className="divider">
-
-        </div>
 
         <form onSubmit={handleSubmit}>
 
@@ -319,8 +259,8 @@ export default function SchoolRegistrationPage() {
           >
 
             {loading
-              ? "Registering..."
-              : "Register School"}
+              ? "Submitting..."
+              : "Submit Registration Request"}
 
           </button>
 
