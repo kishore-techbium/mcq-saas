@@ -30,6 +30,18 @@ export default function SchoolRegistrationPage() {
 
   };
 
+  const handleGoogleLogin = async () => {
+
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo:
+          `${window.location.origin}/schoolregistration`,
+      },
+    });
+
+  };
+
   const handleSubmit = async (e) => {
 
     e.preventDefault();
@@ -40,7 +52,7 @@ export default function SchoolRegistrationPage() {
 
     try {
 
-      // CHECK EXISTING SCHOOL ADMIN
+      // CHECK IF SCHOOL ADMIN ALREADY EXISTS
 
       const { data: existingUser } = await supabase
         .from("students")
@@ -56,9 +68,13 @@ export default function SchoolRegistrationPage() {
         const { error: updateError } = await supabase
           .from("students")
           .update({
-            district: form.district,
-            address: form.state,
+            first_name: form.firstName,
+            last_name: form.lastName,
+            email: form.email,
             college_name: form.schoolName,
+            address: form.state,
+            district: form.district,
+            is_active: true,
           })
           .eq("id", existingUser.id);
 
@@ -67,49 +83,58 @@ export default function SchoolRegistrationPage() {
         }
 
         setMessage(
-          "Existing school account found. Aurelius registration updated successfully."
+          "Existing school account updated successfully."
         );
 
       } else {
 
         // CREATE NEW SCHOOL ADMIN
 
-        const loginId =
-          "SCH" +
-          Math.floor(
-            100000 + Math.random() * 900000
-          );
+        const { data: collegeInsert, error: collegeError } =
+          await supabase
+            .from("colleges")
+            .insert([
+              {
+                name: form.schoolName,
+                type: "school",
+                district: form.district,
+                state: form.state,
+                is_active: true,
+              },
+            ])
+            .select()
+            .single();
 
-        const password =
-          Math.random()
-            .toString(36)
-            .substring(2, 7)
-            .toUpperCase();
+        if (collegeError) {
+          throw collegeError;
+        }
 
-        const { error } = await supabase
-          .from("students")
-          .insert([
-            {
-              first_name: form.firstName,
-              last_name: form.lastName,
-              phone: form.phone,
-              email: form.email,
-              college_name: form.schoolName,
-              role: "school_admin",
-              login_id: loginId,
-              password: password,
-              address: form.state,
-              district: form.district,
-              is_active: true,
-            },
-          ]);
+        const collegeId = collegeInsert.id;
 
-        if (error) {
-          throw error;
+        const { error: studentError } =
+          await supabase
+            .from("students")
+            .insert([
+              {
+                first_name: form.firstName,
+                last_name: form.lastName,
+                phone: form.phone,
+                email: form.email,
+                role: "school_admin",
+                college_id: collegeId,
+                college_name: form.schoolName,
+                address: form.state,
+                district: form.district,
+                is_active: true,
+              },
+            ]);
+
+        if (studentError) {
+          throw studentError;
         }
 
         setMessage(
-          `School registered successfully. Login ID: ${loginId}`
+          "School registered successfully. Continue with Google login."
         );
 
       }
@@ -153,9 +178,20 @@ export default function SchoolRegistrationPage() {
 
         <p className="subtext">
           Register your school for Aurelius National Olympiad participation.
-          Student Excel uploads and payment verification can be completed later
-          through the school dashboard.
+          Student uploads can be completed later
+          through your school dashboard.
         </p>
+
+        <button
+          className="google-btn"
+          onClick={handleGoogleLogin}
+        >
+          Continue With Google
+        </button>
+
+        <div className="divider">
+          <span>OR REGISTER SCHOOL</span>
+        </div>
 
         <form onSubmit={handleSubmit}>
 
@@ -240,7 +276,7 @@ export default function SchoolRegistrationPage() {
                 name="email"
                 value={form.email}
                 onChange={handleChange}
-                placeholder="Enter Email"
+                placeholder="Enter Email Address"
               />
 
             </div>
@@ -284,6 +320,7 @@ export default function SchoolRegistrationPage() {
           <button
             type="submit"
             disabled={loading}
+            className="submit-btn"
           >
 
             {loading
