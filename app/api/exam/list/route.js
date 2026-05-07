@@ -88,9 +88,15 @@ const allowedCategories =
 
   // OLYMPIAD / PREMIUM EXAMS
 
-  return allowedCategories.includes(
+return (
+  allowedCategories.includes(
+    e.olympiad_subject
+  ) ||
+
+  allowedCategories.includes(
     e.exam_category
   )
+)
 
 })
 
