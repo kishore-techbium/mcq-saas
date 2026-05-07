@@ -7,7 +7,12 @@ const supabase = createClient(
 
 export async function POST(req) {
   try {
-    const { collegeId, category, studyYear } = await req.json()
+    const {
+  collegeId,
+  category,
+  studyYear,
+  studentId
+} = await req.json()
 
     if (!collegeId || !category || !studyYear) {
       return Response.json({ error: 'Missing data' }, { status: 400 })
@@ -44,14 +49,50 @@ if (examIds.length > 0) {
       console.error("SUPABASE ERROR:", error)
       throw error
     }
+// LOAD STUDENT ENTITLEMENTS
 
+const { data: entitlements } =
+  await supabase
+    .from('student_exam_categories')
+    .select('exam_category')
+    .eq('student_id', studentId)
+
+const allowedCategories =
+  (entitlements || []).map(
+    e => e.exam_category
+  )
     console.log("ALL EXAMS:", exams)
 
     // 🔹 STEP 3: Apply filters AFTER fetching
-    const filtered = (exams || []).filter(e =>
-      e.exam_category === category &&
-      Number(e.target_year) === Number(studyYear)
-    )
+    const filtered = (exams || []).filter(e => {
+
+  // CATEGORY FILTER
+
+  if (e.exam_category !== category) {
+    return false
+  }
+
+  // STUDY YEAR FILTER
+
+  if (
+    Number(e.target_year) !== Number(studyYear)
+  ) {
+    return false
+  }
+
+  // NORMAL EXAMS
+
+  if (!e.requires_entitlement) {
+    return true
+  }
+
+  // OLYMPIAD / PREMIUM EXAMS
+
+  return allowedCategories.includes(
+    e.exam_category
+  )
+
+})
 
     console.log("FILTERED EXAMS:", filtered)
 
