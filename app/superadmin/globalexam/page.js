@@ -168,7 +168,7 @@ examCategory.includes('OLYMPIAD')
     }
   />
 
-  Requires Entitlement
+  Requires Entitlement(only select for School/Olympiad exams)
 </label>
 
 <br/>
