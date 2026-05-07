@@ -13,7 +13,12 @@ export async function POST(req) {
   studyYear,
   studentId
 } = await req.json()
-
+console.log('REQUEST DATA:', {
+  collegeId,
+  category,
+  studyYear,
+  studentId
+})
     if (!collegeId || !category || !studyYear) {
       return Response.json({ error: 'Missing data' }, { status: 400 })
     }
@@ -44,7 +49,7 @@ if (examIds.length > 0) {
 }
 
     const { data: exams, error } = await query
-
+    console.log('ALL EXAMS:', exams)
     if (error) {
       console.error("SUPABASE ERROR:", error)
       throw error
