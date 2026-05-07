@@ -10,6 +10,7 @@ export default function CreateGlobalExam() {
   const [examCategory, setExamCategory] = useState('')
   const [duration, setDuration] = useState('')
   const [targetYear, setTargetYear] = useState('1')
+  const [requiresEntitlement, setRequiresEntitlement] = useState(false)
   const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)
   const [categories, setCategories] = useState([])
@@ -67,7 +68,8 @@ async function loadCategories() {
           college_id: null,
 
           created_by: user.id,
-          is_active: true
+          is_active: true,
+          requires_entitlement: requiresEntitlement
         })
 
       if (error) throw error
@@ -116,8 +118,9 @@ async function loadCategories() {
       </select><br/><br/>
 
 {(
-  examCategory.startsWith('JEE') ||
-  examCategory === 'NEET'
+examCategory.startsWith('JEE') ||
+examCategory === 'NEET' ||
+examCategory.includes('OLYMPIAD')
 ) && (
   <>
     <select
@@ -126,6 +129,14 @@ async function loadCategories() {
     >
       <option value="1">1st Year</option>
       <option value="2">2nd Year</option>
+      
+      <option value="4">Class 4</option>
+      <option value="5">Class 5</option>
+      <option value="6">Class 6</option>
+      <option value="7">Class 7</option>
+      <option value="8">Class 8</option>
+      <option value="9">Class 9</option>
+      <option value="10">Class 10</option>
     </select>
 
     <br/><br/>
@@ -136,7 +147,31 @@ async function loadCategories() {
         type="number"
         placeholder="Duration"
         onChange={e => setDuration(e.target.value)}
-      /><br/><br/>
+      />
+      <br/><br/>
+
+<label
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10
+  }}
+>
+
+  <input
+    type="checkbox"
+    checked={requiresEntitlement}
+    onChange={e =>
+      setRequiresEntitlement(
+        e.target.checked
+      )
+    }
+  />
+
+  Requires Entitlement
+</label>
+
+<br/>
 
       <button onClick={createExam} disabled={saving}>
         {saving ? 'Creating...' : 'Create'}
