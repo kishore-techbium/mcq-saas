@@ -30,8 +30,6 @@ async function loadCategories() {
     .order('name')
 
   if (!error) {
-
-
 const schoolSubjects =
   (data || []).filter(
     c =>
@@ -53,12 +51,33 @@ const childCategories =
       cat.parent_code !==
         'OLYMPIAD_SUBJECTS'
   )
-    setCategories(childCategories)
 
-    if (childCategories.length > 0) {
-      setExamCategory(childCategories[0].code)
-    }
-  }
+const orderedCategories = [
+
+  ...childCategories.filter(
+    c => c.code.startsWith('JEE')
+  ),
+
+  ...childCategories.filter(
+    c => c.code.startsWith('NEET')
+  ),
+
+  ...childCategories.filter(
+    c => c.code.startsWith('CLASS_')
+  )
+
+]
+
+setCategories(orderedCategories)
+
+if (orderedCategories.length > 0) {
+
+  setExamCategory(
+    orderedCategories[0].code
+  )
+
+}
+}
 }
   async function createExam() {
 
@@ -179,8 +198,7 @@ olympiad_subject:
 )}
 {(
   examCategory.startsWith('JEE') ||
-  examCategory === 'NEET_UG' ||
-  
+  examCategory === 'NEET_UG'
 ) && (
   <>
 <select
