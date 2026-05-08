@@ -39,20 +39,17 @@ let query = supabase.from('exams').select('*')
 
 if (examIds.length > 0) {
 
-  const formattedIds =
-    examIds.map(id => `"${id}"`).join(',')
-
   query = query.or(
-    `and(college_id.eq.${collegeId},is_active.eq.true),id.in.(${formattedIds})`
+    `and(college_id.eq.${collegeId},is_active.eq.true)`
   )
+
+  query = query.in('id', examIds)
 
 } else {
 
-  query = query.eq(
-    'college_id',
-    collegeId
-  )
-  .eq('is_active', true)
+  query = query
+    .eq('college_id', collegeId)
+    .eq('is_active', true)
 
 }
 
