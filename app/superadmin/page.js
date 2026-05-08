@@ -368,6 +368,7 @@ const infra = getInfraRecommendation(upcomingExams)
       </div>
 
       <h2 style={{ marginTop: 40 }}>🎯 Assign Global Exam</h2>
+      <p>Ensure assigning olympiad exams to only 	AURELIUS_OLYMPIAD</p>      
 
 <div style={styles.assignBox}>
 
