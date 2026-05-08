@@ -6,9 +6,6 @@ const supabase = createClient(
 )
 
 export async function POST(req) {
-
-  console.log('API HIT')
-
   try {
 
     const {
@@ -57,32 +54,74 @@ export async function POST(req) {
 
     console.log('ACTIVE EXAM IDS:', examIds)
 
-    /* ===============================
-       STEP 2: FETCH EXAMS
-    =============================== */
+   /* ===============================
+   STEP 2A: FETCH ASSIGNED EXAMS
+=============================== */
 
-    let exams = []
+let assignedExams = []
 
-    if (examIds.length > 0) {
+if (examIds.length > 0) {
 
-      const {
-        data,
-        error
-      } = await supabase
-        .from('exams')
-        .select('*')
-        .in('id', examIds)
-        .eq('is_active', true)
+  const {
+    data,
+    error
+  } = await supabase
+    .from('exams')
+    .select('*')
+    .in('id', examIds)
+    .eq('is_active', true)
 
-      if (error) {
-        throw error
-      }
+  if (error) {
+    throw error
+  }
 
-      exams = data || []
-    }
+  assignedExams = data || []
+}
 
-    console.log('ALL EXAMS:', exams)
+/* ===============================
+   STEP 2B: FETCH DIRECT COLLEGE EXAMS
+=============================== */
 
+const {
+  data: collegeExams,
+  error: collegeError
+} = await supabase
+  .from('exams')
+  .select('*')
+  .eq('college_id', collegeId)
+  .eq('is_active', true)
+
+if (collegeError) {
+  throw collegeError
+}
+
+/* ===============================
+   STEP 2C: MERGE WITHOUT DUPLICATES
+=============================== */
+
+const allExamsMap = new Map()
+
+;[
+  ...(assignedExams || []),
+  ...(collegeExams || [])
+].forEach(exam => {
+
+  allExamsMap.set(
+    exam.id,
+    exam
+  )
+
+})
+
+const exams =
+  Array.from(
+    allExamsMap.values()
+  )
+
+console.log(
+  'ALL EXAMS:',
+  exams
+)
     /* ===============================
        STEP 3: LOAD ENTITLEMENTS
     =============================== */
