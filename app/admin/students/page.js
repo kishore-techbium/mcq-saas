@@ -37,7 +37,7 @@ const email = auth?.user?.email
 const { data: currentUser } =
   await supabase
     .from('students')
-    .select('role')
+    .select('role, school_id, college_id')
     .eq('email', email)
     .single()
 
