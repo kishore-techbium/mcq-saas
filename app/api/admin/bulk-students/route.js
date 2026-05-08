@@ -84,7 +84,8 @@ const validPreferences =
         exam_preference,
         phone,
         address,
-        study_year
+        study_year,
+        olympiad_subjects
       ] = row.split(',')
 
       if (!email || !login_id) {
@@ -141,7 +142,35 @@ if (
           failed++
           continue
         }
+if (
+  admin.role === 'school_admin' &&
+  olympiad_subjects
+) {
 
+  const subjects =
+    olympiad_subjects
+      .split('|')
+      .map(s => s.trim())
+      .filter(Boolean)
+
+  if (subjects.length > 0) {
+
+    const entitlementRows =
+      subjects.map(subject => ({
+
+        student_id: id,
+
+        olympiad_subject: subject
+
+      }))
+
+    await supabase
+      .from('student_exam_categories')
+      .insert(entitlementRows)
+
+  }
+
+}
         inserted++
 
       } catch (err) {
