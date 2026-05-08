@@ -139,7 +139,7 @@ olympiad_subject:
 
   return (
     <div style={{ padding: 40 }}>
-      <h1>Create Global Exam (PYQ)</h1>
+      <h1>Create Global Exam </h1>
 
       <input placeholder="Title"
         onChange={e => setTitle(e.target.value)}
