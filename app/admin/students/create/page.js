@@ -11,7 +11,7 @@ const [form, setForm] = useState({
   exam_preference: 'JEE',
   phone: '',
   address: '',
-  study_year: '1'
+  study_year: ''
 })
 
 const [admin, setAdmin] = useState(null)
@@ -169,9 +169,22 @@ if (!res.ok) {
 
 </select>
     <br/><br/>
-        <input placeholder="First Name"
-          onChange={e => setForm({ ...form, first_name: e.target.value })}
-        /><br/><br/>
+<label>First Name</label>
+<br />
+
+<input
+  type="text"
+  value={form.first_name}
+  onChange={e =>
+    setForm({
+      ...form,
+      first_name: e.target.value
+    })
+  }
+/>
+  <br/><br/>
+<label>Last Name</label>
+<br />
 
         <input placeholder="Last Name"
           onChange={e => setForm({ ...form, last_name: e.target.value })}
