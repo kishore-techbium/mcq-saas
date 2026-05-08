@@ -50,7 +50,33 @@ if (
   setLoading(true)
 
   // 1️⃣ Fetch students
-  const studentData = await getStudentsWithCollege()
+  let studentQuery =
+  supabase
+    .from('students')
+    .select('*')
+
+if (
+  currentUser?.role === 'school_admin'
+) {
+
+  studentQuery =
+    studentQuery.eq(
+      'school_id',
+      currentUser.school_id
+    )
+
+} else {
+
+  studentQuery =
+    studentQuery.eq(
+      'college_id',
+      currentUser.college_id
+    )
+
+}
+
+const { data: studentData } =
+  await studentQuery
     
 
 if (!studentData || studentData.length === 0) {
