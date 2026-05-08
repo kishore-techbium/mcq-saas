@@ -172,7 +172,7 @@ if (
 
       student_id: id,
 
-      exam_category: subject
+      olympiad_subject: subject
 
     }))
 
