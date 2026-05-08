@@ -6,109 +6,161 @@ const supabase = createClient(
 )
 
 export async function POST(req) {
+
   console.log('API HIT')
+
   try {
+
     const {
-  collegeId,
-  category,
-  studyYear,
-  studentId
-} = await req.json()
-console.log('REQUEST DATA:', {
-  collegeId,
-  category,
-  studyYear,
-  studentId
-})
+      collegeId,
+      category,
+      studyYear,
+      studentId
+    } = await req.json()
+
+    console.log('REQUEST DATA:', {
+      collegeId,
+      category,
+      studyYear,
+      studentId
+    })
+
     if (!collegeId || !category || !studyYear) {
-      return Response.json({ error: 'Missing data' }, { status: 400 })
+
+      return Response.json(
+        { error: 'Missing data' },
+        { status: 400 }
+      )
     }
 
-    // 🔹 STEP 1: Get assigned exams
-    const { data: assignments, error: assignError } = await supabase
+    /* ===============================
+       STEP 1: GET ACTIVE ASSIGNMENTS
+    =============================== */
+
+    const {
+      data: assignments,
+      error: assignError
+    } = await supabase
       .from('exam_assignments')
       .select('exam_id')
       .eq('college_id', collegeId)
       .eq('is_active', true)
 
-    if (assignError) throw assignError
-
-   const examIds = (assignments || []).map(a => a.exam_id)
-
-let query = supabase.from('exams').select('*')
-
-if (examIds.length > 0) {
-
-  query = query.or(
-    `and(college_id.eq.${collegeId},is_active.eq.true)`
-  )
-
-  query = query.in('id', examIds)
-
-} else {
-
-  query = query
-    .eq('college_id', collegeId)
-    .eq('is_active', true)
-
-}
-
-    const { data: exams, error } = await query
-    console.log('ALL EXAMS:', exams)
-    if (error) {
-      console.error("SUPABASE ERROR:", error)
-      throw error
+    if (assignError) {
+      throw assignError
     }
-// LOAD STUDENT ENTITLEMENTS
 
-const { data: entitlements } =
-  await supabase
-    .from('student_exam_categories')
-    .select('olympiad_subject')
-    .eq('student_id', studentId)
+    const examIds =
+      (assignments || []).map(
+        a => a.exam_id
+      )
 
-const allowedSubjects =
-  (entitlements || []).map(
-    e => e.olympiad_subject
-  )
-   
-    // 🔹 STEP 3: Apply filters AFTER fetching
-const filtered = (exams || []).filter(e => {
+    console.log('ACTIVE EXAM IDS:', examIds)
 
-  // CATEGORY FILTER
+    /* ===============================
+       STEP 2: FETCH EXAMS
+    =============================== */
 
-  if (e.exam_category !== category) {
-    return false
-  }
+    let exams = []
 
-  // STUDY YEAR FILTER
+    if (examIds.length > 0) {
 
-  if (
-    Number(e.target_year) !== Number(studyYear)
-  ) {
-    return false
-  }
+      const {
+        data,
+        error
+      } = await supabase
+        .from('exams')
+        .select('*')
+        .in('id', examIds)
+        .eq('is_active', true)
 
-  // NORMAL EXAMS
+      if (error) {
+        throw error
+      }
 
-  if (!e.requires_entitlement) {
-    return true
-  }
+      exams = data || []
+    }
 
-  // OLYMPIAD / PREMIUM EXAMS
+    console.log('ALL EXAMS:', exams)
 
-  return (
-    allowedSubjects.includes(
-      e.olympiad_subject
+    /* ===============================
+       STEP 3: LOAD ENTITLEMENTS
+    =============================== */
+
+    const {
+      data: entitlements
+    } = await supabase
+      .from('student_exam_categories')
+      .select('olympiad_subject')
+      .eq('student_id', studentId)
+
+    const allowedSubjects =
+      (entitlements || []).map(
+        e => e.olympiad_subject
+      )
+
+    console.log(
+      'ALLOWED SUBJECTS:',
+      allowedSubjects
     )
-  )
 
-})
+    /* ===============================
+       STEP 4: FILTER EXAMS
+    =============================== */
+
+    const filtered =
+      (exams || []).filter(e => {
+
+        // CATEGORY FILTER
+
+        if (
+          e.exam_category !== category
+        ) {
+          return false
+        }
+
+        // STUDY YEAR FILTER
+
+        if (
+          Number(e.target_year) !==
+          Number(studyYear)
+        ) {
+          return false
+        }
+
+        // NORMAL EXAMS
+
+        if (!e.requires_entitlement) {
+          return true
+        }
+
+        // OLYMPIAD EXAMS
+
+        return (
+          allowedSubjects.includes(
+            e.olympiad_subject
+          )
+        )
+
+      })
+
+    console.log(
+      'FILTERED EXAMS:',
+      filtered
+    )
 
     return Response.json(filtered)
 
   } catch (err) {
-    console.error("API ERROR:", err)
-    return Response.json({ error: err.message }, { status: 500 })
+
+    console.error(
+      'API ERROR:',
+      err
+    )
+
+    return Response.json(
+      { error: err.message },
+      { status: 500 }
+    )
   }
 }
