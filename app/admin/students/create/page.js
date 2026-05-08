@@ -98,7 +98,7 @@ if (currentRole === 'school_admin') {
   const childSubjects =
     data.filter(
       c =>
-        c.parent_code === 'SCHOOL' &&
+        c.parent_code === 'OLYMPIAD_SUBJECTS' &&
         c.code !== 'SCHOOL'
     )
 
