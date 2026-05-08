@@ -80,7 +80,12 @@ const childCategories =
           exam_type: examType,
           exam_category: examCategory,
           duration_minutes: Number(duration),
-          target_year: targetYear,
+          target_year:
+  examCategory.startsWith('CLASS_')
+    ? Number(
+        examCategory.replace('CLASS_', '')
+      )
+    : Number(targetYear),
 
           // 🔥 KEY PART
           is_global: true,
@@ -175,32 +180,23 @@ olympiad_subject:
 {(
   examCategory.startsWith('JEE') ||
   examCategory === 'NEET_UG' ||
-  examCategory.startsWith('CLASS_')
+  
 ) && (
   <>
-  <select
+<select
   value={targetYear}
   onChange={e =>
     setTargetYear(e.target.value)
   }
 >
 
-  {examCategory.startsWith('CLASS_')
+  <option value="1">
+    1st Year
+  </option>
 
-    ? [4,5,6,7,8,9,10].map(c => (
-        <option key={c} value={c}>
-          Class {c}
-        </option>
-      ))
-
-    : [1,2].map(y => (
-        <option key={y} value={y}>
-          {y === 1
-            ? '1st Year'
-            : '2nd Year'}
-        </option>
-      ))
-  }
+  <option value="2">
+    2nd Year
+  </option>
 
 </select>
 
