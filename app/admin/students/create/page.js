@@ -93,12 +93,22 @@ async function loadCategories(currentRole) {
 
   setCategories(parents)
 
-  if (parents.length > 0) {
-    setForm(prev => ({
-      ...prev,
-      exam_preference: parents[0].code
-    }))
-  }
+if (parents.length > 0) {
+
+  setForm(prev => ({
+
+    ...prev,
+
+    exam_preference:
+      parents[0].code,
+
+    study_year:
+      currentRole === 'school_admin'
+        ? '4'
+        : '1'
+
+  }))
+}
 }
 async function handleSubmit(e) {
   e.preventDefault()
