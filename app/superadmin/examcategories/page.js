@@ -6,7 +6,7 @@ import { supabase } from '../../../lib/supabase'
 export default function ExamCategoriesPage() {
 
   const [categories, setCategories] = useState([])
-
+  const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [parentCode, setParentCode] = useState('')
 
@@ -41,7 +41,7 @@ export default function ExamCategoriesPage() {
     const { error } = await supabase
       .from('exam_categories')
       .insert({
-        name: finalCode,
+        name: name.trim(),
         code: finalCode,
         parent_code: finalParent,
         active: true
@@ -87,13 +87,42 @@ export default function ExamCategoriesPage() {
           style={{ padding: 8 }}
           onChange={(e) => setCode(e.target.value)}
         />
+<input
+  placeholder="Display Name"
+  value={name}
+  style={{ padding: 8 }}
+  onChange={(e) =>
+    setName(e.target.value)
+  }
+/>
+       <select
+  value={parentCode}
+  onChange={(e) =>
+    setParentCode(e.target.value)
+  }
+  style={{ padding: 8 }}
+>
 
-        <input
-          placeholder="Parent Code"
-          value={parentCode}
-          style={{ padding: 8 }}
-          onChange={(e) => setParentCode(e.target.value)}
-        />
+  <option value="">
+    Select Parent
+  </option>
+
+  {categories
+    .filter(
+      c => c.code === c.parent_code
+    )
+    .map(cat => (
+
+      <option
+        key={cat.code}
+        value={cat.code}
+      >
+        {cat.code}
+      </option>
+
+  ))}
+
+</select>
 
         <button
           onClick={addCategory}
@@ -112,6 +141,8 @@ export default function ExamCategoriesPage() {
         JEE_MAINS → JEE
         <br />
         CLASS_6 → SCHOOL
+        <br />
+        MATHS_OLYMPIAD → OLYMPIAD_SUBJECTS  
       </p>
 
       {msg && <p>{msg}</p>}
