@@ -8,9 +8,11 @@ export default function CreateGlobalExam() {
   const [title, setTitle] = useState('')
   const [examType, setExamType] = useState('WEEKLY_TEST')
   const [examCategory, setExamCategory] = useState('')
+  const [subjects, setSubjects] = useState([])
+  const [olympiadSubject, setOlympiadSubject] = useState('')
   const [duration, setDuration] = useState('')
   const [targetYear, setTargetYear] = useState('1')
-  const [requiresEntitlement, setRequiresEntitlement] = useState(false)
+  
   const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)
   const [categories, setCategories] = useState([])
@@ -29,11 +31,28 @@ async function loadCategories() {
 
   if (!error) {
 
-    // ONLY CHILD CATEGORIES
-    const childCategories = (data || []).filter(
-      cat => cat.code !== cat.parent_code
-    )
 
+const schoolSubjects =
+  (data || []).filter(
+    c =>
+      c.parent_code ===
+        'OLYMPIAD_SUBJECTS' &&
+
+      c.code !==
+        'OLYMPIAD_SUBJECTS'
+  )
+
+setSubjects(schoolSubjects)
+
+const childCategories =
+  (data || []).filter(
+    cat =>
+
+      cat.code !== cat.parent_code &&
+
+      cat.parent_code !==
+        'OLYMPIAD_SUBJECTS'
+  )
     setCategories(childCategories)
 
     if (childCategories.length > 0) {
@@ -69,7 +88,13 @@ async function loadCategories() {
 
           created_by: user.id,
           is_active: true,
-          requires_entitlement: requiresEntitlement
+          requires_entitlement:
+  examCategory.startsWith('CLASS_'),
+
+olympiad_subject:
+  examCategory.startsWith('CLASS_')
+    ? olympiadSubject
+    : null
         })
 
       if (error) throw error
@@ -116,28 +141,68 @@ async function loadCategories() {
         <option value="MONTHLY_TEST">Monthly</option>
         <option value="GRAND_TEST">Grand</option>
       </select><br/><br/>
-
-{(
-examCategory.startsWith('JEE') ||
-examCategory === 'NEET' ||
-examCategory.includes('OLYMPIAD')
-) && (
+{examCategory.startsWith('CLASS_') && (
   <>
     <select
-      value={targetYear}
-      onChange={e => setTargetYear(e.target.value)}
+      value={olympiadSubject}
+      onChange={e =>
+        setOlympiadSubject(
+          e.target.value
+        )
+      }
     >
-      <option value="1">1st Year</option>
-      <option value="2">2nd Year</option>
-      
-      <option value="4">Class 4</option>
-      <option value="5">Class 5</option>
-      <option value="6">Class 6</option>
-      <option value="7">Class 7</option>
-      <option value="8">Class 8</option>
-      <option value="9">Class 9</option>
-      <option value="10">Class 10</option>
+
+      <option value="">
+        Select Olympiad Subject
+      </option>
+
+      {subjects.map(sub => (
+
+        <option
+          key={sub.code}
+          value={sub.code}
+        >
+          {sub.name}
+        </option>
+
+      ))}
+
     </select>
+
+    <br /><br />
+  </>
+)}
+{(
+  examCategory.startsWith('JEE') ||
+  examCategory === 'NEET_UG' ||
+  examCategory.startsWith('CLASS_')
+) && (
+  <>
+  <select
+  value={targetYear}
+  onChange={e =>
+    setTargetYear(e.target.value)
+  }
+>
+
+  {examCategory.startsWith('CLASS_')
+
+    ? [4,5,6,7,8,9,10].map(c => (
+        <option key={c} value={c}>
+          Class {c}
+        </option>
+      ))
+
+    : [1,2].map(y => (
+        <option key={y} value={y}>
+          {y === 1
+            ? '1st Year'
+            : '2nd Year'}
+        </option>
+      ))
+  }
+
+</select>
 
     <br/><br/>
   </>
@@ -150,26 +215,7 @@ examCategory.includes('OLYMPIAD')
       />
       <br/><br/>
 
-<label
-  style={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10
-  }}
->
 
-  <input
-    type="checkbox"
-    checked={requiresEntitlement}
-    onChange={e =>
-      setRequiresEntitlement(
-        e.target.checked
-      )
-    }
-  />
-
-  Requires Entitlement(only select for School/Olympiad exams)
-</label>
 
 <br/>
 
