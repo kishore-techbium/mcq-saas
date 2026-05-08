@@ -65,17 +65,16 @@ if (examIds.length > 0) {
 const { data: entitlements } =
   await supabase
     .from('student_exam_categories')
-    .select('exam_category')
+    .select('olympiad_subject')
     .eq('student_id', studentId)
 
-const allowedCategories =
+const allowedSubjects =
   (entitlements || []).map(
-    e => e.exam_category
+    e => e.olympiad_subject
   )
-    console.log("ALL EXAMS:", exams)
-
+   
     // 🔹 STEP 3: Apply filters AFTER fetching
-    const filtered = (exams || []).filter(e => {
+const filtered = (exams || []).filter(e => {
 
   // CATEGORY FILTER
 
@@ -99,19 +98,13 @@ const allowedCategories =
 
   // OLYMPIAD / PREMIUM EXAMS
 
-return (
-  allowedCategories.includes(
-    e.olympiad_subject
-  ) ||
-
-  allowedCategories.includes(
-    e.exam_category
+  return (
+    allowedSubjects.includes(
+      e.olympiad_subject
+    )
   )
-)
 
 })
-
-    console.log("FILTERED EXAMS:", filtered)
 
     return Response.json(filtered)
 
