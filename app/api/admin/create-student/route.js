@@ -19,6 +19,7 @@ export async function POST(req) {
       exam_preference,
       phone,address,
       study_year,
+      school_id
       } = body
 
     /* ================= CLEAN INPUT ================= */
@@ -99,7 +100,7 @@ if (authError || !user) {
 
 const { data: admin, error: adminError } = await supabase
   .from('students')
-  .select('college_id, college_name')
+  .select('college_id, college_name, role, school_id')
   .eq('user_id', user.id)
   .single()
 
@@ -112,7 +113,8 @@ if (adminError || !admin) {
 
 const adminCollegeId = admin.college_id
 const adminCollegeName = admin.college_name
-
+const adminRole = admin.role
+const adminSchoolId = admin.school_id
     /* ================= CHECK DUPLICATE USERNAME ================= */
 
     const { data: existingUser, error: checkError } = await supabase
@@ -152,7 +154,11 @@ const adminCollegeName = admin.college_name
         college_id: adminCollegeId,
         college_name: adminCollegeName,
         phone: phone || null,
-        address: address || null
+        address: address || null,
+        school_id:
+          adminRole === 'school_admin'
+            ? adminSchoolId
+            : null
       })
 
     if (error) throw error
