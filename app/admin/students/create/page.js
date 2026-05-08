@@ -127,7 +127,8 @@ const res = await fetch('/api/admin/create-student', {
     exam_preference: form.exam_preference,
     phone: form.phone,
     address: form.address,
-    study_year: form.study_year
+    study_year: form.study_year,
+    school_id: admin.school_id
   })
 })
 
