@@ -6,6 +6,7 @@ const supabase = createClient(
 )
 
 export async function POST(req) {
+
   try {
 
     const {
@@ -15,14 +16,11 @@ export async function POST(req) {
       studentId
     } = await req.json()
 
-    console.log('REQUEST DATA:', {
-      collegeId,
-      category,
-      studyYear,
-      studentId
-    })
-
-    if (!collegeId || !category || !studyYear) {
+    if (
+      !collegeId ||
+      !category ||
+      !studyYear
+    ) {
 
       return Response.json(
         { error: 'Missing data' },
@@ -52,76 +50,70 @@ export async function POST(req) {
         a => a.exam_id
       )
 
-    console.log('ACTIVE EXAM IDS:', examIds)
+    /* ===============================
+       STEP 2A: FETCH ASSIGNED EXAMS
+    =============================== */
 
-   /* ===============================
-   STEP 2A: FETCH ASSIGNED EXAMS
-=============================== */
+    let assignedExams = []
 
-let assignedExams = []
+    if (examIds.length > 0) {
 
-if (examIds.length > 0) {
+      const {
+        data,
+        error
+      } = await supabase
+        .from('exams')
+        .select('*')
+        .in('id', examIds)
+        .eq('is_active', true)
 
-  const {
-    data,
-    error
-  } = await supabase
-    .from('exams')
-    .select('*')
-    .in('id', examIds)
-    .eq('is_active', true)
+      if (error) {
+        throw error
+      }
 
-  if (error) {
-    throw error
-  }
+      assignedExams = data || []
+    }
 
-  assignedExams = data || []
-}
+    /* ===============================
+       STEP 2B: FETCH DIRECT COLLEGE EXAMS
+    =============================== */
 
-/* ===============================
-   STEP 2B: FETCH DIRECT COLLEGE EXAMS
-=============================== */
+    const {
+      data: collegeExams,
+      error: collegeError
+    } = await supabase
+      .from('exams')
+      .select('*')
+      .eq('college_id', collegeId)
+      .eq('is_active', true)
 
-const {
-  data: collegeExams,
-  error: collegeError
-} = await supabase
-  .from('exams')
-  .select('*')
-  .eq('college_id', collegeId)
-  .eq('is_active', true)
+    if (collegeError) {
+      throw collegeError
+    }
 
-if (collegeError) {
-  throw collegeError
-}
+    /* ===============================
+       STEP 2C: MERGE WITHOUT DUPLICATES
+    =============================== */
 
-/* ===============================
-   STEP 2C: MERGE WITHOUT DUPLICATES
-=============================== */
+    const allExamsMap = new Map()
 
-const allExamsMap = new Map()
+    ;[
+      ...(assignedExams || []),
+      ...(collegeExams || [])
+    ].forEach(exam => {
 
-;[
-  ...(assignedExams || []),
-  ...(collegeExams || [])
-].forEach(exam => {
+      allExamsMap.set(
+        exam.id,
+        exam
+      )
 
-  allExamsMap.set(
-    exam.id,
-    exam
-  )
+    })
 
-})
+    const exams =
+      Array.from(
+        allExamsMap.values()
+      )
 
-const exams =
-  Array.from(
-    allExamsMap.values()
-  )
-
-console.log(
-  'ALL EXAMS:',
-  exams
-)
     /* ===============================
        STEP 3: LOAD ENTITLEMENTS
     =============================== */
@@ -138,13 +130,33 @@ console.log(
         e => e.olympiad_subject
       )
 
-    console.log(
-      'ALLOWED SUBJECTS:',
-      allowedSubjects
-    )
+    /* ===============================
+       STEP 4: LOAD CATEGORY TREE
+    =============================== */
+
+    const {
+      data: categoryRows,
+      error: categoryError
+    } = await supabase
+      .from('exam_categories')
+      .select('code,parent_code')
+
+    if (categoryError) {
+      throw categoryError
+    }
+
+    const allowedCategories =
+      (categoryRows || [])
+        .filter(
+          c =>
+            c.parent_code === category
+        )
+        .map(c => c.code)
+
+    allowedCategories.push(category)
 
     /* ===============================
-       STEP 4: FILTER EXAMS
+       STEP 5: FILTER EXAMS
     =============================== */
 
     const filtered =
@@ -153,7 +165,9 @@ console.log(
         // CATEGORY FILTER
 
         if (
-          e.exam_category !== category
+          !allowedCategories.includes(
+            e.exam_category
+          )
         ) {
           return false
         }
@@ -182,11 +196,6 @@ console.log(
         )
 
       })
-
-    console.log(
-      'FILTERED EXAMS:',
-      filtered
-    )
 
     return Response.json(filtered)
 
