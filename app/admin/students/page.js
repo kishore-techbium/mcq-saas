@@ -228,24 +228,24 @@ setYearCounts({
   setLoading(false)
 }
 function downloadTemplate() {
-  const headers = [
-    "email",
-    "first_name",
-    "last_name",
-    "login_id",
-    "password",
-    "exam_preference",
-    "phone",
-    "address",
-    "study_year"
-  ]
-
+const headers = [
+  "email",
+  "first_name",
+  "last_name",
+  "login_id",
+  "password",
+  "exam_preference",
+  "phone",
+  "address",
+  "study_year",
+  "olympiad_subjects"
+]
 const sampleRow =
   role === 'school_admin'
 
-    ? "student1@test.com,John,Doe,student1,1234,SCHOOL,9876543210,Guntur,4"
+    ? "student1@test.com,John,Doe,student1,1234,SCHOOL,9876543210,Guntur,4,MATHS_OLYMPIAD|SCIENCE_OLYMPIAD"
 
-    : "student1@test.com,John,Doe,student1,1234,JEE,9876543210,Guntur,1"
+    : "student1@test.com,John,Doe,student1,1234,JEE,9876543210,Guntur,1,"
 
 const csv = [
   headers.join(','),
