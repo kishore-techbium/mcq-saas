@@ -170,7 +170,7 @@ if (!res.ok) {
 </select>
     <br/><br/>
 <label>First Name</label>
-<br />
+
 
 <input
   type="text"
@@ -184,26 +184,31 @@ if (!res.ok) {
 />
   <br/><br/>
 <label>Last Name</label>
-<br />
 
         <input placeholder="Last Name"
           onChange={e => setForm({ ...form, last_name: e.target.value })}
         /><br/><br/>
+<label>Email</label>
 
         <input placeholder="Email"
           onChange={e => setForm({ ...form, email: e.target.value })}
         /><br/><br/>
-         <input
+<label>Phone Number</label>
+  
+            <input
           placeholder="Phone"
           onChange={e => setForm({ ...form, phone: e.target.value })}
         />
         <br/><br/>
+<label>User Name</label>
 
          <input
           placeholder="Username"
           onChange={e => setForm({ ...form, login_id: e.target.value })}
         />
         <br/><br/>
+<label>Password</label>
+          
         <input
           type="password"
           placeholder="Password"
