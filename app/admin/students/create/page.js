@@ -13,7 +13,8 @@ const [form, setForm] = useState({
   address: '',
   study_year: ''
 })
-
+const [olympiadSubjects, setOlympiadSubjects] = useState([])
+const [selectedSubjects, setSelectedSubjects] = useState([])  
 const [admin, setAdmin] = useState(null)
 const [role, setRole] = useState('')
 const [categories, setCategories] = useState([])
@@ -92,7 +93,18 @@ async function loadCategories(currentRole) {
   }
 
   setCategories(parents)
+if (currentRole === 'school_admin') {
 
+  const childSubjects =
+    data.filter(
+      c =>
+        c.parent_code === 'SCHOOL' &&
+        c.code !== 'SCHOOL'
+    )
+
+  setOlympiadSubjects(childSubjects)
+
+}
 if (parents.length > 0) {
 
   setForm(prev => ({
@@ -138,7 +150,8 @@ const res = await fetch('/api/admin/create-student', {
     phone: form.phone,
     address: form.address,
     study_year: form.study_year,
-    school_id: admin.school_id
+    school_id: admin.school_id,
+    olympiad_subjects: selectedSubjects
   })
 })
 
@@ -257,7 +270,55 @@ if (!res.ok) {
   }
 
 </select>
-       
+       {role === 'school_admin' && (
+  <>
+    <br />
+
+    <label>
+      Olympiad Subjects
+    </label>
+
+    <br /><br />
+
+    {olympiadSubjects.map(sub => (
+
+      <div key={sub.code}>
+        <input
+          type="checkbox"
+          checked={
+            selectedSubjects.includes(sub.code)
+          }
+
+          onChange={(e) => {
+
+            if (e.target.checked) {
+
+              setSelectedSubjects([
+                ...selectedSubjects,
+                sub.code
+              ])
+
+            } else {
+
+              setSelectedSubjects(
+                selectedSubjects.filter(
+                  s => s !== sub.code
+                )
+              )
+
+            }
+
+          }}
+        />
+
+        {' '}
+        {sub.name}
+
+      </div>
+
+    ))}
+  </>
+)}
         <button type="submit">Create</button>
       </form>
     </div>
