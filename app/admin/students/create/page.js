@@ -99,7 +99,7 @@ if (currentRole === 'school_admin') {
     data.filter(
       c =>
         c.parent_code === 'OLYMPIAD_SUBJECTS' &&
-        c.code !== 'SCHOOL'
+        c.code !== 'OLYMPIAD_SUBJECTS'
     )
 
   setOlympiadSubjects(childSubjects)
