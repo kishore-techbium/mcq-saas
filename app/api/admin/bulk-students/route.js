@@ -30,7 +30,7 @@ export async function POST(req) {
 
     const { data: admin } = await supabase
       .from('students')
-      .select('college_id, college_name')
+      .select('college_id, college_name, role, school_id')
       .eq('user_id', user.id)
       .single()
 
@@ -130,7 +130,11 @@ if (
               study_year: parsedStudyYear,
               role: 'student',
               college_id: admin.college_id,
-              college_name: admin.college_name
+              college_name: admin.college_name,
+              school_id:
+                admin.role === 'school_admin'
+                  ? admin.school_id
+                  : null
             })
 
         if (insertError) {
