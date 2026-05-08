@@ -61,126 +61,159 @@ export default function ApproveSchoolsPage() {
 
   async function approveSchool(request) {
 
-    setMessage('')
+  setMessage('')
 
-    try {
+  try {
 
-      // CHECK IF SCHOOL ALREADY EXISTS
+    // 🔥 GET SHARED OLYMPIAD COLLEGE
 
-      const { data: existingCollege } =
-        await supabase
-          .from('colleges')
-          .select('*')
-          .eq('name', request.school_name)
-          .maybeSingle()
-
-      let collegeId = null
-
-      // CREATE COLLEGE IF NOT EXISTS
-
-      if (existingCollege) {
-
-        collegeId = existingCollege.id
-
-      } else {
-
-        const {
-          data: collegeData,
-          error: collegeError
-        } = await supabase
-          .from('colleges')
-          .insert([
-            {
-              name: request.school_name,
-              district: request.district,
-              state: request.state,
-              city: request.district
-            }
-          ])
-          .select()
-          .single()
-
-        if (collegeError) {
-          throw collegeError
-        }
-
-        collegeId = collegeData.id
-
-      }
-
-      // CHECK EXISTING SCHOOL ADMIN
-
-      const { data: existingAdmin } =
-        await supabase
-          .from('students')
-          .select('*')
-          .eq('phone', request.phone)
-          .eq('role', 'school_admin')
-          .maybeSingle()
-
-      // CREATE SCHOOL ADMIN IF NOT EXISTS
-
-      if (!existingAdmin) {
-
-        const { error: studentError } =
-          await supabase
-            .from('students')
-            .insert([
-              {
-                first_name:
-                  request.coordinator_first_name,
-
-                last_name:
-                  request.coordinator_last_name,
-
-                phone: request.phone,
-
-                email: request.email,
-
-                role: 'school_admin',
-
-                college_id: collegeId,
-
-                college_name: request.school_name,
-
-                address: request.state,
-
-                is_active: true
-              }
-            ])
-
-        if (studentError) {
-          throw studentError
-        }
-
-      }
-
-      // UPDATE REQUEST STATUS
-
+    const { data: olympiadCollege } =
       await supabase
-        .from('school_registration_requests')
-        .update({
-          status: 'approved'
-        })
-        .eq('id', request.id)
+        .from('colleges')
+        .select('*')
+        .eq('name', 'AURELIUS_OLYMPIAD')
+        .single()
 
-      setMessage(
-        '✅ School approved successfully'
+    if (!olympiadCollege) {
+      throw new Error(
+        'AURELIUS_OLYMPIAD college not found'
       )
+    }
 
-      loadRequests()
+    // 🔥 CHECK EXISTING SCHOOL
 
-    } catch (err) {
+    const { data: existingSchool } =
+      await supabase
+        .from('schools')
+        .select('*')
+        .eq('name', request.school_name)
+        .maybeSingle()
 
-      console.log(err)
+    let schoolId = null
 
-      setMessage(
-        '❌ Something went wrong'
-      )
+    // 🔥 CREATE SCHOOL IF NOT EXISTS
+
+    if (existingSchool) {
+
+      schoolId = existingSchool.id
+
+    } else {
+
+      const {
+        data: schoolData,
+        error: schoolError
+      } = await supabase
+        .from('schools')
+        .insert([
+          {
+            name: request.school_name,
+            district: request.district,
+            state: request.state
+          }
+        ])
+        .select()
+        .single()
+
+      if (schoolError) {
+        throw schoolError
+      }
+
+      schoolId = schoolData.id
 
     }
 
+    // 🔥 CHECK EXISTING SCHOOL ADMIN
+
+    const { data: existingAdmin } =
+      await supabase
+        .from('students')
+        .select('*')
+        .eq('phone', request.phone)
+        .eq('role', 'school_admin')
+        .maybeSingle()
+
+    // 🔥 CREATE SCHOOL ADMIN
+
+    if (!existingAdmin) {
+
+      const {
+        data: adminData,
+        error: studentError
+      } = await supabase
+        .from('students')
+        .insert([
+          {
+            first_name:
+              request.coordinator_first_name,
+
+            last_name:
+              request.coordinator_last_name,
+
+            phone: request.phone,
+
+            email: request.email,
+
+            role: 'school_admin',
+
+            // 🔥 SHARED OLYMPIAD COLLEGE
+            college_id: olympiadCollege.id,
+
+            school_id: schoolId,
+
+            college_name:
+              'AURELIUS_OLYMPIAD',
+
+            address: request.state,
+
+            exam_preference: 'SCHOOL',
+
+            is_active: true
+          }
+        ])
+        .select()
+        .single()
+
+      if (studentError) {
+        throw studentError
+      }
+
+      // 🔥 UPDATE SCHOOL WITH ADMIN ID
+
+      await supabase
+        .from('schools')
+        .update({
+          school_admin_id: adminData.id
+        })
+        .eq('id', schoolId)
+
+    }
+
+    // 🔥 UPDATE REQUEST STATUS
+
+    await supabase
+      .from('school_registration_requests')
+      .update({
+        status: 'approved'
+      })
+      .eq('id', request.id)
+
+    setMessage(
+      '✅ School approved successfully'
+    )
+
+    loadRequests()
+
+  } catch (err) {
+
+    console.log(err)
+
+    setMessage(
+      '❌ Something went wrong'
+    )
+
   }
+
+}
 
   async function rejectRequest(id) {
 
