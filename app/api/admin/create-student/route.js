@@ -19,9 +19,9 @@ export async function POST(req) {
       exam_preference,
       phone,address,
       study_year,
-      school_id
+      school_id,
+      olympiad_subjects = []
       } = body
-
     /* ================= CLEAN INPUT ================= */
 
     email = email?.trim()
@@ -162,7 +162,31 @@ const adminSchoolId = admin.school_id
       })
 
     if (error) throw error
+if (
+  adminRole === 'school_admin' &&
+  olympiad_subjects.length > 0
+) {
 
+  const entitlementRows =
+    olympiad_subjects.map(subject => ({
+
+      student_id: id,
+
+      exam_category: subject
+
+    }))
+
+  const {
+    error: entitlementError
+  } = await supabase
+    .from('student_exam_categories')
+    .insert(entitlementRows)
+
+  if (entitlementError) {
+    throw entitlementError
+  }
+
+}
     /* ================= SUCCESS ================= */
 
     return Response.json({
