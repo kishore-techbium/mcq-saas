@@ -303,45 +303,33 @@ selected_subjects:
             </div>
 
           </div>
-<div className="col-span-2 mt-2">
+<div className="mt-8">
 
-  <label className="block text-lg font-semibold mb-5 text-white">
+  <label className="block text-white text-lg font-semibold mb-5">
 
     Select Olympiad Subjects
 
   </label>
 
-  <div className="grid md:grid-cols-2 gap-4">
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
     {[
       {
-        label:
-          'GK Olympiad',
-
-        value:
-          'GK_OLYMPIAD',
-
-        icon: '🌍'
+        label: 'GK Olympiad',
+        value: 'GK_OLYMPIAD',
+        
       },
 
       {
-        label:
-          'Maths Olympiad',
-
-        value:
-          'MATHS_OLYMPIAD',
-
-        icon: '📘'
+        label: 'Maths Olympiad',
+        value: 'MATHS_OLYMPIAD',
+        
       },
 
       {
-        label:
-          'Science Olympiad',
-
-        value:
-          'SCIENCE_OLYMPIAD',
-
-        icon: '🔬'
+        label: 'Science Olympiad',
+        value: 'SCIENCE_OLYMPIAD',
+        
       },
 
       {
@@ -351,7 +339,7 @@ selected_subjects:
         value:
           'MENTAL_ABILITY_OLYMPIAD',
 
-        icon: '🧠'
+        \
       }
 
     ].map(sub => {
@@ -363,7 +351,8 @@ selected_subjects:
 
       return (
 
-        <div
+        <button
+          type="button"
           key={sub.value}
           onClick={() =>
             handleSubjectChange(
@@ -371,22 +360,23 @@ selected_subjects:
             )
           }
           className={`
-            cursor-pointer
+            w-full
             rounded-2xl
             border
-            transition-all
-            p-5
+            px-5
+            py-5
             flex
             items-center
             gap-4
-            backdrop-blur-xl
+            text-left
+            transition-all
 
             ${
               checked
                 ? `
                   border-indigo-400
                   bg-indigo-500/20
-                  shadow-[0_0_30px_rgba(99,102,241,0.35)]
+                  shadow-[0_0_35px_rgba(99,102,241,0.35)]
                 `
                 : `
                   border-white/10
@@ -397,23 +387,33 @@ selected_subjects:
           `}
         >
 
+
+
+          <div className="flex-1">
+
+            <div className="text-white font-semibold text-lg">
+
+              {sub.label}
+
+            </div>
+
+          </div>
+
           <div
             className={`
               w-6
               h-6
-              rounded-md
-              border
+              rounded-full
+              border-2
               flex
               items-center
               justify-center
-              text-sm
-              font-bold
 
               ${
                 checked
                   ? `
-                    bg-indigo-500
                     border-indigo-400
+                    bg-indigo-500
                   `
                   : `
                     border-white/20
@@ -422,25 +422,13 @@ selected_subjects:
             `}
           >
 
-            {checked ? '✓' : ''}
+            {checked && (
+              <div className="w-2.5 h-2.5 rounded-full bg-white" />
+            )}
 
           </div>
 
-          <div className="text-3xl">
-            {sub.icon}
-          </div>
-
-          <div>
-
-            <div className="font-semibold text-white text-lg">
-
-              {sub.label}
-
-            </div>
-
-          </div>
-
-        </div>
+        </button>
 
       )
     })}
