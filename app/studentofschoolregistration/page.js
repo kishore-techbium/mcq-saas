@@ -339,7 +339,6 @@ selected_subjects:
         value:
           'MENTAL_ABILITY_OLYMPIAD',
 
-        \
       }
 
     ].map(sub => {
