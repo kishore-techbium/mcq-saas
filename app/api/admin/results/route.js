@@ -96,22 +96,33 @@ const categoryMap = {}
       const s = grouped[exam.id]
 
       const relatedStudents = (students || []).filter(st => {
-        if (!st.exam_preference || !st.study_year) return false
 
-        const studentPref = st.exam_preference.toUpperCase()
-        const examCat = exam.exam_category.toUpperCase()
+  if (!st.study_year) return false
 
-        const examParent =
-        categoryMap[examCat]
-    
-        const categoryMatch =
-        studentPref === examParent
+  const yearMatch =
+    Number(st.study_year) === Number(exam.target_year)
 
-        const yearMatch =
-          Number(st.study_year) === Number(exam.target_year)
+  // dynamic category handling
+  let categoryMatch = true
 
-        return categoryMatch && yearMatch
-      })
+  if (st.exam_preference && exam.exam_category) {
+
+    const studentPref =
+      st.exam_preference.toUpperCase()
+
+    const examCat =
+      exam.exam_category.toUpperCase()
+
+    const examParent =
+      categoryMap[examCat]
+
+    categoryMatch =
+      studentPref === examCat ||
+      studentPref === examParent
+  }
+
+  return yearMatch && categoryMatch
+})
 
       return {
         id: exam.id,
