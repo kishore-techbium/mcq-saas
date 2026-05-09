@@ -129,6 +129,45 @@ if (examIds.length > 0) {
 
   exams = examData || []
 }
+/* ===============================
+   STEP 3B: FETCH DIRECT COLLEGE EXAMS
+=============================== */
+
+const {
+  data: collegeExams,
+  error: collegeError
+} = await supabase
+  .from('exams')
+  .select('*')
+  .eq('college_id', collegeId)
+  .eq('is_active', true)
+
+if (collegeError) {
+  throw collegeError
+}
+
+/* ===============================
+   STEP 3C: MERGE WITHOUT DUPLICATES
+=============================== */
+
+const allExamsMap = new Map()
+
+;[
+  ...(exams || []),
+  ...(collegeExams || [])
+].forEach(exam => {
+
+  allExamsMap.set(
+    exam.id,
+    exam
+  )
+
+})
+
+exams =
+  Array.from(
+    allExamsMap.values()
+  )
 
     if (assignmentError) {
       throw assignmentError
