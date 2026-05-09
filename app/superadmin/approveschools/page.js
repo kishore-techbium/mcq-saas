@@ -164,7 +164,10 @@ export default function ApproveSchoolsPage() {
             college_name:
               'AURELIUS_OLYMPIAD',
 
-            address: request.state,
+            address:
+  `${request.city}, ` +
+  `${request.district}, ` +
+  `${request.state}`,
 
             exam_preference: 'SCHOOL',
 
