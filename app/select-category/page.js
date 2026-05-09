@@ -33,10 +33,27 @@ async function checkUser() {
   if (currentUser.type === 'google') {
     const { data: student } = await supabase
       .from('students')
-      .select('exam_preference, first_name, study_year')
+      .select(`
+  exam_preference,
+  first_name,
+  study_year,
+  is_active
+`)
       .eq('email', currentUser.email)
       .maybeSingle()
 
+if (!student?.is_active) {
+
+  await supabase.auth.signOut()
+
+  localStorage.removeItem('student')
+
+  alert('Account disabled')
+
+  window.location.href = '/'
+
+  return
+}
     setExamPref(student?.exam_preference)
     setStudyYear(student?.study_year || '')
 await loadChildCategories(
@@ -49,7 +66,18 @@ await loadChildCategories(
   // ✅ Manual login
   if (currentUser.type === 'manual') {
     const student = currentUser.user
+if (!student?.is_active) {
 
+  await supabase.auth.signOut()
+
+  localStorage.removeItem('student')
+
+  alert('Account disabled')
+
+  window.location.href = '/'
+
+  return
+}
     setExamPref(student.exam_preference)
     setStudyYear(student.study_year || '')
 await loadChildCategories(
