@@ -49,8 +49,13 @@ export async function POST(req) {
       (assignments || []).map(
         a => a.exam_id
       )
+    console.log(
+  'ASSIGNMENTS:',
+  assignments
+)
+
 console.log(
-  'ASSIGNED EXAM IDS:',
+  'EXAM IDS:',
   examIds
 )
     /* ===============================
