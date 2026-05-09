@@ -69,7 +69,9 @@ const categoryMap = {}
       .select('*')
 
     const exams = (allExams || []).filter(e => {
-      if (e.college_id === collegeId) return true
+      if (String(e.college_id) === String(collegeId)) {
+  return true
+}
       if (!e.college_id && assignedExamIds.includes(e.id)) return true
       return false
     })
@@ -79,7 +81,14 @@ const categoryMap = {}
       .from('students')
       .select('id, exam_preference, study_year, college_id')
       .eq('college_id', collegeId)
+console.log('COLLEGE ID =', collegeId)
 
+console.log(
+  allExams.map(e => ({
+    title: e.title,
+    college_id: e.college_id
+  }))
+)
     // 🔥 5. Get stats
     const { data: stats } = await supabase
       .from('student_exam_stats')
