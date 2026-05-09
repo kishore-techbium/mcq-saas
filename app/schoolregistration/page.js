@@ -209,13 +209,14 @@ export default function SchoolRegistrationPage() {
                 Email Address
               </label>
 
-              <input
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="Enter Email Address"
-              />
+<input
+  type="email"
+  name="email"
+  value={form.email}
+  onChange={handleChange}
+  placeholder="Enter Email Address"
+  required
+/>
 
             </div>
 <div className="field">
