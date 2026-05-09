@@ -1,15 +1,20 @@
 "use client";
 
-
 import "../schoolregistration/page.css";
+
 import { useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 export default function StudentRegistrationPage() {
 
-  const [loading, setLoading] = useState(false);
-  const [subjects, setSubjects] = useState([]);
-  const [message, setMessage] = useState("");
+  const [loading, setLoading] =
+    useState(false);
+
+  const [message, setMessage] =
+    useState("");
+
+  const [subjects, setSubjects] =
+    useState([]);
 
   const [form, setForm] = useState({
     schoolName: "",
@@ -22,37 +27,38 @@ export default function StudentRegistrationPage() {
     state: "",
   });
 
-  const handleChange = (e) => {
+  function handleChange(e) {
 
     setForm({
       ...form,
       [e.target.name]: e.target.value,
     });
+  }
 
-  };
-function handleSubjectChange(
-  subject
-) {
-
-  if (
-    subjects.includes(subject)
+  function handleSubjectChange(
+    subject
   ) {
 
-    setSubjects(
-      subjects.filter(
-        s => s !== subject
-      )
-    )
+    if (
+      subjects.includes(subject)
+    ) {
 
-  } else {
+      setSubjects(
+        subjects.filter(
+          s => s !== subject
+        )
+      );
 
-    setSubjects([
-      ...subjects,
-      subject
-    ])
+    } else {
+
+      setSubjects([
+        ...subjects,
+        subject,
+      ]);
+    }
   }
-}
-  const handleSubmit = async (e) => {
+
+  async function handleSubmit(e) {
 
     e.preventDefault();
 
@@ -62,19 +68,20 @@ function handleSubjectChange(
 
     try {
 
-      // CHECK DUPLICATE
+      const {
+        data: existing
+      } = await supabase
+        .from(
+          "student_ofschool_registration_requests"
+        )
+        .select("*")
+        .eq("phone", form.phone)
+        .maybeSingle();
 
-      const { data: existingRequest } =
-        await supabase
-          .from("student_ofschool_registration_requests")
-          .select("*")
-          .eq("phone", form.phone)
-          .maybeSingle();
-
-      if (existingRequest) {
+      if (existing) {
 
         setMessage(
-          "A registration request already exists for this mobile number."
+          "A request already exists for this mobile number."
         );
 
         setLoading(false);
@@ -82,41 +89,51 @@ function handleSubjectChange(
         return;
       }
 
-      // INSERT REQUEST
+      const { error } =
+        await supabase
+          .from(
+            "student_ofschool_registration_requests"
+          )
+          .insert([
+            {
+              school_name:
+                form.schoolName,
 
-      const { error } = await supabase
-        .from("student_ofschool_registration_requests")
-        .insert([
-          {
-            school_name: form.schoolName,
+              first_name:
+                form.firstName,
 
-            first_name: form.firstName,
+              last_name:
+                form.lastName,
 
-            last_name: form.lastName,
+              phone:
+                form.phone,
 
-            phone: form.phone,
+              email:
+                form.email,
 
-            email: form.email,
+              city:
+                form.city,
 
-            city: form.city,
+              district:
+                form.district,
 
-            district: form.district,
+              state:
+                form.state,
 
-            state: form.state,
+              selected_subjects:
+                subjects,
 
-            status: "pending",
-
-selected_subjects:
-  subjects,
-          },
-        ]);
+              status:
+                "pending",
+            },
+          ]);
 
       if (error) {
         throw error;
       }
 
       setMessage(
-        "Student registration request submitted successfully. Our team will contact you shortly."
+        "Registration request submitted successfully."
       );
 
       setForm({
@@ -130,17 +147,19 @@ selected_subjects:
         state: "",
       });
 
+      setSubjects([]);
+
     } catch (err) {
 
-      console.error(err);
+      console.log(err);
 
-      setMessage("Something went wrong.");
-
+      setMessage(
+        "Something went wrong."
+      );
     }
 
     setLoading(false);
-
-  };
+  }
 
   return (
     <main className="school-page">
@@ -158,8 +177,8 @@ selected_subjects:
         </h1>
 
         <p className="subtext">
-          Register as an individual participant for the Aurelius National Olympiad.
-          Our team will review your request and contact you shortly.
+          Register for the Aurelius
+          National Olympiad.
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -169,15 +188,19 @@ selected_subjects:
             <div className="field">
 
               <label>
-                Student First Name
+                First Name
               </label>
 
               <input
                 type="text"
                 name="firstName"
-                value={form.firstName}
-                onChange={handleChange}
-                placeholder="First Name"
+                value={
+                  form.firstName
+                }
+                onChange={
+                  handleChange
+                }
+                placeholder="Enter First Name"
                 required
               />
 
@@ -186,15 +209,19 @@ selected_subjects:
             <div className="field">
 
               <label>
-                Student Last Name
+                Last Name
               </label>
 
               <input
                 type="text"
                 name="lastName"
-                value={form.lastName}
-                onChange={handleChange}
-                placeholder="Last Name"
+                value={
+                  form.lastName
+                }
+                onChange={
+                  handleChange
+                }
+                placeholder="Enter Last Name"
                 required
               />
 
@@ -209,8 +236,12 @@ selected_subjects:
               <input
                 type="text"
                 name="schoolName"
-                value={form.schoolName}
-                onChange={handleChange}
+                value={
+                  form.schoolName
+                }
+                onChange={
+                  handleChange
+                }
                 placeholder="Enter School Name"
                 required
               />
@@ -226,8 +257,12 @@ selected_subjects:
               <input
                 type="text"
                 name="phone"
-                value={form.phone}
-                onChange={handleChange}
+                value={
+                  form.phone
+                }
+                onChange={
+                  handleChange
+                }
                 placeholder="Enter Mobile Number"
                 required
               />
@@ -243,8 +278,12 @@ selected_subjects:
               <input
                 type="email"
                 name="email"
-                value={form.email}
-                onChange={handleChange}
+                value={
+                  form.email
+                }
+                onChange={
+                  handleChange
+                }
                 placeholder="Enter Email Address"
                 required
               />
@@ -260,8 +299,12 @@ selected_subjects:
               <input
                 type="text"
                 name="city"
-                value={form.city}
-                onChange={handleChange}
+                value={
+                  form.city
+                }
+                onChange={
+                  handleChange
+                }
                 placeholder="City or Town"
                 required
               />
@@ -277,8 +320,12 @@ selected_subjects:
               <input
                 type="text"
                 name="district"
-                value={form.district}
-                onChange={handleChange}
+                value={
+                  form.district
+                }
+                onChange={
+                  handleChange
+                }
                 placeholder="District"
                 required
               />
@@ -294,8 +341,12 @@ selected_subjects:
               <input
                 type="text"
                 name="state"
-                value={form.state}
-                onChange={handleChange}
+                value={
+                  form.state
+                }
+                onChange={
+                  handleChange
+                }
                 placeholder="State"
                 required
               />
@@ -303,142 +354,136 @@ selected_subjects:
             </div>
 
           </div>
-<div className="mt-8">
 
-  <label className="block text-white text-lg font-semibold mb-5">
+          {/* SUBJECTS */}
 
-    Select Olympiad Subjects
+          <div
+            style={{
+              marginTop: 30,
+            }}
+          >
 
-  </label>
+            <label
+              style={{
+                display: "block",
+                marginBottom: 20,
+                fontWeight: 600,
+                color: "#fff",
+                fontSize: 18,
+              }}
+            >
+              Select Olympiad Subjects
+            </label>
 
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "1fr 1fr",
+                gap: 20,
+              }}
+            >
 
-    {[
-      {
-        label: 'GK Olympiad',
-        value: 'GK_OLYMPIAD',
-        
-      },
+              {[
+                {
+                  label:
+                    "GK Olympiad",
+                  value:
+                    "GK_OLYMPIAD",
+                },
 
-      {
-        label: 'Maths Olympiad',
-        value: 'MATHS_OLYMPIAD',
-        
-      },
+                {
+                  label:
+                    "Maths Olympiad",
+                  value:
+                    "MATHS_OLYMPIAD",
+                },
 
-      {
-        label: 'Science Olympiad',
-        value: 'SCIENCE_OLYMPIAD',
-        
-      },
+                {
+                  label:
+                    "Science Olympiad",
+                  value:
+                    "SCIENCE_OLYMPIAD",
+                },
 
-      {
-        label:
-          'Mental Ability Olympiad',
+                {
+                  label:
+                    "Mental Ability Olympiad",
 
-        value:
-          'MENTAL_ABILITY_OLYMPIAD',
+                  value:
+                    "MENTAL_ABILITY_OLYMPIAD",
+                },
+              ].map(sub => (
 
-      }
+                <label
+                  key={sub.value}
+                  style={{
+                    height: 62,
+                    border:
+                      "1px solid rgba(255,255,255,0.12)",
+                    borderRadius: 20,
+                    display: "flex",
+                    alignItems:
+                      "center",
+                    gap: 14,
+                    padding:
+                      "0 20px",
+                    background:
+                      subjects.includes(
+                        sub.value
+                      )
+                        ? "rgba(99,102,241,0.18)"
+                        : "rgba(255,255,255,0.04)",
+                    cursor: "pointer",
+                    transition:
+                      "0.3s",
+                  }}
+                >
 
-    ].map(sub => {
+                  <input
+                    type="checkbox"
+                    checked={subjects.includes(
+                      sub.value
+                    )}
+                    onChange={() =>
+                      handleSubjectChange(
+                        sub.value
+                      )
+                    }
+                    style={{
+                      width: 20,
+                      height: 20,
+                      cursor:
+                        "pointer",
+                    }}
+                  />
 
-      const checked =
-        subjects.includes(
-          sub.value
-        )
+                  <span
+                    style={{
+                      color:
+                        "#fff",
+                      fontSize: 16,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {sub.label}
+                  </span>
 
-      return (
+                </label>
 
-        <button
-          type="button"
-          key={sub.value}
-          onClick={() =>
-            handleSubjectChange(
-              sub.value
-            )
-          }
-          className={`
-            w-full
-            rounded-2xl
-            border
-            px-5
-            py-5
-            flex
-            items-center
-            gap-4
-            text-left
-            transition-all
-
-            ${
-              checked
-                ? `
-                  border-indigo-400
-                  bg-indigo-500/20
-                  shadow-[0_0_35px_rgba(99,102,241,0.35)]
-                `
-                : `
-                  border-white/10
-                  bg-white/5
-                  hover:bg-white/10
-                `
-            }
-          `}
-        >
-
-
-
-          <div className="flex-1">
-
-            <div className="text-white font-semibold text-lg">
-
-              {sub.label}
+              ))}
 
             </div>
 
           </div>
 
-          <div
-            className={`
-              w-6
-              h-6
-              rounded-full
-              border-2
-              flex
-              items-center
-              justify-center
-
-              ${
-                checked
-                  ? `
-                    border-indigo-400
-                    bg-indigo-500
-                  `
-                  : `
-                    border-white/20
-                  `
-              }
-            `}
-          >
-
-            {checked && (
-              <div className="w-2.5 h-2.5 rounded-full bg-white" />
-            )}
-
-          </div>
-
-        </button>
-
-      )
-    })}
-
-  </div>
-
-</div>
           <button
             type="submit"
             disabled={loading}
             className="submit-btn"
+            style={{
+              marginTop: 35,
+            }}
           >
 
             {loading
@@ -450,9 +495,11 @@ selected_subjects:
         </form>
 
         {message && (
+
           <div className="message">
             {message}
           </div>
+
         )}
 
       </div>
