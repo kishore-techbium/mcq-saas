@@ -145,51 +145,7 @@ return Response.json({
   allowedCategories,
   exams
 })
-     // ACTIVE EXAM
-
-        if (!e.is_active) {
-          return false
-        }
-
-        // CATEGORY
-
-        if (
-          !allowedCategories.includes(
-            e.exam_category
-              ?.trim()
-              ?.toUpperCase()
-          )
-        ) {
-          return false
-        }
-
-        // YEAR
-
-        if (
-          Number(e.target_year)
-          !== studyYear
-        ) {
-          return false
-        }
-
-        // NORMAL EXAM
-
-        if (!e.requires_entitlement) {
-          return true
-        }
-
-        // OLYMPIAD
-
-        return allowedSubjects.includes(
-          e.olympiad_subject
-            ?.trim()
-            ?.toUpperCase()
-        )
-
-      })
-
-    return Response.json(filtered)
-
+  
   } catch (err) {
 
     console.error(err)
