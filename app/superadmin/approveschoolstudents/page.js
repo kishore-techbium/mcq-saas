@@ -79,25 +79,7 @@ export default function ApproveSchoolStudentsPage() {
 
     try {
 
-      // FIND SCHOOL
-
-      const { data: school } =
-        await supabase
-          .from('schools')
-          .select('*')
-          .eq(
-            'name',
-            request.school_name
-          )
-          .maybeSingle()
-
-      if (!school) {
-
-        throw new Error(
-          'School not found'
-        )
-      }
-
+   
       // SHARED OLYMPIAD COLLEGE
 
       const {
@@ -158,8 +140,7 @@ export default function ApproveSchoolStudentsPage() {
               college_name:
                 'AURELIUS_OLYMPIAD',
 
-              school_id:
-                school.id,
+school_id: null,
 
               study_year: 4,
 
