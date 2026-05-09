@@ -475,25 +475,25 @@ export default function Admins() {
 
               <td style={styles.td}>
 
-                <button
-                  onClick={() =>
-                    toggleStatus(a)
-                  }
-                  style={{
-                    ...styles.toggleBtn,
+              <button
+  onClick={() =>
+    toggleStatus(a)
+  }
+  style={{
+    ...styles.toggleBtn,
 
-                    background:
-                      a.is_active
-                        ? '#16a34a'
-                        : '#dc2626'
-                  }}
-                >
+    background:
+      a.is_active
+        ? '#16a34a'
+        : '#dc2626'
+  }}
+>
 
-                  {a.is_active
-                    ? 'ACTIVE'
-                    : 'INACTIVE'}
+  {a.is_active
+    ? 'ACTIVE'
+    : 'INACTIVE'}
 
-                </button>
+</button>
 
               </td>
 
