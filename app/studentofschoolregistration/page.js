@@ -1,7 +1,7 @@
 "use client";
 
-import "./page.css";
 
+import "../schoolregistration/page.css";
 import { useState } from "react";
 import { supabase } from "../../lib/supabase";
 
