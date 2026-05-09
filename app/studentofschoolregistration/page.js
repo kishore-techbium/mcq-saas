@@ -303,88 +303,147 @@ selected_subjects:
             </div>
 
           </div>
-<div className="field col-span-2">
+<div className="col-span-2 mt-2">
 
-  <label
-    className="mb-4 block"
-  >
+  <label className="block text-lg font-semibold mb-5 text-white">
+
     Select Olympiad Subjects
+
   </label>
 
-  <div className="flex flex-col gap-4">
+  <div className="grid md:grid-cols-2 gap-4">
 
     {[
       {
         label:
           'GK Olympiad',
+
         value:
-          'GK_OLYMPIAD'
+          'GK_OLYMPIAD',
+
+        icon: '🌍'
       },
 
       {
         label:
           'Maths Olympiad',
+
         value:
-          'MATHS_OLYMPIAD'
+          'MATHS_OLYMPIAD',
+
+        icon: '📘'
       },
 
       {
         label:
           'Science Olympiad',
+
         value:
-          'SCIENCE_OLYMPIAD'
+          'SCIENCE_OLYMPIAD',
+
+        icon: '🔬'
       },
 
       {
         label:
           'Mental Ability Olympiad',
+
         value:
-          'MENTAL_ABILITY_OLYMPIAD'
+          'MENTAL_ABILITY_OLYMPIAD',
+
+        icon: '🧠'
       }
 
-    ].map(sub => (
+    ].map(sub => {
 
-      <label
-        key={sub.value}
-        className="
-          flex
-          items-center
-          gap-3
-          bg-white/5
-          border
-          border-white/10
-          rounded-xl
-          px-4
-          py-4
-          cursor-pointer
-          hover:bg-white/10
-          transition-all
-        "
-      >
+      const checked =
+        subjects.includes(
+          sub.value
+        )
 
-        <input
-          type="checkbox"
-          checked={subjects.includes(
-            sub.value
-          )}
-          onChange={() =>
+      return (
+
+        <div
+          key={sub.value}
+          onClick={() =>
             handleSubjectChange(
               sub.value
             )
           }
-          className="
-            w-5
-            h-5
-          "
-        />
+          className={`
+            cursor-pointer
+            rounded-2xl
+            border
+            transition-all
+            p-5
+            flex
+            items-center
+            gap-4
+            backdrop-blur-xl
 
-        <span>
-          {sub.label}
-        </span>
+            ${
+              checked
+                ? `
+                  border-indigo-400
+                  bg-indigo-500/20
+                  shadow-[0_0_30px_rgba(99,102,241,0.35)]
+                `
+                : `
+                  border-white/10
+                  bg-white/5
+                  hover:bg-white/10
+                `
+            }
+          `}
+        >
 
-      </label>
+          <div
+            className={`
+              w-6
+              h-6
+              rounded-md
+              border
+              flex
+              items-center
+              justify-center
+              text-sm
+              font-bold
 
-    ))}
+              ${
+                checked
+                  ? `
+                    bg-indigo-500
+                    border-indigo-400
+                  `
+                  : `
+                    border-white/20
+                  `
+              }
+            `}
+          >
+
+            {checked ? '✓' : ''}
+
+          </div>
+
+          <div className="text-3xl">
+            {sub.icon}
+          </div>
+
+          <div>
+
+            <div className="font-semibold text-white text-lg">
+
+              {sub.label}
+
+            </div>
+
+          </div>
+
+        </div>
+
+      )
+    })}
 
   </div>
 
