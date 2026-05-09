@@ -106,10 +106,11 @@ export default function ApproveSchoolsPage() {
         .from('schools')
         .insert([
           {
-            name: request.school_name,
-            district: request.district,
-            state: request.state
-          }
+  name: request.school_name,
+  city: request.city,
+  district: request.district,
+  state: request.state
+}
         ])
         .select()
         .single()
@@ -280,7 +281,9 @@ export default function ApproveSchoolsPage() {
               <th style={styles.th}>
                 Phone
               </th>
-
+<th style={styles.th}>
+  City / Town
+</th>
               <th style={styles.th}>
                 District
               </th>
@@ -318,7 +321,9 @@ export default function ApproveSchoolsPage() {
                 <td style={styles.td}>
                   {r.phone}
                 </td>
-
+<td style={styles.td}>
+  {r.city}
+</td>
                 <td style={styles.td}>
                   {r.district}
                 </td>
