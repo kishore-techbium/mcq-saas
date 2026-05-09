@@ -15,13 +15,34 @@ export async function GET(req) {
     }
 
     // 🔥 1. Get admin college
-    const { data: admin } = await supabase
-      .from('students')
-      .select('college_id')
-      .eq('user_id', userId)
-      .single()
+let collegeId = null
 
-    const collegeId = admin?.college_id
+// try students table
+const { data: studentAdmin } = await supabase
+  .from('students')
+  .select('college_id')
+  .eq('user_id', userId)
+  .single()
+
+if (studentAdmin?.college_id) {
+  collegeId = studentAdmin.college_id
+}
+
+// fallback to colleges table
+if (!collegeId) {
+
+  const { data: collegeAdmin } = await supabase
+    .from('colleges')
+    .select('id')
+    .eq('admin_user_id', userId)
+    .single()
+
+  if (collegeAdmin?.id) {
+    collegeId = collegeAdmin.id
+  }
+}
+
+console.log('FINAL COLLEGE ID =', collegeId)
 
     // 🔥 2. Get assignments
     const { data: assignments } = await supabase
