@@ -31,10 +31,7 @@ export async function POST(req) {
     /* ===============================
        STEP 1: GET ACTIVE ASSIGNMENTS
     =============================== */
-console.log(
-  'REQUEST CATEGORY:',
-  category
-)
+
     const {
       data: assignments,
       error: assignError
@@ -52,15 +49,7 @@ console.log(
       (assignments || []).map(
         a => a.exam_id
       )
-    console.log(
-  'ASSIGNMENTS:',
-  assignments
-)
-
-console.log(
-  'EXAM IDS:',
-  examIds
-)
+  
     /* ===============================
        STEP 2A: FETCH ASSIGNED EXAMS
     =============================== */
@@ -152,11 +141,7 @@ console.log(
       .from('exam_categories')
       .select('code,parent_code')
     
-    console.log({
-  category,
-  studyYear,
-  collegeId
-})
+  
 
     if (categoryError) {
       throw categoryError
@@ -171,10 +156,7 @@ console.log(
         .map(c => c.code)
 
     allowedCategories.push(category)
-    console.log(
-  'ALLOWED CATEGORIES:',
-  allowedCategories
-)
+
 
     /* ===============================
        STEP 5: FILTER EXAMS
@@ -183,10 +165,7 @@ console.log(
     const filtered =
       (exams || []).filter(e => {
 
-    console.log(
-  'CHECKING EXAM CATEGORY:',
-  e.exam_category
-)
+ 
         // CATEGORY FILTER
 
         if (
