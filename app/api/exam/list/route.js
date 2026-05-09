@@ -134,10 +134,6 @@ if (examIds.length > 0) {
       throw assignmentError
     }
 
-    const exams =
-      (assignments || [])
-        .map(a => a.exams)
-        .filter(Boolean)
 
     /* ===============================
        STEP 4: FILTER EXAMS
