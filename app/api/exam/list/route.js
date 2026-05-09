@@ -139,12 +139,8 @@ if (examIds.length > 0) {
        STEP 4: FILTER EXAMS
     =============================== */
 
-return Response.json({
-  category,
-  studyYear,
-  allowedCategories,
-  exams
-})
+const filtered =
+  exams.filter(e => {
      // ACTIVE EXAM
 
         if (!e.is_active) {
