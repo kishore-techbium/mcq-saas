@@ -11,15 +11,16 @@ export default function SchoolRegistrationPage() {
 
   const [message, setMessage] = useState("");
 
-  const [form, setForm] = useState({
-    schoolName: "",
-    firstName: "",
-    lastName: "",
-    phone: "",
-    email: "",
-    district: "",
-    state: "",
-  });
+ const [form, setForm] = useState({
+  schoolName: "",
+  firstName: "",
+  lastName: "",
+  phone: "",
+  email: "",
+  city: "",
+  district: "",
+  state: "",
+});
 
   const handleChange = (e) => {
 
@@ -72,6 +73,7 @@ export default function SchoolRegistrationPage() {
             coordinator_last_name: form.lastName,
             phone: form.phone,
             email: form.email,
+            city: form.city,
             district: form.district,
             state: form.state,
           },
@@ -91,6 +93,7 @@ export default function SchoolRegistrationPage() {
         lastName: "",
         phone: "",
         email: "",
+        city: "",
         district: "",
         state: "",
       });
@@ -215,7 +218,22 @@ export default function SchoolRegistrationPage() {
               />
 
             </div>
+<div className="field">
 
+  <label>
+    City / Town
+  </label>
+
+  <input
+    type="text"
+    name="city"
+    value={form.city}
+    onChange={handleChange}
+    placeholder="City or Town"
+    required
+  />
+
+</div>
             <div className="field">
 
               <label>
