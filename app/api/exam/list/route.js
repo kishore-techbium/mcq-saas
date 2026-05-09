@@ -49,7 +49,10 @@ export async function POST(req) {
       (assignments || []).map(
         a => a.exam_id
       )
-
+console.log(
+  'ASSIGNED EXAM IDS:',
+  examIds
+)
     /* ===============================
        STEP 2A: FETCH ASSIGNED EXAMS
     =============================== */
