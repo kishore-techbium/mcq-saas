@@ -20,7 +20,7 @@ export default function Admins() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [roleFilter])
 
   async function loadData() {
 
@@ -32,7 +32,10 @@ export default function Admins() {
         'school_admin'
       ])
 
+    // FILTERING FIX
+
     if (roleFilter !== 'ALL') {
+
       query = query.eq(
         'role',
         roleFilter
@@ -40,19 +43,17 @@ export default function Admins() {
     }
 
     const {
-      data: admins
+      data: adminsData
     } = await query.order(
       'created_at',
       { ascending: false }
     )
 
     const {
-      data: colleges
+      data: collegesData
     } = await supabase
       .from('colleges')
       .select('*')
-
-    // LOAD STUDENT COUNTS
 
     const {
       data: students
@@ -67,7 +68,7 @@ export default function Admins() {
       .eq('role', 'student')
 
     const updatedAdmins =
-      (admins || []).map(admin => {
+      (adminsData || []).map(admin => {
 
         let totalStudents = 0
 
@@ -105,7 +106,7 @@ export default function Admins() {
       })
 
     setAdmins(updatedAdmins || [])
-    setColleges(colleges || [])
+    setColleges(collegesData || [])
   }
 
   function getCollegeName(id) {
@@ -120,6 +121,7 @@ export default function Admins() {
   async function createAdmin() {
 
     if (!email || !collegeId) {
+
       alert('Fill required fields')
       return
     }
@@ -130,6 +132,7 @@ export default function Admins() {
       )
 
     if (!selectedCollege) {
+
       alert('Invalid college')
       return
     }
@@ -161,6 +164,7 @@ export default function Admins() {
         })
 
     if (error) {
+
       alert(error.message)
       return
     }
@@ -207,11 +211,12 @@ export default function Admins() {
         .eq('id', admin.id)
 
     if (error) {
+
       alert(error.message)
       return
     }
 
-    // TURN OFF/ON STUDENTS ALSO
+    // UPDATE STUDENTS ALSO
 
     if (
       admin.role ===
@@ -247,11 +252,14 @@ export default function Admins() {
   }
 
   return (
+
     <div style={styles.page}>
 
       <h1 style={styles.heading}>
         Admins
       </h1>
+
+      {/* CREATE FORM */}
 
       <div style={styles.form}>
 
@@ -346,7 +354,10 @@ export default function Admins() {
         >
           Create Admin
         </button>
+
       </div>
+
+      {/* FILTER */}
 
       <div
         style={{
@@ -356,16 +367,12 @@ export default function Admins() {
 
         <select
           value={roleFilter}
-          onChange={e => {
+          onChange={e =>
             setRoleFilter(
               e.target.value
             )
-
-            setTimeout(() => {
-              loadData()
-            }, 100)
-          }}
-          style={styles.input}
+          }
+          style={styles.filter}
         >
 
           <option value="ALL">
@@ -373,16 +380,18 @@ export default function Admins() {
           </option>
 
           <option value="admin">
-            College Admin
+            College Admins
           </option>
 
           <option value="school_admin">
-            School Admin
+            School Admins
           </option>
 
         </select>
 
       </div>
+
+      {/* TABLE */}
 
       <table style={styles.table}>
 
@@ -447,7 +456,11 @@ export default function Admins() {
               </td>
 
               <td style={styles.td}>
-                {a.role}
+
+                {a.role === 'admin'
+                  ? 'College Admin'
+                  : 'School Admin'}
+
               </td>
 
               <td style={styles.td}>
@@ -462,27 +475,25 @@ export default function Admins() {
 
               <td style={styles.td}>
 
-                <label
+                <button
+                  onClick={() =>
+                    toggleStatus(a)
+                  }
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8
+                    ...styles.toggleBtn,
+
+                    background:
+                      a.is_active
+                        ? '#16a34a'
+                        : '#dc2626'
                   }}
                 >
 
-                  <input
-                    type="checkbox"
-                    checked={a.is_active}
-                    onChange={() =>
-                      toggleStatus(a)
-                    }
-                  />
-
                   {a.is_active
-                    ? 'Active'
-                    : 'Inactive'}
+                    ? 'ACTIVE'
+                    : 'INACTIVE'}
 
-                </label>
+                </button>
 
               </td>
 
@@ -508,6 +519,7 @@ export default function Admins() {
         </tbody>
 
       </table>
+
     </div>
   )
 }
@@ -520,54 +532,76 @@ const styles = {
   },
 
   heading: {
-    fontSize: 26,
-    marginBottom: 20
+    fontSize: 28,
+    marginBottom: 25
   },
 
   form: {
     display: 'flex',
-    gap: 10,
+    gap: 12,
     flexWrap: 'wrap',
-    marginBottom: 20
+    marginBottom: 25
   },
 
   input: {
     padding: 10,
     borderRadius: 8,
-    border: '1px solid #ccc'
+    border: '1px solid #ccc',
+    minWidth: 180
+  },
+
+  filter: {
+    padding: 10,
+    borderRadius: 8,
+    border: '1px solid #ccc',
+    minWidth: 220
   },
 
   btn: {
-    padding: '10px 16px',
+    padding: '10px 18px',
     background: '#2563eb',
     color: '#fff',
     border: 'none',
     borderRadius: 8,
-    cursor: 'pointer'
+    cursor: 'pointer',
+    fontWeight: 600
   },
 
   table: {
     width: '100%',
-    borderCollapse: 'collapse'
+    borderCollapse: 'collapse',
+    background: '#fff'
   },
 
   th: {
-    padding: 10,
+    padding: 12,
     background: '#f1f5f9',
-    border: '1px solid #ddd'
+    border: '1px solid #ddd',
+    textAlign: 'left'
   },
 
   td: {
-    padding: 10,
+    padding: 12,
     border: '1px solid #ddd'
   },
 
   deleteBtn: {
     background: '#dc2626',
     color: '#fff',
-    padding: '6px 10px',
-    borderRadius: 6,
+    padding: '8px 14px',
+    borderRadius: 8,
     border: 'none',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    fontWeight: 600
+  },
+
+  toggleBtn: {
+    color: '#fff',
+    padding: '8px 14px',
+    borderRadius: 20,
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: 700,
+    minWidth: 100
   }
 }
