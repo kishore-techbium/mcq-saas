@@ -473,29 +473,31 @@ export default function Admins() {
                 {a.totalStudents}
               </td>
 
-              <td style={styles.td}>
+            <td style={styles.td}>
 
-              <button
-  onClick={() =>
-    toggleStatus(a)
-  }
-  style={{
-    ...styles.toggleBtn,
+  <button
+    onClick={() =>
+      toggleStatus(a)
+    }
+    style={{
+      padding: '6px 12px',
+      borderRadius: 20,
+      border: 'none',
+      cursor: 'pointer',
+      fontWeight: 600,
+      backgroundColor:
+        a.is_active
+          ? '#2563eb'
+          : '#ef4444',
+      color: '#fff'
+    }}
+  >
 
-    background:
-      a.is_active
-        ? '#16a34a'
-        : '#dc2626'
-  }}
->
+    {a.is_active ? 'ON' : 'OFF'}
 
-  {a.is_active
-    ? 'ACTIVE'
-    : 'INACTIVE'}
+  </button>
 
-</button>
-
-              </td>
+</td>
 
               <td style={styles.td}>
 
