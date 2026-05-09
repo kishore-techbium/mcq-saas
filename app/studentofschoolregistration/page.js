@@ -8,7 +8,7 @@ import { supabase } from "../../lib/supabase";
 export default function StudentRegistrationPage() {
 
   const [loading, setLoading] = useState(false);
-
+  const [subjects, setSubjects] = useState([]);
   const [message, setMessage] = useState("");
 
   const [form, setForm] = useState({
@@ -30,7 +30,28 @@ export default function StudentRegistrationPage() {
     });
 
   };
+function handleSubjectChange(
+  subject
+) {
 
+  if (
+    subjects.includes(subject)
+  ) {
+
+    setSubjects(
+      subjects.filter(
+        s => s !== subject
+      )
+    )
+
+  } else {
+
+    setSubjects([
+      ...subjects,
+      subject
+    ])
+  }
+}
   const handleSubmit = async (e) => {
 
     e.preventDefault();
@@ -84,6 +105,9 @@ export default function StudentRegistrationPage() {
             state: form.state,
 
             status: "pending",
+
+selected_subjects:
+  subjects,
           },
         ]);
 
@@ -279,7 +303,92 @@ export default function StudentRegistrationPage() {
             </div>
 
           </div>
+<div className="field col-span-2">
 
+  <label
+    className="mb-4 block"
+  >
+    Select Olympiad Subjects
+  </label>
+
+  <div className="flex flex-col gap-4">
+
+    {[
+      {
+        label:
+          'GK Olympiad',
+        value:
+          'GK_OLYMPIAD'
+      },
+
+      {
+        label:
+          'Maths Olympiad',
+        value:
+          'MATHS_OLYMPIAD'
+      },
+
+      {
+        label:
+          'Science Olympiad',
+        value:
+          'SCIENCE_OLYMPIAD'
+      },
+
+      {
+        label:
+          'Mental Ability Olympiad',
+        value:
+          'MENTAL_ABILITY_OLYMPIAD'
+      }
+
+    ].map(sub => (
+
+      <label
+        key={sub.value}
+        className="
+          flex
+          items-center
+          gap-3
+          bg-white/5
+          border
+          border-white/10
+          rounded-xl
+          px-4
+          py-4
+          cursor-pointer
+          hover:bg-white/10
+          transition-all
+        "
+      >
+
+        <input
+          type="checkbox"
+          checked={subjects.includes(
+            sub.value
+          )}
+          onChange={() =>
+            handleSubjectChange(
+              sub.value
+            )
+          }
+          className="
+            w-5
+            h-5
+          "
+        />
+
+        <span>
+          {sub.label}
+        </span>
+
+      </label>
+
+    ))}
+
+  </div>
+
+</div>
           <button
             type="submit"
             disabled={loading}
