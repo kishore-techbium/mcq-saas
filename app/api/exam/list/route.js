@@ -89,18 +89,46 @@ export async function POST(req) {
        STEP 3: FETCH ASSIGNED EXAMS
     =============================== */
 
-    const {
-      data: assignments,
-      error: assignmentError
-    } = await supabase
-      .from('exam_assignments')
-      .select(`
-        exam_id,
-        is_active,
-        exams (*)
-      `)
-      .eq('college_id', collegeId)
-      .eq('is_active', true)
+  const {
+  data: assignments,
+  error: assignmentError
+} = await supabase
+  .from('exam_assignments')
+  .select('*')
+  .eq('college_id', collegeId)
+  .eq('is_active', true)
+
+if (assignmentError) {
+  throw assignmentError
+}
+
+const examIds =
+  (assignments || []).map(
+    a => a.exam_id
+  )
+
+let exams = []
+
+if (examIds.length > 0) {
+
+  const {
+    data: examData,
+    error: examError
+  } = await supabase
+    .from('exams')
+    .select('*')
+    .filter(
+      'id',
+      'in',
+      `(${examIds.join(',')})`
+    )
+
+  if (examError) {
+    throw examError
+  }
+
+  exams = examData || []
+}
 
     if (assignmentError) {
       throw assignmentError
