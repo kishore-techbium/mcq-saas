@@ -54,26 +54,32 @@ export async function POST(req) {
        STEP 2A: FETCH ASSIGNED EXAMS
     =============================== */
 
-    let assignedExams = []
+  let assignedExams = []
 
-    if (examIds.length > 0) {
+if (examIds.length > 0) {
 
-      const {
-        data,
-        error
-      } = await supabase
-        .from('exams')
-        .select('*')
-        .in('id', examIds)
-        .eq('is_active', true)
+  const formattedIds =
+    examIds
+      .map(id => `"${id}"`)
+      .join(',')
 
-      if (error) {
-        throw error
-      }
+  const {
+    data,
+    error
+  } = await supabase
+    .from('exams')
+    .select('*')
+    .or(
+      `id.in.(${formattedIds})`
+    )
+    .eq('is_active', true)
 
-      assignedExams = data || []
-    }
+  if (error) {
+    throw error
+  }
 
+  assignedExams = data || []
+}
     /* ===============================
        STEP 2B: FETCH DIRECT COLLEGE EXAMS
     =============================== */
