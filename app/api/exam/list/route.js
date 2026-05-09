@@ -145,8 +145,7 @@ return Response.json({
   allowedCategories,
   exams
 })
-
-        // ACTIVE EXAM
+     // ACTIVE EXAM
 
         if (!e.is_active) {
           return false
