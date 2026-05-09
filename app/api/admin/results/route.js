@@ -110,8 +110,8 @@ const categoryMap = {}
     const studentPref =
       st.exam_preference.toUpperCase()
 
-    const examCat =
-      exam.exam_category.toUpperCase()
+const examCat =
+  exam.exam_category?.toUpperCase?.() || ''
 
     const examParent =
       categoryMap[examCat]
