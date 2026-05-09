@@ -9,12 +9,19 @@ export async function POST(req) {
 
   try {
 
-    const {
-      collegeId,
-      category,
-      studyYear,
-      studentId
-    } = await req.json()
+  const body = await req.json()
+
+const collegeId =
+  body.collegeId?.trim()
+
+const category =
+  body.category?.trim()?.toUpperCase()
+
+const studyYear =
+  body.studyYear
+
+const studentId =
+  body.studentId
 
     if (
       !collegeId ||
@@ -157,7 +164,9 @@ if (examIds.length > 0) {
       (categoryRows || [])
         .filter(
           c =>
-            c.parent_code === category
+            c.parent_code?.trim()?.toUpperCase()
+===
+category
         )
         .map(c => c.code)
 
@@ -175,9 +184,9 @@ if (examIds.length > 0) {
         // CATEGORY FILTER
 
         if (
-          !allowedCategories.includes(
-            e.exam_category
-          )
+        !allowedCategories.includes(
+  e.exam_category?.trim()?.toUpperCase()
+)
         ) {
           return false
         }
