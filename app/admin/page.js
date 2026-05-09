@@ -40,10 +40,24 @@ export default function AdminDashboard() {
 
       const { data: user } = await supabase
         .from('students')
-        .select('role, first_name, college_id')
+        .select(`
+  role,
+  first_name,
+  college_id,
+  is_active
+`)
         .eq('email', email)
         .single()
+if (!user?.is_active) {
 
+  await supabase.auth.signOut()
+
+  alert('Account disabled')
+
+  window.location.href = '/'
+
+  return
+}
   if (
   user?.role !== 'admin' &&
   user?.role !== 'school_admin'
