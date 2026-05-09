@@ -31,7 +31,10 @@ export async function POST(req) {
     /* ===============================
        STEP 1: GET ACTIVE ASSIGNMENTS
     =============================== */
-
+console.log(
+  'REQUEST CATEGORY:',
+  category
+)
     const {
       data: assignments,
       error: assignError
