@@ -197,60 +197,78 @@ export default function Admins() {
 
   async function toggleStatus(admin) {
 
-    const newStatus =
-      !admin.is_active
+  const newStatus =
+    !admin.is_active
 
-    // UPDATE ADMIN
+  // UPDATE ADMIN
 
-    const { error } =
-      await supabase
-        .from('students')
-        .update({
-          is_active: newStatus
-        })
-        .eq('id', admin.id)
+  const { error } =
+    await supabase
+      .from('students')
+      .update({
+        is_active: newStatus
+      })
+      .eq('id', admin.id)
 
-    if (error) {
+  if (error) {
 
-      alert(error.message)
-      return
-    }
+    console.error(error)
 
-    // UPDATE STUDENTS ALSO
+    alert('Failed to update')
 
-    if (
-      admin.role ===
-      'school_admin'
-    ) {
-
-      await supabase
-        .from('students')
-        .update({
-          is_active: newStatus
-        })
-        .eq('role', 'student')
-        .eq(
-          'school_id',
-          admin.school_id
-        )
-
-    } else {
-
-      await supabase
-        .from('students')
-        .update({
-          is_active: newStatus
-        })
-        .eq('role', 'student')
-        .eq(
-          'college_id',
-          admin.college_id
-        )
-    }
-
-    loadData()
+    return
   }
 
+  // SCHOOL ADMIN
+
+  if (
+    admin.role ===
+    'school_admin'
+  ) {
+
+    await supabase
+      .from('students')
+      .update({
+        is_active: newStatus
+      })
+      .eq('role', 'student')
+      .eq(
+        'school_id',
+        admin.school_id
+      )
+
+  } else {
+
+    // COLLEGE ADMIN
+
+    await supabase
+      .from('students')
+      .update({
+        is_active: newStatus
+      })
+      .eq('role', 'student')
+      .eq(
+        'college_id',
+        admin.college_id
+      )
+  }
+
+  // UI UPDATE IMMEDIATELY
+
+  setAdmins(prev =>
+    prev.map(a =>
+
+      a.id === admin.id
+
+        ? {
+            ...a,
+            is_active: newStatus
+          }
+
+        : a
+    )
+  )
+}
   return (
 
     <div style={styles.page}>
