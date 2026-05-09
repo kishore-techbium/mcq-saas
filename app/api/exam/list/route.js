@@ -9,26 +9,25 @@ export async function POST(req) {
 
   try {
 
-  const body = await req.json()
+    const body = await req.json()
 
-const collegeId =
-  body.collegeId?.trim()
+    const collegeId =
+      body.collegeId?.trim()
 
-const category =
-  body.category?.trim()?.toUpperCase()
+    const category =
+      body.category?.trim()?.toUpperCase()
 
-const studyYear =
-  body.studyYear
+    const studyYear =
+      Number(body.studyYear)
 
-const studentId =
-  body.studentId
+    const studentId =
+      body.studentId
 
     if (
       !collegeId ||
       !category ||
       !studyYear
     ) {
-
       return Response.json(
         { error: 'Missing data' },
         { status: 400 }
@@ -36,99 +35,39 @@ const studentId =
     }
 
     /* ===============================
-       STEP 1: GET ACTIVE ASSIGNMENTS
+       STEP 1: LOAD CATEGORY TREE
     =============================== */
 
     const {
-      data: assignments,
-      error: assignError
+      data: categoryRows,
+      error: categoryError
     } = await supabase
-      .from('exam_assignments')
-      .select('exam_id')
-      .eq('college_id', collegeId)
-      .eq('is_active', true)
+      .from('exam_categories')
+      .select('code,parent_code')
 
-    if (assignError) {
-      throw assignError
+    if (categoryError) {
+      throw categoryError
     }
 
-    const examIds =
-      (assignments || []).map(
-        a => a.exam_id
-      )
-  
-    /* ===============================
-       STEP 2A: FETCH ASSIGNED EXAMS
-    =============================== */
+    const allowedCategories =
+      (categoryRows || [])
+        .filter(
+          c =>
+            c.parent_code
+              ?.trim()
+              ?.toUpperCase()
+            === category
+        )
+        .map(c =>
+          c.code
+            ?.trim()
+            ?.toUpperCase()
+        )
 
-  let assignedExams = []
-
-if (examIds.length > 0) {
-
-  const formattedIds =
-    examIds
-      .map(id => `"${id}"`)
-      .join(',')
-
-  const {
-    data,
-    error
-  } = await supabase
-    .from('exams')
-    .select('*')
-    .or(
-      `id.in.(${formattedIds})`
-    )
-    .eq('is_active', true)
-
-  if (error) {
-    throw error
-  }
-
-  assignedExams = data || []
-}
-    /* ===============================
-       STEP 2B: FETCH DIRECT COLLEGE EXAMS
-    =============================== */
-
-    const {
-      data: collegeExams,
-      error: collegeError
-    } = await supabase
-      .from('exams')
-      .select('*')
-      .eq('college_id', collegeId)
-      .eq('is_active', true)
-
-    if (collegeError) {
-      throw collegeError
-    }
+    allowedCategories.push(category)
 
     /* ===============================
-       STEP 2C: MERGE WITHOUT DUPLICATES
-    =============================== */
-
-    const allExamsMap = new Map()
-
-    ;[
-      ...(assignedExams || []),
-      ...(collegeExams || [])
-    ].forEach(exam => {
-
-      allExamsMap.set(
-        exam.id,
-        exam
-      )
-
-    })
-
-    const exams =
-      Array.from(
-        allExamsMap.values()
-      )
-
-    /* ===============================
-       STEP 3: LOAD ENTITLEMENTS
+       STEP 2: LOAD STUDENT ENTITLEMENTS
     =============================== */
 
     const {
@@ -140,78 +79,84 @@ if (examIds.length > 0) {
 
     const allowedSubjects =
       (entitlements || []).map(
-        e => e.olympiad_subject
+        e =>
+          e.olympiad_subject
+            ?.trim()
+            ?.toUpperCase()
       )
 
     /* ===============================
-       STEP 4: LOAD CATEGORY TREE
+       STEP 3: FETCH ASSIGNED EXAMS
     =============================== */
 
     const {
-      data: categoryRows,
-      error: categoryError
+      data: assignments,
+      error: assignmentError
     } = await supabase
-      .from('exam_categories')
-      .select('code,parent_code')
-    
-  
+      .from('exam_assignments')
+      .select(`
+        exam_id,
+        is_active,
+        exams (*)
+      `)
+      .eq('college_id', collegeId)
+      .eq('is_active', true)
 
-    if (categoryError) {
-      throw categoryError
+    if (assignmentError) {
+      throw assignmentError
     }
 
-    const allowedCategories =
-      (categoryRows || [])
-        .filter(
-          c =>
-            c.parent_code?.trim()?.toUpperCase()
-===
-category
-        )
-        .map(c => c.code)
-
-    allowedCategories.push(category)
-
+    const exams =
+      (assignments || [])
+        .map(a => a.exams)
+        .filter(Boolean)
 
     /* ===============================
-       STEP 5: FILTER EXAMS
+       STEP 4: FILTER EXAMS
     =============================== */
 
     const filtered =
-      (exams || []).filter(e => {
+      exams.filter(e => {
 
- 
-        // CATEGORY FILTER
+        // ACTIVE EXAM
+
+        if (!e.is_active) {
+          return false
+        }
+
+        // CATEGORY
 
         if (
-        !allowedCategories.includes(
-  e.exam_category?.trim()?.toUpperCase()
-)
+          !allowedCategories.includes(
+            e.exam_category
+              ?.trim()
+              ?.toUpperCase()
+          )
         ) {
           return false
         }
 
-        // STUDY YEAR FILTER
+        // YEAR
 
         if (
-          Number(e.target_year) !==
-          Number(studyYear)
+          Number(e.target_year)
+          !== studyYear
         ) {
           return false
         }
 
-        // NORMAL EXAMS
+        // NORMAL EXAM
 
         if (!e.requires_entitlement) {
           return true
         }
 
-        // OLYMPIAD EXAMS
+        // OLYMPIAD
 
-        return (
-          allowedSubjects.includes(
-            e.olympiad_subject
-          )
+        return allowedSubjects.includes(
+          e.olympiad_subject
+            ?.trim()
+            ?.toUpperCase()
         )
 
       })
@@ -220,10 +165,7 @@ category
 
   } catch (err) {
 
-    console.error(
-      'API ERROR:',
-      err
-    )
+    console.error(err)
 
     return Response.json(
       { error: err.message },
