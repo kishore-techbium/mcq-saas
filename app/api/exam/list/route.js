@@ -140,6 +140,12 @@ export async function POST(req) {
     } = await supabase
       .from('exam_categories')
       .select('code,parent_code')
+    
+    console.log({
+  category,
+  studyYear,
+  collegeId
+})
 
     if (categoryError) {
       throw categoryError
@@ -154,6 +160,10 @@ export async function POST(req) {
         .map(c => c.code)
 
     allowedCategories.push(category)
+    console.log(
+  'ALLOWED CATEGORIES:',
+  allowedCategories
+)
 
     /* ===============================
        STEP 5: FILTER EXAMS
@@ -162,6 +172,10 @@ export async function POST(req) {
     const filtered =
       (exams || []).filter(e => {
 
+    console.log(
+  'CHECKING EXAM CATEGORY:',
+  e.exam_category
+)
         // CATEGORY FILTER
 
         if (
