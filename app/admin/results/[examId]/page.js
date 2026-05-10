@@ -61,8 +61,22 @@ export default function ExamAnalyticsPage() {
       `/api/admin/results/${examId}?userId=${userId}`
     )
 
-    const data = await res.json()
+  let data = null
 
+try {
+  data = await res.json()
+}
+
+catch (e) {
+
+  console.error('INVALID JSON RESPONSE')
+
+  alert('API response failed')
+
+  setLoading(false)
+
+  return
+}
     if (!res.ok) {
       alert(data.error || 'Failed')
       setLoading(false)
@@ -255,7 +269,13 @@ setDifficulty(calculatedDifficulty)
     setLoading(false)
   }
 }
-  if (loading) return <p style={{ padding: 30 }}>Loading...</p>
+  if (loading) {
+  return <p style={{ padding: 30 }}>Loading...</p>
+}
+
+if (!exam) {
+  return <p style={{ padding: 30 }}>Failed to load exam</p>
+}
 
   // ================= KPI =================
   const totalStudents = submitted.length
