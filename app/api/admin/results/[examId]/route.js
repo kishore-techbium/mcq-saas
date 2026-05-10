@@ -31,7 +31,7 @@ export async function GET(req, { params }) {
     }
 
     // =====================================================
-    // 1. GET USER SCOPE
+    // 1. GET ADMIN USER
     // =====================================================
 
     const { data: adminUser } =
@@ -44,24 +44,18 @@ export async function GET(req, { params }) {
         .eq('user_id', userId)
         .single()
 
-    const schoolId =
-      adminUser?.school_id
-
     const collegeId =
       adminUser?.college_id
 
-    const isSchoolMode =
-      !!schoolId
+    const schoolId =
+      adminUser?.school_id
 
-    const scopeId =
-      schoolId || collegeId
-
-    if (!scopeId) {
+    if (!collegeId) {
 
       return Response.json(
         {
           error:
-            'Access scope not found'
+            'College not found'
         },
         { status: 403 }
       )
@@ -94,60 +88,28 @@ export async function GET(req, { params }) {
 
     // own exam
 
-    if (isSchoolMode) {
-
-      if (
-        exam.school_id &&
-        String(exam.school_id) ===
-        String(schoolId)
-      ) {
-        allowed = true
-      }
-
-    } else {
-
-      if (
-        exam.college_id &&
-        String(exam.college_id) ===
-        String(collegeId)
-      ) {
-        allowed = true
-      }
+    if (
+      exam.college_id &&
+      String(exam.college_id) ===
+      String(collegeId)
+    ) {
+      allowed = true
     }
 
-    // assigned global exam
+    // global assigned exam
 
     if (
       !allowed &&
-      !exam.college_id &&
-      !exam.school_id
+      !exam.college_id
     ) {
 
-      let assignmentQuery = supabase
-        .from('exam_assignments')
-        .select('id')
-        .eq('exam_id', examId)
-        .eq('is_active', true)
-
-      if (isSchoolMode) {
-
-        assignmentQuery =
-          assignmentQuery.eq(
-            'school_id',
-            schoolId
-          )
-
-      } else {
-
-        assignmentQuery =
-          assignmentQuery.eq(
-            'college_id',
-            collegeId
-          )
-      }
-
       const { data: assignment } =
-        await assignmentQuery
+        await supabase
+          .from('exam_assignments')
+          .select('id')
+          .eq('college_id', collegeId)
+          .eq('exam_id', examId)
+          .eq('is_active', true)
 
       if (
         assignment &&
@@ -180,7 +142,8 @@ export async function GET(req, { params }) {
         school_id
       `)
 
-    if (isSchoolMode) {
+    // school segregation
+    if (schoolId) {
 
       studentsQuery =
         studentsQuery.eq(
@@ -299,35 +262,20 @@ export async function GET(req, { params }) {
     })
 
     // =====================================================
-    // 9. SCOPE NAME
+    // 9. COLLEGE NAME
     // =====================================================
 
-    let scopeName = ''
+    let collegeName = ''
 
-    if (isSchoolMode) {
+    const { data: college } =
+      await supabase
+        .from('colleges')
+        .select('name')
+        .eq('id', collegeId)
+        .single()
 
-      const { data: school } =
-        await supabase
-          .from('schools')
-          .select('name')
-          .eq('id', schoolId)
-          .single()
-
-      scopeName =
-        school?.name || ''
-
-    } else {
-
-      const { data: college } =
-        await supabase
-          .from('colleges')
-          .select('name')
-          .eq('id', collegeId)
-          .single()
-
-      scopeName =
-        college?.name || ''
-    }
+    collegeName =
+      college?.name || ''
 
     // =====================================================
     // 10. FINAL RESPONSE
@@ -339,7 +287,7 @@ export async function GET(req, { params }) {
 
       exam,
 
-      scopeName,
+      collegeName,
 
       studentsMap,
 
