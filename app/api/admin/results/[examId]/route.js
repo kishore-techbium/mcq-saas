@@ -8,11 +8,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-export async function GET(req, context) {
+export async function GET(req, { params }) {
 
   try {
 
-    const examId = context?.params?.examId
+    const examId = params.examId
 
     const { searchParams } = new URL(req.url)
 
