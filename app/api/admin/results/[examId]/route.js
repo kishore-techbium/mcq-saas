@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic'
 
-import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -8,45 +7,48 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-export async function GET(request, context) {
+export async function GET(req, { params }) {
 
   try {
 
-    const examId =
-      context.params.examId
- const userId =
-  request.nextUrl.searchParams.get('userId')
+    const examId = params.examId
+
+    const { searchParams } = new URL(req.url)
+
+    const userId = searchParams.get('userId')
 
     if (!examId || !userId) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Missing examId or userId' },
         { status: 400 }
       )
     }
 
     // =====================================================
-    // 1. FIND ADMIN/SCHOOL COLLEGE
+    // 1. GET ADMIN COLLEGE
     // =====================================================
 
     let collegeId = null
 
-    const { data: adminStudent } = await supabase
+    // try students table
+    const { data: studentAdmin } = await supabase
       .from('students')
       .select('college_id')
       .eq('user_id', userId)
-      .maybeSingle()
+      .single()
 
-    if (adminStudent?.college_id) {
-      collegeId = adminStudent.college_id
+    if (studentAdmin?.college_id) {
+      collegeId = studentAdmin.college_id
     }
 
+    // fallback colleges table
     if (!collegeId) {
 
       const { data: collegeAdmin } = await supabase
         .from('colleges')
         .select('id')
         .eq('admin_user_id', userId)
-        .maybeSingle()
+        .single()
 
       if (collegeAdmin?.id) {
         collegeId = collegeAdmin.id
@@ -54,7 +56,7 @@ export async function GET(request, context) {
     }
 
     if (!collegeId) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'College not found' },
         { status: 403 }
       )
@@ -68,22 +70,22 @@ export async function GET(request, context) {
       .from('exams')
       .select('*')
       .eq('id', examId)
-      .maybeSingle()
+      .single()
 
     if (!exam) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Exam not found' },
         { status: 404 }
       )
     }
 
     // =====================================================
-    // 3. ACCESS VALIDATION
+    // 3. VALIDATE ACCESS
     // =====================================================
 
     let allowed = false
 
-    // own college exam
+    // own exam
     if (
       exam.college_id &&
       String(exam.college_id) === String(collegeId)
@@ -100,27 +102,32 @@ export async function GET(request, context) {
         .eq('college_id', collegeId)
         .eq('exam_id', examId)
         .eq('is_active', true)
-        .maybeSingle()
 
-      if (assignment) {
+      if (assignment && assignment.length > 0) {
         allowed = true
       }
     }
 
     if (!allowed) {
-      return NextResponse.json(
+      return Response.json(
         { error: 'Access denied' },
         { status: 403 }
       )
     }
 
     // =====================================================
-    // 4. GET ALLOWED STUDENTS
+    // 4. FETCH STUDENTS OF THIS COLLEGE
     // =====================================================
 
     const { data: students } = await supabase
       .from('students')
-      .select('*')
+      .select(`
+        id,
+        first_name,
+        last_name,
+        email,
+        college_id
+      `)
       .eq('college_id', collegeId)
 
     const allowedStudentIds =
@@ -169,7 +176,7 @@ export async function GET(request, context) {
       )
 
     // =====================================================
-    // 7. SUBTOPIC STATS
+    // 7. SUBTOPIC / CHAPTER STATS
     // =====================================================
 
     const { data: subtopicStats } = await supabase
@@ -183,12 +190,15 @@ export async function GET(request, context) {
       )
 
     // =====================================================
-    // 8. PROCTOR SESSIONS
+    // 8. EXAM SESSIONS
     // =====================================================
 
     const { data: sessions } = await supabase
       .from('exam_sessions')
-      .select('student_id, proctor_status')
+      .select(`
+        student_id,
+        proctor_status
+      `)
       .eq('exam_id', examId)
       .in(
         'student_id',
@@ -214,15 +224,16 @@ export async function GET(request, context) {
       .from('colleges')
       .select('name')
       .eq('id', collegeId)
-      .maybeSingle()
+      .single()
 
     collegeName = college?.name || ''
 
     // =====================================================
-    // 10. RETURN CLEAN RESPONSE
+    // 10. FINAL RESPONSE
     // =====================================================
 
-    return NextResponse.json({
+    return Response.json({
+      success: true,
       exam,
       collegeName,
       studentsMap,
@@ -234,21 +245,15 @@ export async function GET(request, context) {
 
   } catch (err) {
 
-  console.error('FULL API ERROR:')
-  console.error(err)
+    console.error('FULL API ERROR:')
+    console.error(err)
 
-  return new Response(
-    JSON.stringify({
-      success: false,
-      error: String(err),
-      stack: err?.stack || null
-    }),
-    {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    }
-  )
-}
+    return Response.json(
+      {
+        success: false,
+        error: err?.message || 'Internal server error'
+      },
+      { status: 500 }
+    )
+  }
 }
