@@ -31,7 +31,7 @@ export async function POST(req) {
     const { data: admin } = await supabase
       .from('students')
       .select('college_id, college_name, role, school_id')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .single()
 
     if (!admin) {
