@@ -216,7 +216,7 @@ export async function POST(req) {
         )
 
       const accuracy =
-        const accuracy =
+        
 
   totalQuestions > 0
 
