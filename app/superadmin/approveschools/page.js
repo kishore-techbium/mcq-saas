@@ -181,14 +181,23 @@ export default function ApproveSchoolsPage() {
         throw studentError
       }
 
-      // 🔥 UPDATE SCHOOL WITH ADMIN ID
+// 🔥 SET user_id = id
 
-      await supabase
-        .from('schools')
-        .update({
-          school_admin_id: adminData.id
-        })
-        .eq('id', schoolId)
+await supabase
+  .from('students')
+  .update({
+    user_id: adminData.id
+  })
+  .eq('id', adminData.id)
+
+// 🔥 UPDATE SCHOOL WITH ADMIN ID
+
+await supabase
+  .from('schools')
+  .update({
+    school_admin_id: adminData.id
+  })
+  .eq('id', schoolId)
 
     }
 
