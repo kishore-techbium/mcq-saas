@@ -31,34 +31,26 @@ export default function AnsePage() {
 
   async function loadExams() {
 
-    try {
+  try {
 
-      const { data, error } =
-        await supabase
-          .from('exams')
-          .select(`
-            id,
-            title,
-            exam_category,
-            target_year
-          `)
-          .order('created_at', {
-            ascending: false
-          })
+    const res = await fetch(
+      '/api/anse/exams'
+    )
 
-      if (error) {
+    const data =
+      await res.json()
 
-        console.error(error)
-        return
-      }
+    setExams(
+      Array.isArray(data)
+        ? data
+        : []
+    )
 
-      setExams(data || [])
+  } catch (err) {
 
-    } catch (err) {
-
-      console.error(err)
-    }
+    console.error(err)
   }
+}
 
   async function generateRankings() {
 
