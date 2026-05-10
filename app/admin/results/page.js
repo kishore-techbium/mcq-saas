@@ -65,10 +65,26 @@ async function init() {
 async function loadResults() {
   const { data: userData } = await supabase.auth.getUser()
 
-  const res = await fetch(`/api/admin/results?userId=${userData.user.id}`)
-  const data = await res.json()
+const res = await fetch(
+  `/api/admin/results?userId=${userData.user.id}`
+)
 
-  setRows(data)
+const data = await res.json()
+
+if (!res.ok) {
+
+  console.error(data)
+
+  setRows([])
+
+  return
+}
+
+setRows(
+  Array.isArray(data)
+    ? data
+    : []
+)
 }
 
   function handleSort(field) {
