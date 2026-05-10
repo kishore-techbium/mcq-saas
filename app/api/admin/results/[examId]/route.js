@@ -8,14 +8,14 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-export async function GET(req, { params }) {
+export async function GET(request, context) {
 
   try {
 
-    const examId = params.examId
-
+    const examId =
+      context.params.examId
  const userId =
-  req.nextUrl.searchParams.get('userId')
+  request.nextUrl.searchParams.get('userId')
 
     if (!examId || !userId) {
       return NextResponse.json(
