@@ -86,6 +86,7 @@ export default function AnseResultsPage() {
   }
 
   const filteredRows =
+
     qualifiedOnly
 
       ? rows.filter(
@@ -104,7 +105,7 @@ export default function AnseResultsPage() {
 
       {/* FILTERS */}
 
-      <div className="flex gap-4 items-center mb-8">
+      <div className="flex gap-4 items-center mb-8 flex-wrap">
 
         <select
           value={selectedExam}
@@ -161,13 +162,21 @@ export default function AnseResultsPage() {
 
         </label>
 
+        <div className="text-sm text-gray-600">
+
+          Total Records:
+          {' '}
+          {filteredRows.length}
+
+        </div>
+
       </div>
 
       {/* TABLE */}
 
-      <div className="overflow-auto border rounded">
+      <div className="overflow-auto border rounded-xl">
 
-        <table className="w-full border-collapse">
+        <table className="w-full border-collapse text-sm">
 
           <thead className="bg-gray-100">
 
@@ -183,6 +192,18 @@ export default function AnseResultsPage() {
 
               <th className="border p-3">
                 School
+              </th>
+
+              <th className="border p-3">
+                City
+              </th>
+
+              <th className="border p-3">
+                District
+              </th>
+
+              <th className="border p-3">
+                State
               </th>
 
               <th className="border p-3">
@@ -220,7 +241,7 @@ export default function AnseResultsPage() {
               <tr>
 
                 <td
-                  colSpan="9"
+                  colSpan="12"
                   className="
                     text-center
                     p-10
@@ -236,11 +257,38 @@ export default function AnseResultsPage() {
             )}
 
             {!loading &&
+              filteredRows.length === 0 && (
+
+              <tr>
+
+                <td
+                  colSpan="12"
+                  className="
+                    text-center
+                    p-10
+                    text-gray-500
+                  "
+                >
+
+                  No rankings found
+
+                </td>
+
+              </tr>
+
+            )}
+
+            {!loading &&
               filteredRows.map(row => (
 
-              <tr key={row.id}>
+              <tr
+                key={row.id}
+                className="
+                  hover:bg-gray-50
+                "
+              >
 
-                <td className="border p-3 text-center">
+                <td className="border p-3 text-center font-semibold">
                   {row.national_rank}
                 </td>
 
@@ -252,7 +300,19 @@ export default function AnseResultsPage() {
                   {row.school_name}
                 </td>
 
-                <td className="border p-3 text-center">
+                <td className="border p-3">
+                  {row.city}
+                </td>
+
+                <td className="border p-3">
+                  {row.district}
+                </td>
+
+                <td className="border p-3">
+                  {row.state}
+                </td>
+
+                <td className="border p-3 text-center font-semibold">
                   {row.score}
                 </td>
 
@@ -275,8 +335,15 @@ export default function AnseResultsPage() {
                 <td className="border p-3 text-center">
 
                   {row.qualified_phase2
-                    ? '✅'
-                    : '-'}
+
+                    ? (
+                      <span className="text-green-600 font-semibold">
+                        ✅ Qualified
+                      </span>
+                    )
+
+                    : '-'
+                  }
 
                 </td>
 
