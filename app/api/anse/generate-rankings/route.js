@@ -1,6 +1,8 @@
 export const dynamic = 'force-dynamic'
 
-import { createClient } from '@supabase/supabase-js'
+import {
+  calculateExamMetrics
+} from '../../../../lib/anseExamMetrics'
 
 import {
   calculateExamMetrics
