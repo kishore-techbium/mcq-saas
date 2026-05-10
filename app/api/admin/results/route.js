@@ -13,8 +13,7 @@ export async function GET(req) {
 
     const { searchParams } = new URL(req.url)
 
-    const userId =
-      searchParams.get('userId')
+    const userId = searchParams.get('userId')
 
     if (!userId) {
 
@@ -25,7 +24,7 @@ export async function GET(req) {
     }
 
     // =====================================================
-    // 1. GET USER SCOPE
+    // 1. GET ADMIN USER
     // =====================================================
 
     const { data: adminUser } = await supabase
@@ -37,54 +36,26 @@ export async function GET(req) {
       .eq('user_id', userId)
       .single()
 
-    const schoolId =
-      adminUser?.school_id
+    const collegeId = adminUser?.college_id
+    const schoolId = adminUser?.school_id
 
-    const collegeId =
-      adminUser?.college_id
-
-    const isSchoolMode =
-      !!schoolId
-
-    const scopeId =
-      schoolId || collegeId
-
-    if (!scopeId) {
+    if (!collegeId) {
 
       return Response.json(
-        { error: 'Access scope not found' },
+        { error: 'College not found' },
         { status: 403 }
       )
     }
 
     // =====================================================
-    // 2. FETCH ASSIGNMENTS
+    // 2. GET ASSIGNED EXAMS
     // =====================================================
 
-    let assignmentsQuery = supabase
+    const { data: assignments } = await supabase
       .from('exam_assignments')
       .select('exam_id')
+      .eq('college_id', collegeId)
       .eq('is_active', true)
-
-    if (isSchoolMode) {
-
-      assignmentsQuery =
-        assignmentsQuery.eq(
-          'school_id',
-          schoolId
-        )
-
-    } else {
-
-      assignmentsQuery =
-        assignmentsQuery.eq(
-          'college_id',
-          collegeId
-        )
-    }
-
-    const { data: assignments } =
-      await assignmentsQuery
 
     const assignedExamIds =
       (assignments || []).map(
@@ -121,32 +92,19 @@ export async function GET(req) {
     const exams =
       (allExams || []).filter(e => {
 
-        // own exams
+        // own exam
 
-        if (isSchoolMode) {
-
-          if (
-            String(e.school_id) ===
-            String(schoolId)
-          ) {
-            return true
-          }
-
-        } else {
-
-          if (
-            String(e.college_id) ===
-            String(collegeId)
-          ) {
-            return true
-          }
+        if (
+          String(e.college_id) ===
+          String(collegeId)
+        ) {
+          return true
         }
 
-        // global assigned exams
+        // global assigned exam
 
         if (
           !e.college_id &&
-          !e.school_id &&
           assignedExamIds.includes(e.id)
         ) {
           return true
@@ -169,7 +127,8 @@ export async function GET(req) {
         school_id
       `)
 
-    if (isSchoolMode) {
+    // school segregation
+    if (schoolId) {
 
       studentsQuery =
         studentsQuery.eq(
@@ -195,7 +154,7 @@ export async function GET(req) {
       )
 
     // =====================================================
-    // 6. FETCH ONLY RELEVANT STATS
+    // 6. FETCH STATS
     // =====================================================
 
     const { data: stats } =
