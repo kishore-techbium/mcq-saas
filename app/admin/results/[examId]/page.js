@@ -1,8 +1,9 @@
 'use client'
 
-import { supabase } from '../../../../lib/supabase'
+
 import { useEffect, useState, useRef } from 'react'
 import { useParams } from 'next/navigation'
+import { supabase } from '../../../../lib/supabase'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -41,163 +42,219 @@ export default function ExamAnalyticsPage() {
     if (examId) fetchAll()
   }, [examId])
 
-  async function fetchAll() {
-    setLoading(true)
+ async function fetchAll() {
 
-    // 🔹 exam
-    const { data: examData } = await supabase
-      .from('exams')
-      .select('*')
-      .eq('id', examId)
-      .single()
+  setLoading(true)
 
-    // 🔹 exam stats
-    const { data: stats } = await supabase
-      .from('student_exam_stats')
-      .select('*')
-      .eq('exam_id', examId)
+  try {
 
-    const studentIds = [...new Set(stats.map(s => s.student_id))]
+    // 🔒 logged in user
+    const {
+      data: { session }
+    } = await supabase.auth.getSession()
 
-   
-    // 🔹 students
-    const { data: students } = await supabase
-      .from('students')
-      .select('*')
-      .in('id', studentIds)
+    const userId =
+      session?.user?.id
 
-    const map = {}
-    students?.forEach(s => {
-      map[s.id] = {
-        name: `${s.first_name || ''} ${s.last_name || ''}`,
-        email: s.email
-      }
-    })
+    // 🔥 secure API
+    const res = await fetch(
+      `/api/admin/results/${examId}?userId=${userId}`
+    )
 
-    // 🔥 GET COLLEGE NAME (from first student)
-if (students && students.length > 0) {
-  const collegeId = students[0].college_id
+    const data = await res.json()
 
-  const { data: college } = await supabase
-    .from('colleges')
-    .select('name')
-    .eq('id', collegeId)
-    .single()
+    if (!res.ok) {
+      alert(data.error || 'Failed')
+      setLoading(false)
+      return
+    }
 
-  setCollegeName(college?.name || '')
-}
-    setStudentsMap(map)
-    setSubmitted(stats || [])
-    setExam(examData)
+    const {
+      exam,
+      collegeName,
+      studentsMap,
+      stats,
+      subjectStats,
+      subtopicStats,
+      proctorMap
+    } = data
 
+    setExam(exam)
+    setCollegeName(collegeName)
+    setStudentsMap(studentsMap)
+    setSubmitted(stats)
+    setProctorMap(proctorMap)
 
-
-// 🔹 exam sessions (for proctor status)
-const { data: sessions } = await supabase
-  .from('exam_sessions')
-  .select('student_id, proctor_status')
-  .eq('exam_id', examId)
-
-const pMap = {}
-sessions?.forEach(s => {
-  pMap[s.student_id] = s.proctor_status
-})
-setProctorMap(pMap)
-    // ================= SUBJECT ANALYSIS =================
-    const { data: subjectStats } = await supabase
-      .from('student_subject_stats')
-      .select('*')
-      .in('student_id', studentIds)
+    // =========================================
+    // SUBJECT ANALYSIS
+    // =========================================
 
     const subjectAgg = {}
 
-    subjectStats?.forEach(s => {
+    ;(subjectStats || []).forEach(s => {
+
       if (!subjectAgg[s.subject]) {
-        subjectAgg[s.subject] = { correct: 0, total: 0 }
+        subjectAgg[s.subject] = {
+          correct: 0,
+          total: 0
+        }
       }
-      subjectAgg[s.subject].correct += s.correct || 0
-      subjectAgg[s.subject].total += s.total_questions || 0
+
+      subjectAgg[s.subject].correct +=
+        s.correct || 0
+
+      subjectAgg[s.subject].total +=
+        s.total_questions || 0
     })
 
-    const subjectArray = Object.entries(subjectAgg).map(([k, v]) => ({
-      subject: k,
-      accuracy: v.total > 0 ? (v.correct / v.total) * 100 : 0
-    }))
+    const subjectArray =
+      Object.entries(subjectAgg).map(([k,v]) => ({
+        subject: k,
+        accuracy:
+          v.total > 0
+            ? (v.correct / v.total) * 100
+            : 0
+      }))
 
-    const weak = [], moderate = [], strong = []
+    const weak = []
+    const moderate = []
+    const strong = []
 
     subjectArray.forEach(s => {
-      if (s.accuracy < 40) weak.push(s)
-      else if (s.accuracy < 70) moderate.push(s)
-      else strong.push(s)
+
+      if (s.accuracy < 40) {
+        weak.push(s)
+      }
+
+      else if (s.accuracy < 70) {
+        moderate.push(s)
+      }
+
+      else {
+        strong.push(s)
+      }
     })
 
     setWeakSubjects(weak)
     setModerateAreas(moderate)
     setStrongAreas(strong)
 
-    // ================= CHAPTER ANALYSIS =================
-    const { data: subStats } = await supabase
-      .from('student_subtopic_stats')
-      .select('*')
-      .in('student_id', studentIds)
+    // =========================================
+    // CHAPTER ANALYSIS
+    // =========================================
 
     const chapterAgg = {}
 
-    subStats?.forEach(s => {
+    ;(subtopicStats || []).forEach(s => {
+
       if (!chapterAgg[s.chapter]) {
-        chapterAgg[s.chapter] = { correct: 0, total: 0 }
+
+        chapterAgg[s.chapter] = {
+          correct: 0,
+          total: 0
+        }
       }
-      chapterAgg[s.chapter].correct += s.correct || 0
-      chapterAgg[s.chapter].total += s.total_questions || 0
+
+      chapterAgg[s.chapter].correct +=
+        s.correct || 0
+
+      chapterAgg[s.chapter].total +=
+        s.total_questions || 0
     })
 
-    const weakChap = Object.entries(chapterAgg)
-      .map(([k, v]) => ({
-        chapter: k,
-        accuracy: v.total > 0 ? (v.correct / v.total) * 100 : 0
-      }))
-      .filter(c => c.accuracy < 40)
-      .sort((a,b)=>a.accuracy-b.accuracy)
-      .slice(0,5)
+    const weakChap =
+      Object.entries(chapterAgg)
+        .map(([k,v]) => ({
+          chapter: k,
+          accuracy:
+            v.total > 0
+              ? (v.correct / v.total) * 100
+              : 0
+        }))
+        .filter(c => c.accuracy < 40)
+        .sort((a,b) => a.accuracy - b.accuracy)
+        .slice(0,5)
 
     setWeakChapters(weakChap)
 
-    // ================= DIFFICULTY =================
+    // =========================================
+    // DIFFICULTY
+    // =========================================
+
     const avg =
-      stats.reduce((sum, s) => sum + (s.avg_score || 0), 0) / stats.length
+      stats.reduce(
+        (sum,s) => sum + (s.avg_score || 0),
+        0
+      ) / (stats.length || 1)
 
-    if (avg < 40) setDifficulty('Hard')
-    else if (avg < 70) setDifficulty('Medium')
-    else setDifficulty('Easy')
+   let calculatedDifficulty = 'Easy'
 
-    // ================= AI INSIGHTS =================
+if (avg < 40) {
+  calculatedDifficulty = 'Hard'
+}
+
+else if (avg < 70) {
+  calculatedDifficulty = 'Medium'
+}
+
+setDifficulty(calculatedDifficulty)
+
+    // =========================================
+    // AI INSIGHTS
+    // =========================================
+
     const insights = []
 
     if (weak.length > 0) {
-      insights.push(`🔴 Weak Subjects: ${weak.map(s => s.subject).join(', ')}`)
+      insights.push(
+        `🔴 Weak Subjects: ${
+          weak.map(s => s.subject).join(', ')
+        }`
+      )
     }
 
     if (moderate.length > 0) {
-      insights.push(`🟡 Moderate: ${moderate.map(s => s.subject).join(', ')}`)
+      insights.push(
+        `🟡 Moderate: ${
+          moderate.map(s => s.subject).join(', ')
+        }`
+      )
     }
 
     if (strong.length > 0) {
-      insights.push(`🟢 Strong: ${strong.map(s => s.subject).join(', ')}`)
+      insights.push(
+        `🟢 Strong: ${
+          strong.map(s => s.subject).join(', ')
+        }`
+      )
     }
 
     if (weakChap.length > 0) {
-      insights.push(`⚠️ Weak Chapters: ${weakChap.map(c => c.chapter).join(', ')}`)
+      insights.push(
+        `⚠️ Weak Chapters: ${
+          weakChap.map(c => c.chapter).join(', ')
+        }`
+      )
     }
 
-    insights.push(`📊 Difficulty: ${difficulty}`)
-    insights.push(`🎯 Action: Focus revision on weak areas & conduct practice tests`)
+    insights.push(`📊 Difficulty: ${calculatedDifficulty}`)
+
+    insights.push(
+      `🎯 Action: Focus revision on weak areas & conduct practice tests`
+    )
 
     setAiInsights(insights)
 
+  } catch (err) {
+
+    console.error(err)
+    alert('Failed to load analytics')
+
+  } finally {
+
     setLoading(false)
   }
-
+}
   if (loading) return <p style={{ padding: 30 }}>Loading...</p>
 
   // ================= KPI =================
