@@ -137,58 +137,55 @@ export default function ApproveSchoolsPage() {
 
     if (!existingAdmin) {
 
-      const {
-        data: adminData,
-        error: studentError
-      } = await supabase
-        .from('students')
-        .insert([
-          {
-            first_name:
-              request.coordinator_first_name,
+     const newId = crypto.randomUUID()
 
-            last_name:
-              request.coordinator_last_name,
+const {
+  data: adminData,
+  error: studentError
+} = await supabase
+  .from('students')
+  .insert([
+    {
+      id: newId,
 
-            phone: request.phone,
+      user_id: newId,
 
-            email: request.email,
+      first_name:
+        request.coordinator_first_name,
 
-            role: 'school_admin',
+      last_name:
+        request.coordinator_last_name,
 
-            // 🔥 SHARED OLYMPIAD COLLEGE
-            college_id: olympiadCollege.id,
+      phone: request.phone,
 
-            school_id: schoolId,
+      email: request.email,
 
-            college_name:
-              'AURELIUS_OLYMPIAD',
+      role: 'school_admin',
 
-            address:
-  `${request.city}, ` +
-  `${request.district}, ` +
-  `${request.state}`,
+      // 🔥 SHARED OLYMPIAD COLLEGE
+      college_id: olympiadCollege.id,
 
-            exam_preference: 'SCHOOL',
+      school_id: schoolId,
 
-            is_active: true
-          }
-        ])
-        .select()
-        .single()
+      college_name:
+        'AURELIUS_OLYMPIAD',
+
+      address:
+`${request.city}, ` +
+`${request.district}, ` +
+`${request.state}`,
+
+      exam_preference: 'SCHOOL',
+
+      is_active: true
+    }
+  ])
+  .select()
+  .single()
 
       if (studentError) {
         throw studentError
       }
-
-// 🔥 SET user_id = id
-
-await supabase
-  .from('students')
-  .update({
-    user_id: adminData.id
-  })
-  .eq('id', adminData.id)
 
 // 🔥 UPDATE SCHOOL WITH ADMIN ID
 
