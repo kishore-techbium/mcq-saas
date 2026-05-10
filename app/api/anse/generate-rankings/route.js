@@ -2,6 +2,10 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
 
+import {
+  calculateExamMetrics
+} from '@/lib/anseExamMetrics'
+
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -190,104 +194,151 @@ export async function POST(req) {
        BUILD RANKING ROWS
     ====================================================== */
 
-    let rows = sessions.map(session => {
+    let rows = await Promise.all(
 
-      const student =
-        studentMap[session.student_id]
+      sessions.map(async (session) => {
 
-      const school =
-        schoolMap[student?.school_id]
+        const student =
+          studentMap[session.student_id]
 
-      const totalQuestions =
-        Number(session.total_questions || 0)
+        const school =
+          schoolMap[student?.school_id]
 
-      const correctAnswers =
-        Number(session.correct_answers || 0)
+        /* ======================================================
+           FETCH QUESTIONS
+        ====================================================== */
 
-      const wrongAnswers =
-        Number(session.wrong_answers || 0)
+        const answers =
+          session.answers || {}
 
-      const unanswered =
-        Math.max(
-          0,
-          totalQuestions -
-          correctAnswers -
-          wrongAnswers
-        )
+        const questionIds = Object.keys(answers)
 
-      const accuracy =
-        
+          .filter(id =>
+            id !== 'timeSpent'
+          )
 
-  totalQuestions > 0
+          .filter(id =>
+            id !== 'questionOrder'
+          )
 
-    ? Number(
-        (
-          (correctAnswers /
-            totalQuestions) * 100
-        ).toFixed(2)
-      )
+        let questions = []
 
-    : 0
+        if (questionIds.length > 0) {
 
-      const timeTaken =
-        Number(session.time_spent || 0)
+          const { data: qData } =
+            await supabase
+              .from('questions')
+              .select(`
+                id,
+                correct_option
+              `)
+              .in('id', questionIds)
 
-      return {
+          questions = qData || []
+        }
 
-        exam_id: examId,
+        /* ======================================================
+           CALCULATE METRICS
+        ====================================================== */
 
-        exam_session_id:
-          session.id,
+        const metrics =
+          calculateExamMetrics({
 
-        student_id:
-          session.student_id,
+            session,
 
-        school_id:
-          student?.school_id || null,
+            questions,
 
-        score:
-          Number(session.score || 0),
+            exam
+          })
 
-        accuracy,
+        const totalQuestions =
+          Number(
+            session.total_questions || 0
+          )
 
-        correct_answers:
-          correctAnswers,
+        const correctAnswers =
+          metrics.correct
 
-        wrong_answers:
-          wrongAnswers,
+        const wrongAnswers =
+          metrics.wrong
 
-        unanswered,
+        const unanswered =
+          metrics.unattempted
 
-        time_taken_seconds:
-          timeTaken,
+        const accuracy =
+          metrics.accuracy
 
-        grade:
-          Number(exam.target_year),
+        const timeTaken =
 
-        olympiad_category:
-          exam.exam_category,
+          answers?.timeSpent
 
-        city:
-          school?.city || null,
+            ? Object.values(
+                answers.timeSpent
+              ).reduce(
+                (sum, sec) =>
+                  sum + Number(sec || 0),
+                0
+              )
 
-        district:
-          school?.district || null,
+            : 0
 
-        state:
-          school?.state || null,
+        return {
 
-        school_rank: null,
-        district_rank: null,
-        state_rank: null,
-        national_rank: null,
+          exam_id: examId,
 
-        qualified_phase2: false,
-        qualified_phase3: false,
+          exam_session_id:
+            session.id,
 
-        scholarship_rank: null,
-        scholarship_amount: null
-      }
-    })
+          student_id:
+            session.student_id,
+
+          school_id:
+            student?.school_id || null,
+
+          score:
+            Number(session.score || 0),
+
+          accuracy,
+
+          correct_answers:
+            correctAnswers,
+
+          wrong_answers:
+            wrongAnswers,
+
+          unanswered,
+
+          time_taken_seconds:
+            timeTaken,
+
+          grade:
+            Number(exam.target_year),
+
+          olympiad_category:
+            exam.exam_category,
+
+          city:
+            school?.city || null,
+
+          district:
+            school?.district || null,
+
+          state:
+            school?.state || null,
+
+          school_rank: null,
+          district_rank: null,
+          state_rank: null,
+          national_rank: null,
+
+          qualified_phase2: false,
+          qualified_phase3: false,
+
+          scholarship_rank: null,
+          scholarship_amount: null
+        }
+      })
+    )
 
     /* ======================================================
        GLOBAL SORT
@@ -313,6 +364,7 @@ export async function POST(req) {
         b.correct_answers !==
         a.correct_answers
       ) {
+
         return (
           b.correct_answers -
           a.correct_answers
