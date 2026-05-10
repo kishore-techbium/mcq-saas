@@ -34,33 +34,58 @@ export async function GET(req, { params }) {
     // 1. GET ADMIN USER
     // =====================================================
 
-    const { data: adminUser } =
-      await supabase
-        .from('students')
-        .select(`
-          college_id,
-          school_id
-        `)
-        .eq('user_id', userId)
-        .single()
+   // =====================================================
+// GET ACCESS SCOPE
+// =====================================================
 
-    const collegeId =
-      adminUser?.college_id
+let collegeId = null
+let schoolId = null
 
-    const schoolId =
-      adminUser?.school_id
+// FIRST TRY students TABLE
 
-    if (!collegeId) {
+const { data: adminUser } = await supabase
+  .from('students')
+  .select(`
+    college_id,
+    school_id
+  `)
+  .eq('user_id', userId)
+  .single()
 
-      return Response.json(
-        {
-          error:
-            'College not found'
-        },
-        { status: 403 }
-      )
-    }
+if (adminUser?.college_id) {
 
+  collegeId =
+    adminUser.college_id
+
+  schoolId =
+    adminUser.school_id
+}
+
+// FALLBACK → colleges TABLE
+
+if (!collegeId) {
+
+  const { data: collegeAdmin } =
+    await supabase
+      .from('colleges')
+      .select('id')
+      .eq('admin_user_id', userId)
+      .single()
+
+  if (collegeAdmin?.id) {
+
+    collegeId =
+      collegeAdmin.id
+  }
+}
+
+if (!collegeId) {
+
+  return Response.json(
+    { error: 'College not found' },
+    { status: 403 }
+  )
+}
     // =====================================================
     // 2. FETCH EXAM
     // =====================================================
