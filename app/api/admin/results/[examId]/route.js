@@ -8,11 +8,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-export async function GET(req, { params }) {
+export async function GET(req, context) {
 
   try {
 
-    const examId = params.examId
+    const examId = context?.params?.examId
 
     const { searchParams } = new URL(req.url)
 
@@ -235,11 +235,13 @@ export async function GET(req, { params }) {
 
   } catch (err) {
 
-    console.error(err)
+ console.error('RESULT API ERROR = ', err)
 
-    return NextResponse.json(
-      { error: err.message },
-      { status: 500 }
-    )
+return NextResponse.json(
+  {
+    error: err?.message || 'Internal server error'
+  },
+  { status: 500 }
+)
   }
 }
