@@ -7,6 +7,12 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
+/* ======================================================
+   COMPETITION RANKING
+   Example:
+   29,29,19 => 1,1,3
+====================================================== */
+
 function assignCompetitionRanks(rows, key) {
 
   let currentRank = 1
@@ -19,12 +25,27 @@ function assignCompetitionRanks(rows, key) {
       const curr = rows[i]
 
       const sameRank =
-        prev.score === curr.score &&
-        prev.accuracy === curr.accuracy &&
-        prev.correct_answers === curr.correct_answers &&
-        prev.time_taken_seconds === curr.time_taken_seconds
+
+        Number(prev.score) ===
+        Number(curr.score)
+
+        &&
+
+        Number(prev.accuracy) ===
+        Number(curr.accuracy)
+
+        &&
+
+        Number(prev.correct_answers) ===
+        Number(curr.correct_answers)
+
+        &&
+
+        Number(prev.time_taken_seconds) ===
+        Number(curr.time_taken_seconds)
 
       if (!sameRank) {
+
         currentRank = i + 1
       }
     }
@@ -35,11 +56,23 @@ function assignCompetitionRanks(rows, key) {
   return rows
 }
 
-function getQualifierCount(participants) {
+/* ======================================================
+   DYNAMIC QUALIFICATION COUNT
+====================================================== */
 
-  if (participants <= 25) return 1
-  if (participants <= 75) return 2
-  if (participants <= 150) return 3
+function getQualifierCount(totalParticipants) {
+
+  if (totalParticipants <= 25) {
+    return 1
+  }
+
+  if (totalParticipants <= 75) {
+    return 2
+  }
+
+  if (totalParticipants <= 150) {
+    return 3
+  }
 
   return 5
 }
@@ -53,24 +86,25 @@ export async function POST(req) {
     const examId = body.examId
 
     if (!examId) {
+
       return Response.json(
         { error: 'examId required' },
         { status: 400 }
       )
     }
 
-    // ==========================================
-    // DELETE OLD RANKINGS
-    // ==========================================
+    /* ======================================================
+       DELETE OLD RANKINGS
+    ====================================================== */
 
     await supabase
       .from('anse_exam_rankings')
       .delete()
       .eq('exam_id', examId)
 
-    // ==========================================
-    // FETCH EXAM
-    // ==========================================
+    /* ======================================================
+       FETCH EXAM
+    ====================================================== */
 
     const { data: exam } = await supabase
       .from('exams')
@@ -79,15 +113,16 @@ export async function POST(req) {
       .single()
 
     if (!exam) {
+
       return Response.json(
         { error: 'Exam not found' },
         { status: 404 }
       )
     }
 
-    // ==========================================
-    // FETCH VALID SESSIONS
-    // ==========================================
+    /* ======================================================
+       FETCH VALID EXAM SESSIONS
+    ====================================================== */
 
     const { data: sessions } = await supabase
       .from('exam_sessions')
@@ -100,15 +135,16 @@ export async function POST(req) {
 
       return Response.json({
         success: false,
-        message: 'No valid sessions found'
+        message: 'No sessions found'
       })
     }
 
-    // ==========================================
-    // FETCH STUDENTS
-    // ==========================================
+    /* ======================================================
+       FETCH STUDENTS
+    ====================================================== */
 
-    const studentIds = sessions.map(s => s.student_id)
+    const studentIds =
+      sessions.map(s => s.student_id)
 
     const { data: students } = await supabase
       .from('students')
@@ -118,19 +154,25 @@ export async function POST(req) {
     const studentMap = {}
 
     ;(students || []).forEach(st => {
+
       studentMap[st.id] = st
     })
 
-    // ==========================================
-    // FETCH SCHOOLS
-    // ==========================================
+    /* ======================================================
+       FETCH SCHOOLS
+    ====================================================== */
 
-    const schoolIds =
-      [...new Set(
+    const schoolIds = [
+
+      ...new Set(
+
         (students || [])
           .map(s => s.school_id)
           .filter(Boolean)
-      )]
+
+      )
+
+    ]
 
     const { data: schools } = await supabase
       .from('schools')
@@ -140,75 +182,88 @@ export async function POST(req) {
     const schoolMap = {}
 
     ;(schools || []).forEach(sc => {
+
       schoolMap[sc.id] = sc
     })
 
-    // ==========================================
-    // BUILD BASE ROWS
-    // ==========================================
+    /* ======================================================
+       BUILD RANKING ROWS
+    ====================================================== */
 
     let rows = sessions.map(session => {
 
-      const student = studentMap[session.student_id]
-      const school = schoolMap[student?.school_id]
+      const student =
+        studentMap[session.student_id]
+
+      const school =
+        schoolMap[student?.school_id]
 
       const totalQuestions =
-        session.total_questions || 0
+        Number(session.total_questions || 0)
 
       const correctAnswers =
-        Math.max(
-          0,
-          Math.round((session.original_score || 0) / 4)
-        )
+        Number(session.correct_answers || 0)
 
       const wrongAnswers =
+        Number(session.wrong_answers || 0)
+
+      const unanswered =
         Math.max(
           0,
-          totalQuestions - correctAnswers
+          totalQuestions -
+          correctAnswers -
+          wrongAnswers
         )
 
-      const unanswered = 0
-
       const accuracy =
-        totalQuestions > 0
-          ? (correctAnswers / totalQuestions) * 100
-          : 0
+        Number(session.accuracy || 0)
 
       const timeTaken =
-        exam.duration_minutes * 60 -
-        (session.time_left || 0)
+        Number(session.time_spent || 0)
 
       return {
 
         exam_id: examId,
-        exam_session_id: session.id,
 
-        student_id: session.student_id,
+        exam_session_id:
+          session.id,
 
-        school_id: student?.school_id || null,
+        student_id:
+          session.student_id,
 
-        score: session.score || 0,
+        school_id:
+          student?.school_id || null,
+
+        score:
+          Number(session.score || 0),
 
         accuracy,
 
-        correct_answers: correctAnswers,
+        correct_answers:
+          correctAnswers,
 
-        wrong_answers: wrongAnswers,
+        wrong_answers:
+          wrongAnswers,
 
         unanswered,
 
-        time_taken_seconds: timeTaken,
+        time_taken_seconds:
+          timeTaken,
 
-        grade: exam.target_year,
+        grade:
+          Number(exam.target_year),
 
         olympiad_category:
           exam.exam_category,
 
-        city: school?.city || null,
+        city:
+          school?.city || null,
 
-        district: school?.district || null,
+        district:
+          school?.district || null,
 
-        state: school?.state || null,
+        state:
+          school?.state || null,
 
         school_rank: null,
         district_rank: null,
@@ -221,61 +276,92 @@ export async function POST(req) {
         scholarship_rank: null,
         scholarship_amount: null
       }
-
     })
 
-    // ==========================================
-    // GLOBAL SORT
-    // ==========================================
+    /* ======================================================
+       GLOBAL SORT
+    ====================================================== */
 
     rows.sort((a, b) => {
 
-      if (b.score !== a.score)
+      // higher score first
+
+      if (b.score !== a.score) {
         return b.score - a.score
+      }
 
-      if (b.accuracy !== a.accuracy)
+      // higher accuracy first
+
+      if (b.accuracy !== a.accuracy) {
         return b.accuracy - a.accuracy
+      }
 
-      if (b.correct_answers !== a.correct_answers)
-        return b.correct_answers - a.correct_answers
+      // higher correct answers first
 
-      return a.time_taken_seconds - b.time_taken_seconds
+      if (
+        b.correct_answers !==
+        a.correct_answers
+      ) {
+        return (
+          b.correct_answers -
+          a.correct_answers
+        )
+      }
+
+      // lower time first
+
+      return (
+        a.time_taken_seconds -
+        b.time_taken_seconds
+      )
     })
 
-    // ==========================================
-    // NATIONAL RANK
-    // ==========================================
+    /* ======================================================
+       NATIONAL RANK
+    ====================================================== */
 
-    assignCompetitionRanks(rows, 'national_rank')
+    assignCompetitionRanks(
+      rows,
+      'national_rank'
+    )
 
-    // ==========================================
-    // STATE RANK
-    // ==========================================
+    /* ======================================================
+       STATE RANK
+    ====================================================== */
 
     const stateGroups = {}
 
     rows.forEach(r => {
 
-      if (!stateGroups[r.state]) {
-        stateGroups[r.state] = []
+      const key =
+        r.state || 'UNKNOWN'
+
+      if (!stateGroups[key]) {
+        stateGroups[key] = []
       }
 
-      stateGroups[r.state].push(r)
+      stateGroups[key].push(r)
     })
 
-    Object.values(stateGroups).forEach(group => {
-      assignCompetitionRanks(group, 'state_rank')
-    })
+    Object.values(stateGroups)
+      .forEach(group => {
 
-    // ==========================================
-    // DISTRICT RANK
-    // ==========================================
+        assignCompetitionRanks(
+          group,
+          'state_rank'
+        )
+      })
+
+    /* ======================================================
+       DISTRICT RANK
+    ====================================================== */
 
     const districtGroups = {}
 
     rows.forEach(r => {
 
-      const key = `${r.state}-${r.district}`
+      const key =
+        `${r.state}-${r.district}`
 
       if (!districtGroups[key]) {
         districtGroups[key] = []
@@ -284,19 +370,25 @@ export async function POST(req) {
       districtGroups[key].push(r)
     })
 
-    Object.values(districtGroups).forEach(group => {
-      assignCompetitionRanks(group, 'district_rank')
-    })
+    Object.values(districtGroups)
+      .forEach(group => {
 
-    // ==========================================
-    // SCHOOL RANK
-    // ==========================================
+        assignCompetitionRanks(
+          group,
+          'district_rank'
+        )
+      })
+
+    /* ======================================================
+       SCHOOL RANK
+    ====================================================== */
 
     const schoolGroups = {}
 
     rows.forEach(r => {
 
-      const key = r.school_id
+      const key =
+        r.school_id || 'UNKNOWN'
 
       if (!schoolGroups[key]) {
         schoolGroups[key] = []
@@ -305,20 +397,30 @@ export async function POST(req) {
       schoolGroups[key].push(r)
     })
 
-    Object.values(schoolGroups).forEach(group => {
-      assignCompetitionRanks(group, 'school_rank')
-    })
+    Object.values(schoolGroups)
+      .forEach(group => {
 
-    // ==========================================
-    // PHASE 2 QUALIFICATION
-    // ==========================================
+        assignCompetitionRanks(
+          group,
+          'school_rank'
+        )
+      })
+
+    /* ======================================================
+       PHASE 2 QUALIFICATION
+    ====================================================== */
 
     const qualificationGroups = {}
 
     rows.forEach(r => {
 
       const key =
-        `${r.school_id}-${r.grade}-${r.olympiad_category}`
+
+        `${r.school_id}-` +
+
+        `${r.grade}-` +
+
+        `${r.olympiad_category}`
 
       if (!qualificationGroups[key]) {
         qualificationGroups[key] = []
@@ -327,57 +429,77 @@ export async function POST(req) {
       qualificationGroups[key].push(r)
     })
 
-    Object.values(qualificationGroups).forEach(group => {
+    Object.values(qualificationGroups)
+      .forEach(group => {
 
-      const qualifiersNeeded =
-        getQualifierCount(group.length)
+        const qualifierCount =
+          getQualifierCount(
+            group.length
+          )
 
-      let boundaryRank = null
-
-      group.forEach(r => {
-
-        if (r.school_rank <= qualifiersNeeded) {
-
-          r.qualified_phase2 = true
-
-          boundaryRank = r.school_rank
-        }
-      })
-
-      // ties expansion
-
-      if (boundaryRank !== null) {
+        let boundaryRank = null
 
         group.forEach(r => {
 
-          if (r.school_rank === boundaryRank) {
-            r.qualified_phase2 = true
+          if (
+            r.school_rank <=
+            qualifierCount
+          ) {
+
+            r.qualified_phase2 =
+              true
+
+            boundaryRank =
+              r.school_rank
           }
         })
-      }
-    })
 
-    // ==========================================
-    // INSERT
-    // ==========================================
+        // tie expansion
 
-    const { error: insertError } = await supabase
-      .from('anse_exam_rankings')
-      .insert(rows)
+        if (boundaryRank !== null) {
+
+          group.forEach(r => {
+
+            if (
+              r.school_rank ===
+              boundaryRank
+            ) {
+
+              r.qualified_phase2 =
+                true
+            }
+          })
+        }
+      })
+
+    /* ======================================================
+       INSERT INTO DB
+    ====================================================== */
+
+    const { error: insertError } =
+      await supabase
+        .from('anse_exam_rankings')
+        .insert(rows)
 
     if (insertError) {
 
       console.error(insertError)
 
       return Response.json(
-        { error: insertError.message },
+        {
+          error:
+            insertError.message
+        },
         { status: 500 }
       )
     }
 
     return Response.json({
+
       success: true,
-      totalRankings: rows.length
+
+      totalRankings:
+        rows.length
     })
 
   } catch (err) {
@@ -385,7 +507,11 @@ export async function POST(req) {
     console.error(err)
 
     return Response.json(
-      { error: err.message },
+      {
+        error:
+          err?.message ||
+          'Internal server error'
+      },
       { status: 500 }
     )
   }
