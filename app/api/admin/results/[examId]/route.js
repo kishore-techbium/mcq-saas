@@ -14,9 +14,8 @@ export async function GET(req, { params }) {
 
     const examId = params.examId
 
-    const { searchParams } = new URL(req.url)
-
-    const userId = searchParams.get('userId')
+ const userId =
+  req.nextUrl.searchParams.get('userId')
 
     if (!examId || !userId) {
       return NextResponse.json(
