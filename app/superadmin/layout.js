@@ -26,6 +26,7 @@ export default function SuperAdminLayout({ children }) {
         <Link href="/superadmin/examcategories">Exam Categories</Link>
         <Link href="/superadmin/approveschools">Approve Schools</Link>
         <Link href="/superadmin/approveschoolstudents">Approve Students without school</Link>
+        <Link href="/superadmin/anse">ANSE ranking engine</Link>
         <button onClick={logout} style={styles.logout}>
           Logout
         </button>
