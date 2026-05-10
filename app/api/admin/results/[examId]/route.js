@@ -235,13 +235,21 @@ export async function GET(req, context) {
 
   } catch (err) {
 
- console.error('RESULT API ERROR = ', err)
+  console.error('FULL API ERROR:')
+  console.error(err)
 
-return NextResponse.json(
-  {
-    error: err?.message || 'Internal server error'
-  },
-  { status: 500 }
-)
-  }
+  return new Response(
+    JSON.stringify({
+      success: false,
+      error: String(err),
+      stack: err?.stack || null
+    }),
+    {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }
+  )
+}
 }
