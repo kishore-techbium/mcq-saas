@@ -94,18 +94,29 @@ export async function GET(req) {
     const { data: schools } =
       await supabase
         .from('schools')
-        .select(`
-          id,
-          school_name
-        `)
+       .select(`
+  id,
+  name,
+  city,
+  district,
+  state
+`)
         .in('id', schoolIds)
 
     const schoolMap = {}
 
     ;(schools || []).forEach(s => {
 
-      schoolMap[s.id] =
-        s.school_name
+   schoolMap[s.id] = {
+
+  name: s.name,
+
+  city: s.city,
+
+  district: s.district,
+
+  state: s.state
+}
     })
 
     /* =====================================================
@@ -120,8 +131,17 @@ export async function GET(req) {
         student_name:
           studentMap[r.student_id] || '-',
 
-        school_name:
-          schoolMap[r.school_id] || '-'
+school_name:
+  schoolMap[r.school_id]?.name || '-',
+
+city:
+  schoolMap[r.school_id]?.city || '-',
+
+district:
+  schoolMap[r.school_id]?.district || '-',
+
+state:
+  schoolMap[r.school_id]?.state || '-'
       }))
 
     return Response.json(result)
