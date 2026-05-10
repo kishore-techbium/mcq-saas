@@ -35,7 +35,7 @@ export async function GET(req, context) {
       .from('students')
       .select('college_id')
       .eq('user_id', userId)
-      .single()
+      .maybeSingle()
 
     if (adminStudent?.college_id) {
       collegeId = adminStudent.college_id
@@ -47,7 +47,7 @@ export async function GET(req, context) {
         .from('colleges')
         .select('id')
         .eq('admin_user_id', userId)
-        .single()
+        .maybeSingle()
 
       if (collegeAdmin?.id) {
         collegeId = collegeAdmin.id
@@ -69,7 +69,7 @@ export async function GET(req, context) {
       .from('exams')
       .select('*')
       .eq('id', examId)
-      .single()
+      .maybeSingle()
 
     if (!exam) {
       return NextResponse.json(
@@ -101,7 +101,7 @@ export async function GET(req, context) {
         .eq('college_id', collegeId)
         .eq('exam_id', examId)
         .eq('is_active', true)
-        .single()
+        .maybeSingle()
 
       if (assignment) {
         allowed = true
@@ -215,7 +215,7 @@ export async function GET(req, context) {
       .from('colleges')
       .select('name')
       .eq('id', collegeId)
-      .single()
+      .maybeSingle()
 
     collegeName = college?.name || ''
 
