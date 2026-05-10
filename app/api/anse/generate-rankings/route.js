@@ -216,7 +216,18 @@ export async function POST(req) {
         )
 
       const accuracy =
-        Number(session.accuracy || 0)
+        const accuracy =
+
+  totalQuestions > 0
+
+    ? Number(
+        (
+          (correctAnswers /
+            totalQuestions) * 100
+        ).toFixed(2)
+      )
+
+    : 0
 
       const timeTaken =
         Number(session.time_spent || 0)
