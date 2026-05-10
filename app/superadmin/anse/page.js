@@ -2,16 +2,26 @@
 
 import { useEffect, useState } from 'react'
 
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+)
+
 export default function AnsePage() {
 
-  const [exams, setExams] = useState([])
-
-  const [loading, setLoading] = useState(false)
+  const [exams, setExams] =
+    useState([])
 
   const [selectedExam, setSelectedExam] =
     useState('')
 
-  const [message, setMessage] = useState('')
+  const [loading, setLoading] =
+    useState(false)
+
+  const [message, setMessage] =
+    useState('')
 
   useEffect(() => {
 
@@ -23,9 +33,24 @@ export default function AnsePage() {
 
     try {
 
-      const res = await fetch('/api/superadmin/exams')
+      const { data, error } =
+        await supabase
+          .from('exams')
+          .select(`
+            id,
+            title,
+            exam_category,
+            target_year
+          `)
+          .order('created_at', {
+            ascending: false
+          })
 
-      const data = await res.json()
+      if (error) {
+
+        console.error(error)
+        return
+      }
 
       setExams(data || [])
 
@@ -47,14 +72,17 @@ export default function AnsePage() {
 
       setLoading(true)
 
-      setMessage('Generating rankings...')
+      setMessage(
+        'Generating rankings...'
+      )
 
       const res = await fetch(
         '/api/anse/generate-rankings',
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type':
+              'application/json'
           },
           body: JSON.stringify({
             examId: selectedExam
@@ -62,11 +90,15 @@ export default function AnsePage() {
         }
       )
 
-      const data = await res.json()
+      const data =
+        await res.json()
 
       if (!res.ok) {
 
-        setMessage(data.error || 'Failed')
+        setMessage(
+          data.error || 'Failed'
+        )
+
         return
       }
 
@@ -88,24 +120,28 @@ export default function AnsePage() {
 
   return (
 
-    <div className="p-8">
+    <div className="p-10">
 
-      <h1 className="text-3xl font-bold mb-8">
+      <h1 className="text-4xl font-bold mb-10">
         ANSE Ranking Engine
       </h1>
 
-      <div className="bg-white border rounded-xl p-6 max-w-xl">
-
-        <label className="block mb-3 font-semibold">
-          Select Exam
-        </label>
+      <div className="flex gap-4 items-center">
 
         <select
           value={selectedExam}
           onChange={(e) =>
-            setSelectedExam(e.target.value)
+            setSelectedExam(
+              e.target.value
+            )
           }
-          className="w-full border rounded-lg p-3"
+          className="
+            border
+            rounded
+            px-4
+            py-2
+            min-w-[320px]
+          "
         >
 
           <option value="">
@@ -118,7 +154,13 @@ export default function AnsePage() {
               key={exam.id}
               value={exam.id}
             >
+
               {exam.title}
+              {' - '}
+              {exam.exam_category}
+              {' - '}
+              Class {exam.target_year}
+
             </option>
 
           ))}
@@ -128,7 +170,13 @@ export default function AnsePage() {
         <button
           onClick={generateRankings}
           disabled={loading}
-          className="mt-6 bg-black text-white px-6 py-3 rounded-lg"
+          className="
+            bg-black
+            text-white
+            px-6
+            py-2
+            rounded
+          "
         >
 
           {loading
@@ -137,15 +185,17 @@ export default function AnsePage() {
 
         </button>
 
-        {message && (
-
-          <div className="mt-6 text-sm">
-            {message}
-          </div>
-
-        )}
-
       </div>
+
+      {message && (
+
+        <div className="mt-6">
+
+          {message}
+
+        </div>
+
+      )}
 
     </div>
   )
