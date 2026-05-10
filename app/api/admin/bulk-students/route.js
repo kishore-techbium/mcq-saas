@@ -27,13 +27,13 @@ export async function POST(req) {
     }
 
     /* ================= GET ADMIN ================= */
-
+console.log('AUTH USER ID:', user.id)
     const { data: admin } = await supabase
       .from('students')
       .select('college_id, college_name, role, school_id')
       .eq('id', user.id)
       .single()
-
+console.log('ADMIN:', admin)
     if (!admin) {
       return Response.json(
         { error: 'Admin college info missing' },
