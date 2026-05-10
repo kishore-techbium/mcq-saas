@@ -1,104 +1,226 @@
 export const dynamic = 'force-dynamic'
+
 import { createClient } from '@supabase/supabase-js'
+
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY // 🔥 bypass RLS safely
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
 export async function GET(req) {
+
   try {
+
     const { searchParams } = new URL(req.url)
-    const userId = searchParams.get('userId')
+
+    const userId =
+      searchParams.get('userId')
 
     if (!userId) {
-      return Response.json({ error: 'Missing userId' }, { status: 400 })
+
+      return Response.json(
+        { error: 'Missing userId' },
+        { status: 400 }
+      )
     }
 
-    // 🔥 1. Get admin college
-let collegeId = null
+    // =====================================================
+    // 1. GET USER SCOPE
+    // =====================================================
 
-// try students table
-const { data: studentAdmin } = await supabase
-  .from('students')
-  .select('college_id')
-  .eq('user_id', userId)
-  .single()
+    const { data: adminUser } = await supabase
+      .from('students')
+      .select(`
+        college_id,
+        school_id
+      `)
+      .eq('user_id', userId)
+      .single()
 
-if (studentAdmin?.college_id) {
-  collegeId = studentAdmin.college_id
-}
+    const schoolId =
+      adminUser?.school_id
 
-// fallback to colleges table
-if (!collegeId) {
+    const collegeId =
+      adminUser?.college_id
 
-  const { data: collegeAdmin } = await supabase
-    .from('colleges')
-    .select('id')
-    .eq('admin_user_id', userId)
-    .single()
+    const isSchoolMode =
+      !!schoolId
 
-  if (collegeAdmin?.id) {
-    collegeId = collegeAdmin.id
-  }
-}
+    const scopeId =
+      schoolId || collegeId
 
-console.log('FINAL COLLEGE ID =', collegeId)
+    if (!scopeId) {
 
-    // 🔥 2. Get assignments
-    const { data: assignments } = await supabase
+      return Response.json(
+        { error: 'Access scope not found' },
+        { status: 403 }
+      )
+    }
+
+    // =====================================================
+    // 2. FETCH ASSIGNMENTS
+    // =====================================================
+
+    let assignmentsQuery = supabase
       .from('exam_assignments')
       .select('exam_id')
-      .eq('college_id', collegeId)
       .eq('is_active', true)
 
-    const assignedExamIds = (assignments || []).map(a => a.exam_id)
-    const { data: categoryRows } = await supabase
-  .from('exam_categories')
-  .select('code,parent_code')
-  .eq('active', true)
+    if (isSchoolMode) {
 
-const categoryMap = {}
+      assignmentsQuery =
+        assignmentsQuery.eq(
+          'school_id',
+          schoolId
+        )
 
-;(categoryRows || []).forEach(cat => {
-  categoryMap[cat.code] = cat.parent_code
-})
+    } else {
 
-    // 🔥 3. Get exams (admin + global assigned)
-    const { data: allExams } = await supabase
-      .from('exams')
-      .select('*')
+      assignmentsQuery =
+        assignmentsQuery.eq(
+          'college_id',
+          collegeId
+        )
+    }
 
-    const exams = (allExams || []).filter(e => {
-      if (String(e.college_id) === String(collegeId)) {
-  return true
-}
-      if (!e.college_id && assignedExamIds.includes(e.id)) return true
-      return false
+    const { data: assignments } =
+      await assignmentsQuery
+
+    const assignedExamIds =
+      (assignments || []).map(
+        a => a.exam_id
+      )
+
+    // =====================================================
+    // 3. CATEGORY MAP
+    // =====================================================
+
+    const { data: categoryRows } =
+      await supabase
+        .from('exam_categories')
+        .select('code,parent_code')
+        .eq('active', true)
+
+    const categoryMap = {}
+
+    ;(categoryRows || []).forEach(cat => {
+
+      categoryMap[cat.code] =
+        cat.parent_code
     })
 
-    // 🔥 4. Get students
-    const { data: students } = await supabase
-      .from('students')
-      .select('id, exam_preference, study_year, college_id')
-      .eq('college_id', collegeId)
-console.log('COLLEGE ID =', collegeId)
+    // =====================================================
+    // 4. FETCH EXAMS
+    // =====================================================
 
-console.log(
-  allExams.map(e => ({
-    title: e.title,
-    college_id: e.college_id
-  }))
-)
-    // 🔥 5. Get stats
-    const { data: stats } = await supabase
-      .from('student_exam_stats')
-      .select('*')
+    const { data: allExams } =
+      await supabase
+        .from('exams')
+        .select('*')
+
+    const exams =
+      (allExams || []).filter(e => {
+
+        // own exams
+
+        if (isSchoolMode) {
+
+          if (
+            String(e.school_id) ===
+            String(schoolId)
+          ) {
+            return true
+          }
+
+        } else {
+
+          if (
+            String(e.college_id) ===
+            String(collegeId)
+          ) {
+            return true
+          }
+        }
+
+        // global assigned exams
+
+        if (
+          !e.college_id &&
+          !e.school_id &&
+          assignedExamIds.includes(e.id)
+        ) {
+          return true
+        }
+
+        return false
+      })
+
+    // =====================================================
+    // 5. FETCH STUDENTS
+    // =====================================================
+
+    let studentsQuery = supabase
+      .from('students')
+      .select(`
+        id,
+        exam_preference,
+        study_year,
+        college_id,
+        school_id
+      `)
+
+    if (isSchoolMode) {
+
+      studentsQuery =
+        studentsQuery.eq(
+          'school_id',
+          schoolId
+        )
+
+    } else {
+
+      studentsQuery =
+        studentsQuery.eq(
+          'college_id',
+          collegeId
+        )
+    }
+
+    const { data: students } =
+      await studentsQuery
+
+    const studentIds =
+      (students || []).map(
+        s => s.id
+      )
+
+    // =====================================================
+    // 6. FETCH ONLY RELEVANT STATS
+    // =====================================================
+
+    const { data: stats } =
+      await supabase
+        .from('student_exam_stats')
+        .select('*')
+        .in(
+          'student_id',
+          studentIds.length
+            ? studentIds
+            : ['dummy']
+        )
+
+    // =====================================================
+    // 7. GROUP STATS
+    // =====================================================
 
     const grouped = {}
 
     ;(stats || []).forEach((s) => {
+
       if (!grouped[s.exam_id]) {
+
         grouped[s.exam_id] = {
+
           students: 0,
           attempts: 0,
           totalScore: 0,
@@ -108,88 +230,154 @@ console.log(
         }
       }
 
-      const e = grouped[s.exam_id]
+      const e =
+        grouped[s.exam_id]
 
       e.students += 1
-      e.attempts += s.attempts || 0
-      e.totalScore += (s.avg_score || 0) * (s.attempts || 0)
-      e.max = Math.max(e.max, s.best_score || 0)
-      e.min = Math.min(e.min, s.best_score || 0)
 
-      if (!e.last || s.last_attempt_at > e.last) {
-        e.last = s.last_attempt_at
+      e.attempts +=
+        s.attempts || 0
+
+      e.totalScore +=
+        (s.avg_score || 0) *
+        (s.attempts || 0)
+
+      e.max = Math.max(
+        e.max,
+        s.best_score || 0
+      )
+
+      e.min = Math.min(
+        e.min,
+        s.best_score || 0
+      )
+
+      if (
+        !e.last ||
+        s.last_attempt_at > e.last
+      ) {
+        e.last =
+          s.last_attempt_at
       }
     })
 
-    // 🔥 6. Build final response
+    // =====================================================
+    // 8. FINAL RESPONSE
+    // =====================================================
+
     const result = exams.map((exam) => {
-      const s = grouped[exam.id]
 
-      const relatedStudents = (students || []).filter(st => {
+      const s =
+        grouped[exam.id]
 
-  if (!st.study_year) return false
+      const relatedStudents =
+        (students || []).filter(st => {
 
-  const yearMatch =
-    Number(st.study_year) === Number(exam.target_year)
+          if (!st.study_year)
+            return false
 
-  // dynamic category handling
-  let categoryMatch = true
+          const yearMatch =
+            Number(st.study_year) ===
+            Number(exam.target_year)
 
-  if (st.exam_preference && exam.exam_category) {
+          let categoryMatch = true
 
-    const studentPref =
-      st.exam_preference.toUpperCase()
+          if (
+            st.exam_preference &&
+            exam.exam_category
+          ) {
 
-const examCat =
-  exam.exam_category?.toUpperCase?.() || ''
+            const studentPref =
+              st.exam_preference
+                .toUpperCase()
 
-    const examParent =
-      categoryMap[examCat]
+            const examCat =
+              exam.exam_category
+                ?.toUpperCase?.() || ''
 
-    categoryMatch =
-      studentPref === examCat ||
-      studentPref === examParent
-  }
+            const examParent =
+              categoryMap[examCat]
 
-  return yearMatch && categoryMatch
-})
+            categoryMatch =
+              studentPref === examCat ||
+              studentPref === examParent
+          }
+
+          return (
+            yearMatch &&
+            categoryMatch
+          )
+        })
 
       return {
-        id: exam.id,
-        title: exam.title,
-        exam_category: exam.exam_category,
-        exam_type: exam.exam_type,
-        year_label:
-        Number(exam.target_year) === 1
-          ? '1st Year'
-      
-          : Number(exam.target_year) === 2
-          ? '2nd Year'
-      
-          : Number(exam.target_year) === 3
-          ? '3rd Year'
-      
-          : `Class ${exam.target_year}`,
 
-        students: relatedStudents.length,
-        attempts: s ? s.attempts : 0,
-        avg_score: s && s.attempts > 0
-          ? (s.totalScore / s.attempts).toFixed(1)
-          : '-',
-        max_score: s ? s.max : '-',
-        min_score: s ? s.min : '-',
+        id: exam.id,
+
+        title: exam.title,
+
+        exam_category:
+          exam.exam_category,
+
+        exam_type:
+          exam.exam_type,
+
+        year_label:
+
+          Number(exam.target_year) === 1
+            ? '1st Year'
+
+            : Number(exam.target_year) === 2
+            ? '2nd Year'
+
+            : Number(exam.target_year) === 3
+            ? '3rd Year'
+
+            : `Class ${exam.target_year}`,
+
+        students:
+          relatedStudents.length,
+
+        attempts:
+          s ? s.attempts : 0,
+
+        avg_score:
+          s && s.attempts > 0
+            ? (
+                s.totalScore /
+                s.attempts
+              ).toFixed(1)
+            : '-',
+
+        max_score:
+          s ? s.max : '-',
+
+        min_score:
+          s ? s.min : '-',
+
         participation:
           relatedStudents.length > 0 && s
-            ? ((s.students || 0) / relatedStudents.length * 100).toFixed(1)
+            ? (
+                (
+                  (s.students || 0) /
+                  relatedStudents.length
+                ) * 100
+              ).toFixed(1)
             : '0',
-        last_attempt: s?.last || null
+
+        last_attempt:
+          s?.last || null
       }
     })
 
     return Response.json(result)
 
   } catch (err) {
+
     console.error(err)
-    return Response.json({ error: err.message }, { status: 500 })
+
+    return Response.json(
+      { error: err.message },
+      { status: 500 }
+    )
   }
 }
