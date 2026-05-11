@@ -175,63 +175,206 @@ exams =
 
 
     /* ===============================
-       STEP 4: FILTER EXAMS
-    =============================== */
+   STEP 4A: LOAD ANSE ELIGIBILITY
+=============================== */
+
+let eligibility = []
+
+const {
+  data: studentData
+} = await supabase
+
+  .from('students')
+
+  .select('school_id')
+
+  .eq('id', studentId)
+
+  .single()
+
+const isSchoolStudent =
+  !!studentData?.school_id
+    
+console.log({
+  studentId,
+  school_id: body.school_id,
+  isSchoolStudent
+})
+if (isSchoolStudent) {
+
+  const {
+    data: eligibilityData,
+    error: eligibilityError
+  } = await supabase
+
+    .from(
+      'anse_student_phase_eligibility'
+    )
+
+    .select('*')
+
+    .eq(
+      'student_id',
+      studentId
+    )
+
+  if (eligibilityError) {
+
+    throw eligibilityError
+  }
+
+  eligibility =
+    eligibilityData || []
+}
+
+/* ===============================
+   STEP 4B: FILTER EXAMS
+=============================== */
 
 const filtered =
   exams.filter(e => {
-     // ACTIVE EXAM
 
-        if (!e.is_active) {
-          return false
-        }
+    /* ===============================
+       ACTIVE EXAM
+    =============================== */
 
-        // CATEGORY
+    if (!e.is_active) {
+      return false
+    }
 
-        if (
-          !allowedCategories.includes(
-            e.exam_category
-              ?.trim()
-              ?.toUpperCase()
-          )
-        ) {
-          return false
-        }
+    /* ===============================
+       CATEGORY
+    =============================== */
 
-        // YEAR
+    if (
 
-        if (
-          Number(e.target_year)
-          !== studyYear
-        ) {
-          return false
-        }
+      !allowedCategories.includes(
 
-        // NORMAL EXAM
+        e.exam_category
+          ?.trim()
+          ?.toUpperCase()
+      )
+    ) {
 
-        if (!e.requires_entitlement) {
-          return true
-        }
+      return false
+    }
 
-        // OLYMPIAD
+    /* ===============================
+       STUDY YEAR
+    =============================== */
 
-        return allowedSubjects.includes(
-          e.olympiad_subject
-            ?.trim()
-            ?.toUpperCase()
-        )
+    if (
+      Number(e.target_year)
+      !== studyYear
+    ) {
 
-      })
+      return false
+    }
 
-    return Response.json(filtered)
+    /* ===============================
+       NORMAL EXAMS
+    =============================== */
 
+    if (!e.requires_entitlement) {
+
+      return true
+    }
+
+    /* ===============================
+       OLYMPIAD SUBJECT ACCESS
+    =============================== */
+
+    const hasSubjectAccess =
+
+      allowedSubjects.includes(
+
+        e.olympiad_subject
+          ?.trim()
+          ?.toUpperCase()
+      )
+
+    if (!hasSubjectAccess) {
+
+      return false
+    }
+
+    /* =====================================================
+       NON SCHOOL STUDENTS
+       OLD FLOW
+    ===================================================== */
+
+    if (!isSchoolStudent) {
+
+      return true
+    }
+
+    /* =====================================================
+       PHASE 1
+       ALL ELIGIBLE STUDENTS
+    ===================================================== */
+
+    if (
+      e.phase === 'PHASE_1'
+    ) {
+
+      return true
+    }
+
+    /* =====================================================
+       PHASE 2
+    ===================================================== */
+
+    if (
+      e.phase === 'PHASE_2'
+    ) {
+
+      return eligibility.some(el =>
+
+        el.qualified_phase2
+
+        &&
+
+        el.phase2_exam_id
+          === e.id
+      )
+    }
+
+    /* =====================================================
+       PHASE 3
+    ===================================================== */
+
+    if (
+      e.phase === 'PHASE_3'
+    ) {
+
+      return eligibility.some(el =>
+
+        el.qualified_phase3
+
+        &&
+
+        el.phase3_exam_id
+          === e.id
+      )
+    }
+
+    return false
+  })
+
+return Response.json(filtered)
+  
   } catch (err) {
 
     console.error(err)
 
     return Response.json(
-      { error: err.message },
+      {
+        error:
+          err?.message ||
+          'Internal server error'
+      },
       { status: 500 }
     )
   }
 }
+
