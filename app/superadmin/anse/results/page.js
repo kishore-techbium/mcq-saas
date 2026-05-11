@@ -126,6 +126,7 @@ export default function AnseResultsPage() {
       )
 
     const pdfWidth = 210
+
     const pdfHeight =
       (canvas.height * pdfWidth)
       / canvas.width
@@ -176,15 +177,29 @@ export default function AnseResultsPage() {
          HEADER
       ===================================================== */}
 
-      <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+      <div className="
+        flex
+        justify-between
+        items-center
+        mb-8
+        flex-wrap
+        gap-4
+      ">
 
         <div>
 
-          <h1 className="text-4xl font-bold text-gray-800">
+          <h1 className="
+            text-4xl
+            font-bold
+            text-gray-800
+          ">
             ANSE Phase 1 Results
           </h1>
 
-          <p className="text-gray-600 mt-2">
+          <p className="
+            text-gray-600
+            mt-2
+          ">
             School Level Screening Results
           </p>
 
@@ -233,6 +248,7 @@ export default function AnseResultsPage() {
           }
           className="
             border
+            border-gray-300
             rounded-xl
             px-4
             py-3
@@ -319,6 +335,7 @@ export default function AnseResultsPage() {
 
         <div className="
           border-b
+          border-gray-300
           p-8
           text-center
         ">
@@ -383,13 +400,14 @@ export default function AnseResultsPage() {
 
         <div className="overflow-x-auto">
 
-       <table className="
-  w-full
-  border-collapse
-  text-sm
-  border
-  border-gray-300
-">
+          <table className="
+            w-full
+            border-separate
+            border-spacing-0
+            text-sm
+            border
+            border-gray-400
+          ">
 
             <thead>
 
@@ -399,74 +417,90 @@ export default function AnseResultsPage() {
               ">
 
                 <th className="
-  border
-  border-gray-300
-  p-4
-">
+                  border
+                  border-gray-400
+                  bg-gray-100
+                  p-4
+                  text-center
+                ">
                   School Rank
                 </th>
 
-                 <th className="
-  border
-  border-gray-300
-  p-4
-">
+                <th className="
+                  border
+                  border-gray-400
+                  bg-gray-100
+                  p-4
+                ">
                   Student
                 </th>
 
                 <th className="
-  border
-  border-gray-300
-  p-4
-">
+                  border
+                  border-gray-400
+                  bg-gray-100
+                  p-4
+                ">
                   School
                 </th>
 
-                 <th className="
-  border
-  border-gray-300
-  p-4
-">
+                <th className="
+                  border
+                  border-gray-400
+                  bg-gray-100
+                  p-4
+                  text-center
+                ">
                   City
                 </th>
 
-            <th className="
-  border
-  border-gray-300
-  p-4
-">
+                <th className="
+                  border
+                  border-gray-400
+                  bg-gray-100
+                  p-4
+                  text-center
+                ">
                   District
                 </th>
 
-              <th className="
-  border
-  border-gray-300
-  p-4
-">
+                <th className="
+                  border
+                  border-gray-400
+                  bg-gray-100
+                  p-4
+                  text-center
+                ">
                   State
                 </th>
 
-               <th className="
-  border
-  border-gray-300
-  p-4
-">
+                <th className="
+                  border
+                  border-gray-400
+                  bg-gray-100
+                  p-4
+                  text-center
+                ">
                   Score
                 </th>
 
-             <th className="
-  border
-  border-gray-300
-  p-4
-">
+                <th className="
+                  border
+                  border-gray-400
+                  bg-gray-100
+                  p-4
+                  text-center
+                ">
                   Accuracy
                 </th>
 
-             <th className="
-  border
-  border-gray-300
-  p-4
-">
+                <th className="
+                  border
+                  border-gray-400
+                  bg-gray-100
+                  p-4
+                  text-center
+                ">
                   Qualified
                 </th>
 
@@ -483,8 +517,11 @@ export default function AnseResultsPage() {
                   <td
                     colSpan="9"
                     className="
-                      text-center
+                      border
+                      border-gray-400
+                      bg-white
                       p-10
+                      text-center
                     "
                   >
 
@@ -503,11 +540,14 @@ export default function AnseResultsPage() {
 
                   <td
                     colSpan="9"
-                  className="
-  border
-  border-gray-300
-  p-4
-"
+                    className="
+                      border
+                      border-gray-400
+                      bg-white
+                      p-10
+                      text-center
+                      text-gray-500
+                    "
                   >
 
                     No results found
@@ -524,94 +564,107 @@ export default function AnseResultsPage() {
                 <tr
                   key={row.id}
                   className={
-
                     idx % 2 === 0
-
                       ? 'bg-white'
-
                       : 'bg-gray-50'
                   }
                 >
 
                   <td className="
-  border
-  border-gray-300
-  p-4
-">
-{row.school_rank === 1 && '🥇 '}
-{row.school_rank === 2 && '🥈 '}
-{row.school_rank === 3 && '🥉 '}
+                    border
+                    border-gray-400
+                    bg-white
+                    p-4
+                    text-center
+                    font-bold
+                  ">
 
-{row.school_rank}
+                    {row.school_rank === 1 && '🥇 '}
+                    {row.school_rank === 2 && '🥈 '}
+                    {row.school_rank === 3 && '🥉 '}
+
+                    {row.school_rank}
 
                   </td>
 
-              <td className="
-  border
-  border-gray-300
-  p-4
-">
+                  <td className="
+                    border
+                    border-gray-400
+                    bg-white
+                    p-4
+                    font-medium
+                  ">
 
                     {row.student_name}
 
                   </td>
 
-              <td className="
-  border
-  border-gray-300
-  p-4
-">
+                  <td className="
+                    border
+                    border-gray-400
+                    bg-white
+                    p-4
+                  ">
 
                     {row.school_name}
 
                   </td>
 
-                 <td className="
-  border
-  border-gray-300
-  p-4
-">
+                  <td className="
+                    border
+                    border-gray-400
+                    bg-white
+                    p-4
+                    text-center
+                  ">
 
                     {row.city}
 
                   </td>
 
-             <td className="
-  border
-  border-gray-300
-  p-4
-">
+                  <td className="
+                    border
+                    border-gray-400
+                    bg-white
+                    p-4
+                    text-center
+                  ">
 
                     {row.district}
 
                   </td>
 
-              <td className="
-  border
-  border-gray-300
-  p-4
-">
+                  <td className="
+                    border
+                    border-gray-400
+                    bg-white
+                    p-4
+                    text-center
+                  ">
+
                     {row.state}
 
                   </td>
-  <td className="
-  border
-  border-gray-300
-  p-4
-text-center
-font-bold
-text-blue-700
-">
-                
+
+                  <td className="
+                    border
+                    border-gray-400
+                    bg-white
+                    p-4
+                    text-center
+                    font-bold
+                    text-blue-700
+                  ">
 
                     {row.score}
 
                   </td>
 
-                <td className="
-  border
-  border-gray-300
-  p-4
+                  <td className="
+                    border
+                    border-gray-400
+                    bg-white
+                    p-4
                     text-center
                     font-semibold
                   ">
@@ -622,10 +675,11 @@ text-blue-700
 
                   </td>
 
-             <td className="
-  border
-  border-gray-300
-  p-4
+                  <td className="
+                    border
+                    border-gray-400
+                    bg-white
+                    p-4
                     text-center
                   ">
 
@@ -668,6 +722,7 @@ text-blue-700
         <div className="
           p-6
           border-t
+          border-gray-300
           text-sm
           text-gray-600
           bg-gray-50
@@ -677,10 +732,11 @@ text-blue-700
 
             <b>Note:</b>
             {' '}
-            These are Phase 1 school-level screening results
-            used only for qualification into Phase 2.
-            Official National Rankings will be generated
-            after the centralized Phase 2 examination.
+            These are Phase 1 school-level screening
+            results used only for qualification into
+            Phase 2. Official National Rankings will
+            be generated after the centralized
+            Phase 2 examination.
 
           </p>
 
