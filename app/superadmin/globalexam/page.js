@@ -4,240 +4,514 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 
 export default function CreateGlobalExam() {
-  
+
   const [title, setTitle] = useState('')
-  const [examType, setExamType] = useState('WEEKLY_TEST')
-  const [examCategory, setExamCategory] = useState('')
-  const [subjects, setSubjects] = useState([])
-  const [olympiadSubject, setOlympiadSubject] = useState('')
-  const [duration, setDuration] = useState('')
-  const [targetYear, setTargetYear] = useState('1')
-  
-  const [status, setStatus] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [categories, setCategories] = useState([])
 
-useEffect(() => {
-  loadCategories()
-}, [])
+  const [examType, setExamType] =
+    useState('WEEKLY_TEST')
 
-async function loadCategories() {
+  const [examCategory, setExamCategory] =
+    useState('')
 
-  const { data, error } = await supabase
-    .from('exam_categories')
-    .select('*')
-    .eq('active', true)
-    .order('name')
+  const [subjects, setSubjects] =
+    useState([])
 
-  if (!error) {
-const schoolSubjects =
-  (data || []).filter(
-    c =>
-      c.parent_code ===
-        'OLYMPIAD_SUBJECTS' &&
+  const [olympiadSubject, setOlympiadSubject] =
+    useState('')
 
-      c.code !==
-        'OLYMPIAD_SUBJECTS'
-  )
+  const [duration, setDuration] =
+    useState('')
 
-setSubjects(schoolSubjects)
+  const [targetYear, setTargetYear] =
+    useState('1')
 
-const childCategories =
-  (data || []).filter(
-    cat =>
+  /* =====================================================
+     NEW
+     EXAM PHASE
+  ===================================================== */
 
-      cat.code !== cat.parent_code &&
+  const [phase, setPhase] =
+    useState('PHASE_1')
 
-      cat.parent_code !==
-        'OLYMPIAD_SUBJECTS'
-  )
+  const [status, setStatus] =
+    useState('')
 
-const orderedCategories = [
+  const [saving, setSaving] =
+    useState(false)
 
-  ...childCategories.filter(
-    c => c.code.startsWith('JEE')
-  ),
+  const [categories, setCategories] =
+    useState([])
 
-  ...childCategories.filter(
-    c => c.code.startsWith('NEET')
-  ),
+  useEffect(() => {
 
-  ...childCategories.filter(
-    c => c.code.startsWith('CLASS_')
-  )
+    loadCategories()
 
-]
+  }, [])
 
-setCategories(orderedCategories)
+  /* =====================================================
+     LOAD CATEGORIES
+  ===================================================== */
 
-if (orderedCategories.length > 0) {
+  async function loadCategories() {
 
-  setExamCategory(
-    orderedCategories[0].code
-  )
+    const { data, error } =
+      await supabase
+        .from('exam_categories')
+        .select('*')
+        .eq('active', true)
+        .order('name')
 
-}
-}
-}
+    if (!error) {
+
+      const schoolSubjects =
+
+        (data || []).filter(
+
+          c =>
+
+            c.parent_code ===
+              'OLYMPIAD_SUBJECTS'
+
+            &&
+
+            c.code !==
+              'OLYMPIAD_SUBJECTS'
+        )
+
+      setSubjects(
+        schoolSubjects
+      )
+
+      const childCategories =
+
+        (data || []).filter(
+
+          cat =>
+
+            cat.code !==
+              cat.parent_code
+
+            &&
+
+            cat.parent_code !==
+              'OLYMPIAD_SUBJECTS'
+        )
+
+      const orderedCategories = [
+
+        ...childCategories.filter(
+          c =>
+            c.code.startsWith('JEE')
+        ),
+
+        ...childCategories.filter(
+          c =>
+            c.code.startsWith('NEET')
+        ),
+
+        ...childCategories.filter(
+          c =>
+            c.code.startsWith('CLASS_')
+        )
+      ]
+
+      setCategories(
+        orderedCategories
+      )
+
+      if (
+        orderedCategories.length > 0
+      ) {
+
+        setExamCategory(
+          orderedCategories[0].code
+        )
+      }
+    }
+  }
+
+  /* =====================================================
+     CREATE EXAM
+  ===================================================== */
+
   async function createExam() {
 
     if (!title || !duration) {
-      setStatus('❌ Fill required fields')
+
+      setStatus(
+        '❌ Fill required fields'
+      )
+
+      return
+    }
+
+    if (
+      examCategory.startsWith('CLASS_')
+      &&
+      !olympiadSubject
+    ) {
+
+      setStatus(
+        '❌ Select olympiad subject'
+      )
+
       return
     }
 
     setSaving(true)
 
     try {
-      const { data: auth } = await supabase.auth.getUser()
+
+      const { data: auth } =
+        await supabase.auth.getUser()
+
       const user = auth.user
 
-      const { error } = await supabase
-        .from('exams')
-        .insert({
-          title: title.trim(),
-          exam_type: examType,
-          exam_category: examCategory,
-          duration_minutes: Number(duration),
-          target_year:
-  examCategory.startsWith('CLASS_')
-    ? Number(
-        examCategory.replace('CLASS_', '')
+      const { error } =
+        await supabase
+          .from('exams')
+          .insert({
+
+            title:
+              title.trim(),
+
+            exam_type:
+              examType,
+
+            exam_category:
+              examCategory,
+
+            duration_minutes:
+              Number(duration),
+
+            target_year:
+
+              examCategory.startsWith(
+                'CLASS_'
+              )
+
+                ? Number(
+
+                    examCategory.replace(
+                      'CLASS_',
+                      ''
+                    )
+                  )
+
+                : Number(
+                    targetYear
+                  ),
+
+            /* =====================================================
+               NEW
+               PHASE
+            ===================================================== */
+
+            phase,
+
+            /* =====================================================
+               GLOBAL EXAM
+            ===================================================== */
+
+            is_global: true,
+
+            college_id: null,
+
+            created_by:
+              user.id,
+
+            is_active: true,
+
+            requires_entitlement:
+
+              examCategory.startsWith(
+                'CLASS_'
+              ),
+
+            olympiad_subject:
+
+              examCategory.startsWith(
+                'CLASS_'
+              )
+
+                ? olympiadSubject
+
+                : null
+          })
+
+      if (error) {
+        throw error
+      }
+
+      setStatus(
+        '✅ Global exam created'
       )
-    : Number(targetYear),
-
-          // 🔥 KEY PART
-          is_global: true,
-          college_id: null,
-
-          created_by: user.id,
-          is_active: true,
-          requires_entitlement:
-  examCategory.startsWith('CLASS_'),
-
-olympiad_subject:
-  examCategory.startsWith('CLASS_')
-    ? olympiadSubject
-    : null
-        })
-
-      if (error) throw error
-
-      setStatus('✅ Global exam created')
 
       setTimeout(() => {
-        window.location.href = '/superadmin'
+
+        window.location.href =
+          '/superadmin'
+
       }, 1200)
 
     } catch (err) {
+
       console.error(err)
-      setStatus('❌ Failed')
+
+      setStatus(
+        '❌ Failed'
+      )
     }
 
     setSaving(false)
   }
 
   return (
-    <div style={{ padding: 40 }}>
-      <h1>Create Global Exam </h1>
 
-      <input placeholder="Title"
-        onChange={e => setTitle(e.target.value)}
-      /><br/><br/>
+    <div style={{ padding: 40 }}>
+
+      <h1>
+        Create Global Exam
+      </h1>
+
+      {/* =====================================================
+         TITLE
+      ===================================================== */}
+
+      <input
+        placeholder="Title"
+        onChange={e =>
+          setTitle(e.target.value)
+        }
+      />
+
+      <br />
+      <br />
+
+      {/* =====================================================
+         CATEGORY
+      ===================================================== */}
 
       <select
         value={examCategory}
-        onChange={e => setExamCategory(e.target.value)}
+        onChange={e =>
+          setExamCategory(
+            e.target.value
+          )
+        }
       >
+
         {categories.map(cat => (
 
           <option
             key={cat.code}
             value={cat.code}
           >
+
             {cat.name}
+
           </option>
+
         ))}
-      </select><br/><br/>
 
-      <select onChange={e => setExamType(e.target.value)}>
-        <option value="WEEKLY_TEST">Weekly</option>
-        <option value="MONTHLY_TEST">Monthly</option>
-        <option value="GRAND_TEST">Grand</option>
-      </select><br/><br/>
-{examCategory.startsWith('CLASS_') && (
-  <>
-    <select
-      value={olympiadSubject}
-      onChange={e =>
-        setOlympiadSubject(
-          e.target.value
-        )
-      }
-    >
+      </select>
 
-      <option value="">
-        Select Olympiad Subject
-      </option>
+      <br />
+      <br />
 
-      {subjects.map(sub => (
+      {/* =====================================================
+         EXAM TYPE
+      ===================================================== */}
 
-        <option
-          key={sub.code}
-          value={sub.code}
-        >
-          {sub.name}
+      <select
+        value={examType}
+        onChange={e =>
+          setExamType(
+            e.target.value
+          )
+        }
+      >
+
+        <option value="WEEKLY_TEST">
+          Weekly
         </option>
 
-      ))}
+        <option value="MONTHLY_TEST">
+          Monthly
+        </option>
 
-    </select>
+        <option value="GRAND_TEST">
+          Grand
+        </option>
 
-    <br /><br />
-  </>
-)}
-{(
-  examCategory.startsWith('JEE') ||
-  examCategory === 'NEET_UG'
-) && (
-  <>
-<select
-  value={targetYear}
-  onChange={e =>
-    setTargetYear(e.target.value)
-  }
->
+      </select>
 
-  <option value="1">
-    1st Year
-  </option>
+      <br />
+      <br />
 
-  <option value="2">
-    2nd Year
-  </option>
+      {/* =====================================================
+         NEW
+         PHASE
+      ===================================================== */}
 
-</select>
+      <select
+        value={phase}
+        onChange={e =>
+          setPhase(
+            e.target.value
+          )
+        }
+      >
 
-    <br/><br/>
-  </>
-)}
+        <option value="PHASE_1">
+          Phase 1
+        </option>
+
+        <option value="PHASE_2">
+          Phase 2
+        </option>
+
+        <option value="PHASE_3">
+          Phase 3
+        </option>
+
+      </select>
+
+      <br />
+      <br />
+
+      {/* =====================================================
+         SUBJECT
+      ===================================================== */}
+
+      {examCategory.startsWith('CLASS_') && (
+
+        <>
+
+          <select
+            value={olympiadSubject}
+            onChange={e =>
+
+              setOlympiadSubject(
+                e.target.value
+              )
+            }
+          >
+
+            <option value="">
+              Select Olympiad Subject
+            </option>
+
+            {subjects.map(sub => (
+
+              <option
+                key={sub.code}
+                value={sub.code}
+              >
+
+                {sub.name}
+
+              </option>
+
+            ))}
+
+          </select>
+
+          <br />
+          <br />
+
+        </>
+      )}
+
+      {/* =====================================================
+         TARGET YEAR
+      ===================================================== */}
+
+      {(
+
+        examCategory.startsWith('JEE')
+
+        ||
+
+        examCategory === 'NEET_UG'
+
+      ) && (
+
+        <>
+
+          <select
+            value={targetYear}
+            onChange={e =>
+
+              setTargetYear(
+                e.target.value
+              )
+            }
+          >
+
+            <option value="1">
+              1st Year
+            </option>
+
+            <option value="2">
+              2nd Year
+            </option>
+
+          </select>
+
+          <br />
+          <br />
+
+        </>
+      )}
+
+      {/* =====================================================
+         DURATION
+      ===================================================== */}
 
       <input
         type="number"
         placeholder="Duration"
-        onChange={e => setDuration(e.target.value)}
+        onChange={e =>
+          setDuration(
+            e.target.value
+          )
+        }
       />
-      <br/><br/>
 
+      <br />
+      <br />
 
+      {/* =====================================================
+         BUTTON
+      ===================================================== */}
 
-<br/>
+      <button
+        onClick={createExam}
+        disabled={saving}
+      >
 
-      <button onClick={createExam} disabled={saving}>
-        {saving ? 'Creating...' : 'Create'}
+        {
+
+          saving
+
+            ? 'Creating...'
+
+            : 'Create'
+        }
+
       </button>
 
-      {status && <p>{status}</p>}
+      {/* =====================================================
+         STATUS
+      ===================================================== */}
+
+      {status && (
+
+        <p>{status}</p>
+
+      )}
+
     </div>
   )
 }
