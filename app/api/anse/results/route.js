@@ -26,25 +26,7 @@ export async function GET(req) {
     }
 
     /* =====================================================
-       FETCH EXAM
-    ===================================================== */
-
-    const { data: exam } =
-      await supabase
-        .from('exams')
-        .select(`
-          id,
-          title,
-          exam_category,
-          target_year,
-          created_at
-        `)
-        .eq('id', examId)
-        .single()
-
-    /* =====================================================
        FETCH RANKINGS
-       PHASE 1 SCREENING ONLY
     ===================================================== */
 
     const { data: rankings, error } =
@@ -61,13 +43,7 @@ export async function GET(req) {
     }
 
     if (!rankings?.length) {
-
-      return Response.json({
-        exam,
-        totalRecords: 0,
-        qualifiedCount: 0,
-        rankings: []
-      })
+      return Response.json([])
     }
 
     /* =====================================================
@@ -85,8 +61,7 @@ export async function GET(req) {
         .select(`
           id,
           first_name,
-          last_name,
-          school_id
+          last_name
         `)
         .in('id', studentIds)
 
@@ -94,16 +69,10 @@ export async function GET(req) {
 
     ;(students || []).forEach(s => {
 
-      studentMap[s.id] = {
+      studentMap[s.id] =
 
-        name:
-
-          `${s.first_name || ''} ${s.last_name || ''}`
-            .trim(),
-
-        school_id:
-          s.school_id
-      }
+        `${s.first_name || ''} ${s.last_name || ''}`
+          .trim()
     })
 
     /* =====================================================
@@ -141,35 +110,31 @@ export async function GET(req) {
       schoolMap[s.id] = {
 
         name:
-          s.name || '-',
+          s.name,
 
         city:
-          s.city || '-',
+          s.city,
 
         district:
-          s.district || '-',
+          s.district,
 
         state:
-          s.state || '-'
+          s.state
       }
     })
 
     /* =====================================================
-       FINAL RESULT
-       PHASE 1 SCREENING VIEW
+       FINAL RESPONSE
+       PHASE 1 SCREENING RESULTS
     ===================================================== */
 
     const result =
       rankings.map(r => ({
 
-        id:
-          r.id,
-
-        student_id:
-          r.student_id,
+        ...r,
 
         student_name:
-          studentMap[r.student_id]?.name || '-',
+          studentMap[r.student_id] || '-',
 
         school_name:
           schoolMap[r.school_id]?.name || '-',
@@ -181,64 +146,10 @@ export async function GET(req) {
           schoolMap[r.school_id]?.district || '-',
 
         state:
-          schoolMap[r.school_id]?.state || '-',
-
-        score:
-          r.score || 0,
-
-        accuracy:
-          r.accuracy || 0,
-
-        correct_answers:
-          r.correct_answers || 0,
-
-        wrong_answers:
-          r.wrong_answers || 0,
-
-        unanswered:
-          r.unanswered || 0,
-
-        school_rank:
-          r.school_rank || null,
-
-        qualified_phase2:
-          r.qualified_phase2 || false,
-
-        olympiad_category:
-          r.olympiad_category || '-',
-
-        grade:
-          r.grade || '-'
+          schoolMap[r.school_id]?.state || '-'
       }))
 
-    /* =====================================================
-       SUMMARY
-    ===================================================== */
-
-    const qualifiedCount =
-      result.filter(
-        r => r.qualified_phase2
-      ).length
-
-    return Response.json({
-
-      success: true,
-
-      phase: 'PHASE_1_SCREENING',
-
-      note:
-        'Phase 1 rankings are school-level screening rankings used only for qualification into Phase 2. Official national rankings will be generated after Phase 2 centralized examination.',
-
-      exam,
-
-      totalRecords:
-        result.length,
-
-      qualifiedCount,
-
-      rankings:
-        result
-    })
+    return Response.json(result)
 
   } catch (err) {
 
