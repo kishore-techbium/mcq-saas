@@ -26,7 +26,7 @@ export async function GET(req) {
     }
 
     /* =====================================================
-       FETCH RANKINGS
+       FETCH PHASE 1 RANKINGS
     ===================================================== */
 
     const { data: rankings, error } =
@@ -34,6 +34,7 @@ export async function GET(req) {
         .from('anse_exam_rankings')
         .select('*')
         .eq('exam_id', examId)
+        .eq('phase', 'PHASE_1')
         .order('school_rank', {
           ascending: true
         })
@@ -43,17 +44,27 @@ export async function GET(req) {
     }
 
     if (!rankings?.length) {
-      return Response.json([])
+
+      return Response.json({
+        rankings: []
+      })
     }
 
     /* =====================================================
        FETCH STUDENTS
     ===================================================== */
 
-    const studentIds =
-      rankings.map(
-        r => r.student_id
+    const studentIds = [
+
+      ...new Set(
+
+        rankings.map(
+          r => r.student_id
+        )
+
       )
+
+    ]
 
     const { data: students } =
       await supabase
@@ -61,7 +72,8 @@ export async function GET(req) {
         .select(`
           id,
           first_name,
-          last_name
+          last_name,
+          school_id
         `)
         .in('id', studentIds)
 
@@ -69,10 +81,7 @@ export async function GET(req) {
 
     ;(students || []).forEach(s => {
 
-      studentMap[s.id] =
-
-        `${s.first_name || ''} ${s.last_name || ''}`
-          .trim()
+      studentMap[s.id] = s
     })
 
     /* =====================================================
@@ -83,8 +92,8 @@ export async function GET(req) {
 
       ...new Set(
 
-        rankings
-          .map(r => r.school_id)
+        (students || [])
+          .map(s => s.school_id)
           .filter(Boolean)
 
       )
@@ -107,52 +116,50 @@ export async function GET(req) {
 
     ;(schools || []).forEach(s => {
 
-      schoolMap[s.id] = {
-
-        name:
-          s.name,
-
-        city:
-          s.city,
-
-        district:
-          s.district,
-
-        state:
-          s.state
-      }
+      schoolMap[s.id] = s
     })
 
     /* =====================================================
        FINAL RESPONSE
-       PHASE 1 SCREENING RESULTS
     ===================================================== */
 
     const result =
-      rankings.map(r => ({
+      rankings.map(r => {
 
-        ...r,
+        const student =
+          studentMap[r.student_id]
 
-        student_name:
-          studentMap[r.student_id] || '-',
+        const school =
+          schoolMap[
+            student?.school_id
+          ]
 
-        school_name:
-          schoolMap[r.school_id]?.name || '-',
+        return {
 
-        city:
-          schoolMap[r.school_id]?.city || '-',
+          ...r,
 
-        district:
-          schoolMap[r.school_id]?.district || '-',
+          student_name:
 
-        state:
-          schoolMap[r.school_id]?.state || '-'
-      }))
+            `${student?.first_name || ''} ${student?.last_name || ''}`
+              .trim(),
+
+          school_name:
+            school?.name || '-',
+
+          city:
+            school?.city || '-',
+
+          district:
+            school?.district || '-',
+
+          state:
+            school?.state || '-'
+        }
+      })
 
     return Response.json({
-  phase: 'PHASE_1',
-  rankings: result
-})
+      rankings: result
+    })
 
   } catch (err) {
 
