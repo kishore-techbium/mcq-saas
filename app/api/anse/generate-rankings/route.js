@@ -219,42 +219,43 @@ export async function POST(req) {
             id !== 'questionOrder'
           )
 
-        let questions = []
+let questions = []
 
-        if (questionIds.length > 0) {
+if (questionIds.length > 0) {
 
-          const rpcResult =
-  await supabase
-    .rpc('get_exam_questions', {
-      p_exam_id: session.exam_id
-    })
+  const rpcResult =
+    await supabase
+      .rpc('get_exam_questions', {
+        p_exam_id: session.exam_id
+      })
 
-console.log('RPC RESULT:', rpcResult)
+  console.log('RPC RESULT:', rpcResult)
 
-const questions =
-  rpcResult?.data || []
-        }
-console.log('====================')
+  questions =
+    rpcResult?.data || []
 
-console.log(
-  'SESSION ID:',
-  session.id
-)
+  console.log('====================')
 
-console.log(
-  'ANSWER KEYS:',
-  Object.keys(session.answers || {})
-)
+  console.log(
+    'SESSION ID:',
+    session.id
+  )
 
-console.log(
-  'FIRST QUESTION:',
-  questions?.[0]
-)
+  console.log(
+    'ANSWER KEYS:',
+    Object.keys(session.answers || {})
+  )
 
-console.log(
-  'TOTAL QUESTIONS:',
-  questions?.length
-)
+  console.log(
+    'FIRST QUESTION:',
+    questions?.[0]
+  )
+
+  console.log(
+    'TOTAL QUESTIONS:',
+    questions?.length
+  )
+}
         /* ======================================================
            CALCULATE METRICS
         ====================================================== */
