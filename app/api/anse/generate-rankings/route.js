@@ -41,10 +41,7 @@ function assignCompetitionRanks(rows, key) {
         Number(prev.correct_answers) ===
         Number(curr.correct_answers)
 
-        &&
-
-        Number(prev.time_taken_seconds) ===
-        Number(curr.time_taken_seconds)
+   
 
       if (!sameRank) {
 
