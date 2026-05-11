@@ -383,11 +383,13 @@ export default function AnseResultsPage() {
 
         <div className="overflow-x-auto">
 
-          <table className="
-            w-full
-            border-collapse
-            text-sm
-          ">
+       <table className="
+  w-full
+  border-collapse
+  text-sm
+  border
+  border-gray-300
+">
 
             <thead>
 
@@ -396,39 +398,75 @@ export default function AnseResultsPage() {
                 text-gray-700
               ">
 
-                <th className="border p-4">
+                <th className="
+  border
+  border-gray-300
+  p-4
+">
                   School Rank
                 </th>
 
-                <th className="border p-4">
+                 <th className="
+  border
+  border-gray-300
+  p-4
+">
                   Student
                 </th>
 
-                <th className="border p-4">
+                <th className="
+  border
+  border-gray-300
+  p-4
+">
                   School
                 </th>
 
-                <th className="border p-4">
+                 <th className="
+  border
+  border-gray-300
+  p-4
+">
                   City
                 </th>
 
-                <th className="border p-4">
+            <th className="
+  border
+  border-gray-300
+  p-4
+">
                   District
                 </th>
 
-                <th className="border p-4">
+              <th className="
+  border
+  border-gray-300
+  p-4
+">
                   State
                 </th>
 
-                <th className="border p-4">
+               <th className="
+  border
+  border-gray-300
+  p-4
+">
                   Score
                 </th>
 
-                <th className="border p-4">
+             <th className="
+  border
+  border-gray-300
+  p-4
+">
                   Accuracy
                 </th>
 
-                <th className="border p-4">
+             <th className="
+  border
+  border-gray-300
+  p-4
+">
                   Qualified
                 </th>
 
@@ -465,11 +503,11 @@ export default function AnseResultsPage() {
 
                   <td
                     colSpan="9"
-                    className="
-                      text-center
-                      p-10
-                      text-gray-500
-                    "
+                  className="
+  border
+  border-gray-300
+  p-4
+"
                   >
 
                     No results found
@@ -496,77 +534,84 @@ export default function AnseResultsPage() {
                 >
 
                   <td className="
-                    border
-                    p-4
-                    text-center
-                    font-bold
-                  ">
+  border
+  border-gray-300
+  p-4
+">
+{row.school_rank === 1 && '🥇 '}
+{row.school_rank === 2 && '🥈 '}
+{row.school_rank === 3 && '🥉 '}
 
-                    {row.school_rank}
+{row.school_rank}
 
                   </td>
 
-                  <td className="
-                    border
-                    p-4
-                    font-medium
-                  ">
+              <td className="
+  border
+  border-gray-300
+  p-4
+">
 
                     {row.student_name}
 
                   </td>
 
-                  <td className="border p-4">
+              <td className="
+  border
+  border-gray-300
+  p-4
+">
 
                     {row.school_name}
 
                   </td>
 
-                  <td className="
-                    border
-                    p-4
-                    text-center
-                  ">
+                 <td className="
+  border
+  border-gray-300
+  p-4
+">
 
                     {row.city}
 
                   </td>
 
-                  <td className="
-                    border
-                    p-4
-                    text-center
-                  ">
+             <td className="
+  border
+  border-gray-300
+  p-4
+">
 
                     {row.district}
 
                   </td>
 
-                  <td className="
-                    border
-                    p-4
-                    text-center
-                  ">
-
+              <td className="
+  border
+  border-gray-300
+  p-4
+">
                     {row.state}
 
                   </td>
-
-                  <td className="
-                    border
-                    p-4
-                    text-center
-                    font-bold
-                    text-blue-700
-                  ">
+  <td className="
+  border
+  border-gray-300
+  p-4
+text-center
+font-bold
+text-blue-700
+">
+                
 
                     {row.score}
 
                   </td>
 
-                  <td className="
-                    border
-                    p-4
+                <td className="
+  border
+  border-gray-300
+  p-4
                     text-center
                     font-semibold
                   ">
@@ -577,9 +622,10 @@ export default function AnseResultsPage() {
 
                   </td>
 
-                  <td className="
-                    border
-                    p-4
+             <td className="
+  border
+  border-gray-300
+  p-4
                     text-center
                   ">
 
