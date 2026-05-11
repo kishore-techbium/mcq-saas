@@ -2,14 +2,14 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-
+import { useSearchParams } from 'next/navigation'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 
 export default function AnseResultsPage() {
 
   const reportRef = useRef()
-
+  const searchParams = useSearchParams()
   const [exams, setExams] =
     useState([])
 
@@ -32,12 +32,19 @@ export default function AnseResultsPage() {
      LOAD EXAMS
   ===================================================== */
 
-  useEffect(() => {
+useEffect(() => {
 
-    loadExams()
+  loadExams()
 
-  }, [])
+  const examId =
+    searchParams.get('examId')
 
+  if (examId) {
+
+    setSelectedExam(examId)
+  }
+
+}, [])
   useEffect(() => {
 
     if (selectedExam) {
