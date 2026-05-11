@@ -96,11 +96,11 @@ export async function POST(req) {
        DELETE OLD RANKINGS
     ====================================================== */
 
-    await supabase
-      .from('anse_exam_rankings')
-      .delete()
-      .eq('exam_id', examId)
-
+await supabase
+  .from('anse_exam_rankings')
+  .delete()
+  .eq('exam_id', examId)
+  .eq('phase', 'PHASE_1')
     /* ======================================================
        FETCH EXAM
     ====================================================== */
@@ -275,7 +275,7 @@ if (questionIds.length > 0) {
             : 0
 
         return {
-
+          phase: 'PHASE_1',
           exam_id: examId,
 
           exam_session_id:
@@ -527,6 +527,8 @@ if (questionIds.length > 0) {
         }
       })
 
+
+
     /* ======================================================
        INSERT INTO DB
     ====================================================== */
@@ -536,38 +538,97 @@ if (questionIds.length > 0) {
         .from('anse_exam_rankings')
         .insert(rows)
 
-    if (insertError) {
+/* ======================================================
+   PHASE 2 ELIGIBILITY
+====================================================== */
 
-      console.error(insertError)
+const eligibleStudents =
 
-      return Response.json(
-        {
-          error:
-            insertError.message
-        },
-        { status: 500 }
-      )
-    }
+  rows.filter(
+    r => r.qualified_phase2
+  )
 
-    return Response.json({
+if (eligibleStudents.length > 0) {
 
-      success: true,
+  /* ======================================================
+     DELETE OLD ELIGIBILITY
+  ====================================================== */
 
-      totalRankings:
-        rows.length
-    })
+  const eligibleStudentIds =
 
-  } catch (err) {
+    eligibleStudents.map(
+      r => r.student_id
+    )
 
-    console.error(err)
+  await supabase
 
-    return Response.json(
-      {
-        error:
-          err?.message ||
-          'Internal server error'
-      },
-      { status: 500 }
+    .from(
+      'anse_student_phase_eligibility'
+    )
+
+    .delete()
+
+    .in(
+      'student_id',
+      eligibleStudentIds
+    )
+
+    .eq(
+      'olympiad_subject',
+      exam.olympiad_subject
+    )
+
+    .eq(
+      'grade',
+      Number(exam.target_year)
+    )
+
+  /* ======================================================
+     INSERT ELIGIBILITY
+  ====================================================== */
+
+  const eligibilityRows =
+
+    eligibleStudents.map(r => ({
+
+      student_id:
+        r.student_id,
+
+      olympiad_subject:
+        exam.olympiad_subject,
+
+      grade:
+        Number(exam.target_year),
+
+      qualified_phase2:
+        true,
+
+      qualified_phase3:
+        false,
+
+      phase2_exam_id:
+        null,
+
+      phase3_exam_id:
+        null
+    }))
+
+  const {
+    error: eligibilityError
+  } = await supabase
+
+    .from(
+      'anse_student_phase_eligibility'
+    )
+
+    .insert(
+      eligibilityRows
+    )
+
+  if (eligibilityError) {
+
+    console.error(
+      eligibilityError
     )
   }
 }
