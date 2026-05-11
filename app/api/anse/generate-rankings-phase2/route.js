@@ -325,7 +325,7 @@ export async function POST(req) {
 
           qualified_phase3: false,
 
-          qualified_grand_finale: false,
+        
 
           scholarship_rank: null,
 
@@ -482,7 +482,7 @@ export async function POST(req) {
           })
 
         /* ======================================================
-           GRAND FINALE QUALIFICATION
+           PHASE 3 QUALIFICATION
            ONLY NATIONAL RANK 1
         ====================================================== */
 
@@ -492,7 +492,7 @@ export async function POST(req) {
 
             r.qualified_phase3 = true
 
-            r.qualified_grand_finale = true
+            
           }
         })
 
@@ -530,11 +530,11 @@ export async function POST(req) {
       totalRankings:
         finalRows.length,
 
-      grandFinaleQualified:
+      phase3Qualified:
 
         finalRows.filter(
           r =>
-            r.qualified_grand_finale
+            r.qualified_phase3
         ).length
     })
 
