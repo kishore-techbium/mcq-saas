@@ -225,7 +225,7 @@ export async function POST(req) {
 
           const { data: qData } =
             await supabase
-              .from('questions')
+              .rpc('get_exam_questions')
               .select(`
                 id,
                 correct_option
