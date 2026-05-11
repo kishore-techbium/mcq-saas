@@ -515,26 +515,22 @@ for (const student of qualifiedStudents) {
   ========================================== */
 
   const {
-    data: phase3Exam
-  } = await supabase
+  data: phase3Exam
+} = await supabase
 
-    .from('exams')
+  .from('exams')
 
-    .select('id')
+  .select('id')
 
-    .eq('phase', 'PHASE_3')
+  .eq('phase', 'PHASE_3')
 
-    .eq(
-      'target_year',
-      student.grade
-    )
+  .eq(
+    'target_year',
+    student.grade
+  )
 
-    .eq(
-      'olympiad_subject',
-      exam.olympiad_subject
-    )
-
-    .single()
+  .single()
+   
 
   if (!phase3Exam) {
 
