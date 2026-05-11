@@ -234,7 +234,27 @@ export async function POST(req) {
 
           questions = qData || []
         }
+console.log('====================')
 
+console.log(
+  'SESSION ID:',
+  session.id
+)
+
+console.log(
+  'ANSWER KEYS:',
+  Object.keys(session.answers || {})
+)
+
+console.log(
+  'FIRST QUESTION:',
+  questions?.[0]
+)
+
+console.log(
+  'TOTAL QUESTIONS:',
+  questions?.length
+)
         /* ======================================================
            CALCULATE METRICS
         ====================================================== */
