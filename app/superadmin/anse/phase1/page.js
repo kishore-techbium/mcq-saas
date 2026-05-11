@@ -1,13 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
-
-export default function AnseResultsPage() {
-
-  const reportRef = useRef()
+export default function Phase1RankingEngine() {
 
   const [exams, setExams] =
     useState([])
@@ -15,17 +10,14 @@ export default function AnseResultsPage() {
   const [selectedExam, setSelectedExam] =
     useState('')
 
-  const [rows, setRows] =
-    useState([])
-
-  const [selectedSchool, setSelectedSchool] =
-    useState('ALL')
-
-  const [qualifiedOnly, setQualifiedOnly] =
+  const [generating, setGenerating] =
     useState(false)
 
-  const [loading, setLoading] =
-    useState(false)
+  const [status, setStatus] =
+    useState('')
+
+  const [summary, setSummary] =
+    useState(null)
 
   /* =====================================================
      LOAD EXAMS
@@ -36,14 +28,6 @@ export default function AnseResultsPage() {
     loadExams()
 
   }, [])
-
-  useEffect(() => {
-
-    if (selectedExam) {
-      loadRankings()
-    }
-
-  }, [selectedExam])
 
   async function loadExams() {
 
@@ -68,675 +52,359 @@ export default function AnseResultsPage() {
   }
 
   /* =====================================================
-     LOAD RANKINGS
+     GENERATE PHASE 1 RANKINGS
   ===================================================== */
 
-  async function loadRankings() {
+  async function generateRankings() {
+
+    if (!selectedExam) {
+
+      alert('Select exam')
+
+      return
+    }
 
     try {
 
-      setLoading(true)
+      setGenerating(true)
+
+      setStatus(
+        'Generating rankings...'
+      )
+
+      setSummary(null)
 
       const res =
         await fetch(
-          `/api/anse/results/phase1?examId=${selectedExam}`
+          '/api/anse/generate-rankings-phase1',
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+
+            body: JSON.stringify({
+              examId: selectedExam
+            })
+          }
         )
 
       const data =
         await res.json()
 
-      setRows(
+      if (!res.ok) {
 
-        Array.isArray(data.rankings)
+        setStatus(
+          data.error ||
+          'Failed to generate rankings'
+        )
 
-          ? data.rankings
+        return
+      }
 
-          : []
+      setSummary(data)
+
+      setStatus(
+        '✅ Phase 1 rankings generated successfully'
       )
 
     } catch (err) {
 
       console.error(err)
 
+      setStatus(
+        '❌ Something went wrong'
+      )
+
     } finally {
 
-      setLoading(false)
+      setGenerating(false)
     }
   }
 
   /* =====================================================
-     UNIQUE SCHOOLS
+     OPEN RESULTS PAGE
   ===================================================== */
 
-  const schools = useMemo(() => {
+  function openResults() {
 
-    return [
-
-      ...new Set(
-        rows.map(
-          r => r.school_name
-        )
-      )
-
-    ].sort()
-
-  }, [rows])
-
-  /* =====================================================
-     FILTERED ROWS
-  ===================================================== */
-
-  const filteredRows = useMemo(() => {
-
-    let data = [...rows]
-
-    if (selectedSchool !== 'ALL') {
-
-      data = data.filter(
-        r =>
-          r.school_name ===
-          selectedSchool
-      )
-    }
-
-    if (qualifiedOnly) {
-
-      data = data.filter(
-        r => r.qualified_phase2
-      )
-    }
-
-    return data
-
-  }, [
-    rows,
-    selectedSchool,
-    qualifiedOnly
-  ])
-
-  /* =====================================================
-     PDF DOWNLOAD
-  ===================================================== */
-
-  async function downloadPDF() {
-
-    if (filteredRows.length === 0) {
+    if (!selectedExam) {
       return
     }
 
-    const canvas =
-      await html2canvas(
-        reportRef.current,
-        {
-          scale: 2
-        }
-      )
+    window.open(
 
-    const imgData =
-      canvas.toDataURL('image/png')
+      `/superadmin/anse/results/phase1?examId=${selectedExam}`,
 
-    const pdf =
-      new jsPDF(
-        'p',
-        'mm',
-        'a4'
-      )
-
-    const pdfWidth = 210
-
-    const pdfHeight =
-      (canvas.height * pdfWidth)
-      / canvas.width
-
-    pdf.addImage(
-      imgData,
-      'PNG',
-      0,
-      0,
-      pdfWidth,
-      pdfHeight
-    )
-
-    const schoolPart =
-
-      selectedSchool === 'ALL'
-
-        ? 'All_Schools'
-
-        : selectedSchool
-            .replace(/\s+/g, '_')
-
-    pdf.save(
-      `${schoolPart}_Phase1_Results.pdf`
+      '_blank'
     )
   }
-
-  /* =====================================================
-     SELECTED EXAM
-  ===================================================== */
-
-  const selectedExamData =
-
-    exams.find(
-      e => e.id === selectedExam
-    )
 
   return (
 
     <div className="
-      p-8
-      bg-gray-100
       min-h-screen
+      bg-gray-100
+      p-8
     ">
 
       {/* =====================================================
          HEADER
       ===================================================== */}
 
-      <div className="
-        flex
-        justify-between
-        items-center
-        mb-8
-        flex-wrap
-        gap-4
-      ">
+      <div className="mb-8">
 
-        <div>
+        <h1 className="
+          text-4xl
+          font-bold
+          text-gray-800
+        ">
+          ANSE Phase 1 Ranking Engine
+        </h1>
 
-          <h1 className="
-            text-4xl
-            font-bold
-            text-gray-800
-          ">
-            ANSE Phase 1 Results
-          </h1>
-
-          <p className="
-            text-gray-600
-            mt-2
-          ">
-            School Level Screening Results
-          </p>
-
-        </div>
-
-        <button
-          onClick={downloadPDF}
-          className="
-            bg-blue-600
-            hover:bg-blue-700
-            text-white
-            px-5
-            py-3
-            rounded-xl
-            font-semibold
-            shadow
-          "
-        >
-          Download PDF
-        </button>
+        <p className="
+          text-gray-600
+          mt-2
+        ">
+          School-Level Screening Qualification System
+        </p>
 
       </div>
 
       {/* =====================================================
-         FILTERS
+         MAIN CARD
       ===================================================== */}
 
       <div className="
         bg-white
-        p-5
         rounded-2xl
         shadow-sm
-        mb-8
-        flex
-        flex-wrap
-        gap-4
-        items-center
+        p-6
+        max-w-3xl
       ">
 
-        {/* EXAM */}
+        {/* =====================================================
+           EXAM DROPDOWN
+        ===================================================== */}
 
-        <select
-          value={selectedExam}
-          onChange={(e) =>
-            setSelectedExam(
-              e.target.value
-            )
-          }
-          className="
-            border
-            border-gray-300
-            rounded-xl
-            px-4
-            py-3
-            min-w-[320px]
-          "
-        >
+        <div className="mb-6">
 
-          <option value="">
+          <label className="
+            block
+            mb-2
+            font-semibold
+            text-gray-700
+          ">
             Select Exam
-          </option>
+          </label>
 
-          {exams.map(exam => (
-
-            <option
-              key={exam.id}
-              value={exam.id}
-            >
-
-              {exam.title}
-              {' - '}
-              {exam.exam_category}
-              {' - '}
-              Class {exam.target_year}
-
-            </option>
-
-          ))}
-
-        </select>
-
-        {/* SCHOOL */}
-
-        <select
-          value={selectedSchool}
-          onChange={(e) =>
-            setSelectedSchool(
-              e.target.value
-            )
-          }
-          className="
-            border
-            border-gray-300
-            rounded-xl
-            px-4
-            py-3
-            min-w-[250px]
-          "
-        >
-
-          <option value="ALL">
-            All Schools
-          </option>
-
-          {schools.map(school => (
-
-            <option
-              key={school}
-              value={school}
-            >
-
-              {school}
-
-            </option>
-
-          ))}
-
-        </select>
-
-        {/* QUALIFIED */}
-
-        <label className="
-          flex
-          items-center
-          gap-2
-          font-medium
-        ">
-
-          <input
-            type="checkbox"
-            checked={qualifiedOnly}
+          <select
+            value={selectedExam}
             onChange={(e) =>
-              setQualifiedOnly(
-                e.target.checked
+              setSelectedExam(
+                e.target.value
               )
             }
-          />
+            className="
+              w-full
+              border
+              border-gray-300
+              rounded-xl
+              px-4
+              py-3
+            "
+          >
 
-          Qualified Only
+            <option value="">
+              Select Exam
+            </option>
 
-        </label>
+            {exams.map(exam => (
 
-        {/* COUNT */}
+              <option
+                key={exam.id}
+                value={exam.id}
+              >
 
-        <div className="
-          ml-auto
-          text-sm
-          text-gray-600
-          font-medium
-        ">
+                {exam.title}
+                {' - '}
+                {exam.exam_category}
+                {' - '}
+                Grade {exam.target_year}
 
-          Total Records:
-          {' '}
-          {filteredRows.length}
+              </option>
+
+            ))}
+
+          </select>
 
         </div>
 
-      </div>
-
-      {/* =====================================================
-         REPORT
-      ===================================================== */}
-
-      <div
-        ref={reportRef}
-        className="
-          bg-white
-          rounded-2xl
-          shadow-sm
-          overflow-hidden
-        "
-      >
-
         {/* =====================================================
-           REPORT HEADER
+           BUTTONS
         ===================================================== */}
 
         <div className="
-          border-b
-          border-gray-300
-          p-8
-          text-center
+          flex
+          flex-wrap
+          gap-4
         ">
 
-          <h2 className="
-            text-3xl
-            font-bold
-            text-gray-800
+          <button
+            onClick={generateRankings}
+            disabled={
+              generating ||
+              !selectedExam
+            }
+            className="
+              bg-blue-600
+              hover:bg-blue-700
+              disabled:bg-gray-400
+              text-white
+              px-5
+              py-3
+              rounded-xl
+              font-semibold
+            "
+          >
+
+            {
+
+              generating
+
+                ? 'Generating...'
+
+                : 'Generate Rankings'
+            }
+
+          </button>
+
+          <button
+            onClick={openResults}
+            disabled={!selectedExam}
+            className="
+              bg-green-600
+              hover:bg-green-700
+              disabled:bg-gray-400
+              text-white
+              px-5
+              py-3
+              rounded-xl
+              font-semibold
+            "
+          >
+
+            View Results
+
+          </button>
+
+        </div>
+
+        {/* =====================================================
+           STATUS
+        ===================================================== */}
+
+        {status && (
+
+          <div className="
+            mt-6
+            p-4
+            rounded-xl
+            bg-gray-100
+            text-gray-700
+            font-medium
           ">
 
-            AURELIUS NATIONAL
-            SCHOLARSHIP EXAM
+            {status}
 
-          </h2>
+          </div>
 
-          <p className="
-            text-lg
-            mt-2
-            text-gray-600
+        )}
+
+        {/* =====================================================
+           SUMMARY
+        ===================================================== */}
+
+        {summary && (
+
+          <div className="
+            mt-8
+            grid
+            grid-cols-1
+            md:grid-cols-2
+            gap-5
           ">
 
-            Phase 1 Screening Result Sheet
-
-          </p>
-
-          {selectedExamData && (
+            {/* TOTAL */}
 
             <div className="
-              mt-5
-              text-sm
-              text-gray-700
-              space-y-1
+              bg-blue-50
+              border
+              border-blue-200
+              rounded-2xl
+              p-5
             ">
 
-              <p>
-                <b>Exam:</b>
-                {' '}
-                {selectedExamData.title}
+              <p className="
+                text-sm
+                text-blue-700
+                font-medium
+              ">
+                Total Rankings Generated
               </p>
 
-              <p>
-                <b>Category:</b>
-                {' '}
-                {selectedExamData.exam_category}
-              </p>
+              <h2 className="
+                text-4xl
+                font-bold
+                text-blue-900
+                mt-2
+              ">
 
-              <p>
-                <b>Class:</b>
-                {' '}
-                {selectedExamData.target_year}
-              </p>
+                {summary.totalRankings || 0}
 
-              <p>
-                <b>School:</b>
-                {' '}
-                {selectedSchool === 'ALL'
-
-                  ? 'All Schools'
-
-                  : selectedSchool
-                }
-              </p>
+              </h2>
 
             </div>
 
-          )}
+            {/* QUALIFIED */}
 
-        </div>
+            <div className="
+              bg-green-50
+              border
+              border-green-200
+              rounded-2xl
+              p-5
+            ">
 
-        {/* =====================================================
-           TABLE
-        ===================================================== */}
+              <p className="
+                text-sm
+                text-green-700
+                font-medium
+              ">
+                Qualified For Phase 2
+              </p>
 
-        <div className="overflow-x-auto">
-
-        <table style={styles.table}>
-            <thead>
-
-              <tr className="
-                bg-gray-100
-                text-gray-700
+              <h2 className="
+                text-4xl
+                font-bold
+                text-green-900
+                mt-2
               ">
 
-           <th style={styles.th}>
-                  School Rank
-                </th>
+                {summary.qualifiedForPhase2 || 0}
 
-     <th style={styles.th}>
-                  Student
-                </th>
+              </h2>
 
-            <th style={styles.th}>
-                  School
-                </th>
+            </div>
 
-       <th style={styles.th}>
-                  City
-                </th>
+          </div>
 
-         <th style={styles.th}>
-                  District
-                </th>
-
-    <th style={styles.th}>
-                  State
-                </th>
-
-     <th style={styles.th}>
-                  Score
-                </th>
-
-       <th style={styles.th}>
-                  Accuracy
-                </th>
-
-           <th style={styles.th}>
-                  Qualified
-                </th>
-
-              </tr>
-
-            </thead>
-
-            <tbody>
-
-              {loading && (
-
-                <tr>
-
-         <td style={styles.td}>
-                    Loading...
-
-                  </td>
-
-                </tr>
-
-              )}
-
-              {!loading &&
-                filteredRows.length === 0 && (
-
-                <tr>
-
-      <td style={styles.td}>
-
-                    No results found
-
-                  </td>
-
-                </tr>
-
-              )}
-
-              {!loading &&
-                filteredRows.map((row, idx) => (
-
-                <tr
-                  key={row.id}
-                  className={
-                    idx % 2 === 0
-                      ? 'bg-white'
-                      : 'bg-gray-50'
-                  }
-                >
-
-              <td style={styles.td}>
-                    {row.school_rank === 1 && '🥇 '}
-                    {row.school_rank === 2 && '🥈 '}
-                    {row.school_rank === 3 && '🥉 '}
-
-                    {row.school_rank}
-
-                  </td>
-
-              <td style={styles.td}>
-
-                    {row.student_name}
-
-                  </td>
-
-             <td style={styles.td}>
-
-                    {row.school_name}
-
-                  </td>
-
-          <td style={styles.td}>
-
-                    {row.city}
-
-                  </td>
-
-           <td style={styles.td}>
-                    {row.district}
-
-                  </td>
-
-          <td style={styles.td}>
-
-                    {row.state}
-
-                  </td>
-
-           <td style={styles.td}>
-
-                    {row.score}
-
-                  </td>
-
-           <td style={styles.td}>
-                    {Number(
-                      row.accuracy || 0
-                    ).toFixed(2)}%
-
-                  </td>
-
-           <td style={styles.td}>
-
-                    {row.qualified_phase2
-
-                      ? (
-                        <span className="
-                          text-green-600
-                          font-bold
-                        ">
-                          ✅ Qualified
-                        </span>
-                      )
-
-                      : (
-                        <span className="
-                          text-gray-400
-                        ">
-                          -
-                        </span>
-                      )
-                    }
-
-                  </td>
-
-                </tr>
-
-              ))}
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-        {/* =====================================================
-           FOOTER
-        ===================================================== */}
-
-        <div className="
-          p-6
-          border-t
-          border-gray-300
-          text-sm
-          text-gray-600
-          bg-gray-50
-        ">
-
-          <p>
-
-            <b>Note:</b>
-            {' '}
-            These are Phase 1 school-level screening
-            results used only for qualification into
-            Phase 2. Official National Rankings will
-            be generated after the centralized
-            Phase 2 examination.
-
-          </p>
-
-        </div>
+        )}
 
       </div>
 
     </div>
   )
-}
-const styles = {
-
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    tableLayout: 'fixed'
-  },
-
-  th: {
-    border: '1px solid #ccc',
-    padding: '10px',
-    background: '#f3f4f6',
-    textAlign: 'center',
-    fontWeight: 'bold'
-  },
-
-  td: {
-    border: '1px solid #ccc',
-    padding: '10px',
-    textAlign: 'center'
-  }
 }
