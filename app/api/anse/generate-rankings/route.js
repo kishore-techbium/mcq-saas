@@ -229,7 +229,8 @@ if (questionIds.length > 0) {
         p_exam_id: session.exam_id
       })
 
- 
+  questions =
+    rpcResult?.data || []
 }
         /* ======================================================
            CALCULATE METRICS
