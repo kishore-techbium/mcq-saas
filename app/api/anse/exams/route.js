@@ -15,11 +15,13 @@ export async function GET() {
       await supabase
         .from('exams')
         .select(`
-          id,
-          title,
-          exam_category,
-          target_year
-        `)
+        id,
+        title,
+        exam_category,
+        target_year,
+        phase,
+        olympiad_subject
+      `)
         .order('created_at', {
           ascending: false
         })
