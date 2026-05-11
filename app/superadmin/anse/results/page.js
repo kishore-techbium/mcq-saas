@@ -63,7 +63,7 @@ export default function AnseResultsPage() {
       setLoading(true)
 
       const res = await fetch(
-        `/api/anse/results?examId=${selectedExam}`
+        `/api/anse/results/phase1?examId=${selectedExam}`
       )
 
       const data =
