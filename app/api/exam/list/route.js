@@ -195,11 +195,6 @@ const {
 const isSchoolStudent =
   !!studentData?.school_id
     
-console.log({
-  studentId,
-  school_id: body.school_id,
-  isSchoolStudent
-})
 if (isSchoolStudent) {
 
   const {
