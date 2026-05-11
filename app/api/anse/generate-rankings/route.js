@@ -229,32 +229,7 @@ if (questionIds.length > 0) {
         p_exam_id: session.exam_id
       })
 
-  console.log('RPC RESULT:', rpcResult)
-
-  questions =
-    rpcResult?.data || []
-
-  console.log('====================')
-
-  console.log(
-    'SESSION ID:',
-    session.id
-  )
-
-  console.log(
-    'ANSWER KEYS:',
-    Object.keys(session.answers || {})
-  )
-
-  console.log(
-    'FIRST QUESTION:',
-    questions?.[0]
-  )
-
-  console.log(
-    'TOTAL QUESTIONS:',
-    questions?.length
-  )
+ 
 }
         /* ======================================================
            CALCULATE METRICS
