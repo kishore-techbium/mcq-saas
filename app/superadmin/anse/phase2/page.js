@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 
-export default function Phase2Page() {
+export default function Phase2RankingEngine() {
 
   const [exams, setExams] =
     useState([])
@@ -10,20 +10,14 @@ export default function Phase2Page() {
   const [selectedExam, setSelectedExam] =
     useState('')
 
-  const [loading, setLoading] =
-    useState(false)
-
   const [generating, setGenerating] =
     useState(false)
 
-  const [rows, setRows] =
-    useState([])
+  const [status, setStatus] =
+    useState('')
 
-  const [selectedGrade, setSelectedGrade] =
-    useState('ALL')
-
-  const [selectedSubject, setSelectedSubject] =
-    useState('ALL')
+  const [summary, setSummary] =
+    useState(null)
 
   /* =====================================================
      LOAD EXAMS
@@ -45,11 +39,19 @@ export default function Phase2Page() {
       const data =
         await res.json()
 
-      setExams(
+      let filtered =
+
         Array.isArray(data)
-          ? data
+
+          ? data.filter(
+              exam =>
+                exam.phase ===
+                'PHASE_2'
+            )
+
           : []
-      )
+
+      setExams(filtered)
 
     } catch (err) {
 
@@ -58,18 +60,27 @@ export default function Phase2Page() {
   }
 
   /* =====================================================
-     GENERATE RANKINGS
+     GENERATE PHASE 2 RANKINGS
   ===================================================== */
 
   async function generateRankings() {
 
     if (!selectedExam) {
+
+      alert('Select exam')
+
       return
     }
 
     try {
 
       setGenerating(true)
+
+      setStatus(
+        'Generating Phase 2 rankings...'
+      )
+
+      setSummary(null)
 
       const res =
         await fetch(
@@ -93,7 +104,7 @@ export default function Phase2Page() {
 
       if (!res.ok) {
 
-        alert(
+        setStatus(
           data.error ||
           'Failed to generate rankings'
         )
@@ -101,17 +112,19 @@ export default function Phase2Page() {
         return
       }
 
-      alert(
-        'Phase 2 rankings generated successfully'
-      )
+      setSummary(data)
 
-      loadResults()
+      setStatus(
+        '✅ Phase 2 rankings generated successfully'
+      )
 
     } catch (err) {
 
       console.error(err)
 
-      alert('Something went wrong')
+      setStatus(
+        '❌ Something went wrong'
+      )
 
     } finally {
 
@@ -120,145 +133,29 @@ export default function Phase2Page() {
   }
 
   /* =====================================================
-     LOAD RESULTS
+     OPEN RESULTS PAGE
   ===================================================== */
 
-  async function loadResults() {
+  function openResults() {
 
     if (!selectedExam) {
       return
     }
 
-    try {
+    window.open(
 
-      setLoading(true)
+      `/superadmin/anse/results/phase2?examId=${selectedExam}`,
 
-      const res =
-        await fetch(
-          `/api/anse/results/phase2?examId=${selectedExam}`
-        )
-
-      const data =
-        await res.json()
-
-      setRows(
-        Array.isArray(data.rankings)
-          ? data.rankings
-          : []
-      )
-
-    } catch (err) {
-
-      console.error(err)
-
-    } finally {
-
-      setLoading(false)
-    }
+      '_blank'
+    )
   }
-
-  useEffect(() => {
-
-    if (selectedExam) {
-      loadResults()
-    }
-
-  }, [selectedExam])
-
-  /* =====================================================
-     FILTERS
-  ===================================================== */
-
-  const grades = useMemo(() => {
-
-    return [
-
-      ...new Set(
-        rows.map(
-          r => r.grade
-        )
-      )
-
-    ].sort((a, b) => a - b)
-
-  }, [rows])
-
-  const subjects = useMemo(() => {
-
-    return [
-
-      ...new Set(
-        rows.map(
-          r => r.olympiad_category
-        )
-      )
-
-    ].sort()
-
-  }, [rows])
-
-  const filteredRows = useMemo(() => {
-
-    let data = [...rows]
-
-    if (selectedGrade !== 'ALL') {
-
-      data = data.filter(
-        r =>
-          String(r.grade) ===
-          String(selectedGrade)
-      )
-    }
-
-    if (selectedSubject !== 'ALL') {
-
-      data = data.filter(
-        r =>
-          r.olympiad_category ===
-          selectedSubject
-      )
-    }
-
-    data.sort((a, b) => {
-
-      if (a.grade !== b.grade) {
-        return a.grade - b.grade
-      }
-
-      if (
-        a.olympiad_category <
-        b.olympiad_category
-      ) {
-        return -1
-      }
-
-      if (
-        a.olympiad_category >
-        b.olympiad_category
-      ) {
-        return 1
-      }
-
-      return (
-        a.national_rank -
-        b.national_rank
-      )
-    })
-
-    return data
-
-  }, [
-    rows,
-    selectedGrade,
-    selectedSubject
-  ])
 
   return (
 
     <div className="
-      p-8
-      bg-gray-100
       min-h-screen
+      bg-gray-100
+      p-8
     ">
 
       {/* =====================================================
@@ -272,386 +169,250 @@ export default function Phase2Page() {
           font-bold
           text-gray-800
         ">
-          ANSE Phase 2 Rankings
+          ANSE Phase 2 Ranking Engine
         </h1>
 
         <p className="
           text-gray-600
           mt-2
         ">
-          National Subject Olympiad Rankings
+          National Olympiad Merit Ranking System
         </p>
 
       </div>
 
       {/* =====================================================
-         CONTROLS
+         MAIN CARD
       ===================================================== */}
 
       <div className="
         bg-white
         rounded-2xl
         shadow-sm
-        p-5
-        mb-8
-        flex
-        flex-wrap
-        gap-4
-        items-center
+        p-6
+        max-w-3xl
       ">
 
-        {/* EXAM */}
+        {/* =====================================================
+           EXAM DROPDOWN
+        ===================================================== */}
 
-        <select
-          value={selectedExam}
-          onChange={(e) =>
-            setSelectedExam(
-              e.target.value
-            )
-          }
-          className="
-            border
-            border-gray-300
-            rounded-xl
-            px-4
-            py-3
-            min-w-[320px]
-          "
-        >
+        <div className="mb-6">
 
-          <option value="">
-            Select Exam
-          </option>
-
-          {exams.map(exam => (
-
-            <option
-              key={exam.id}
-              value={exam.id}
-            >
-
-              {exam.title}
-              {' - '}
-              {exam.exam_category}
-              {' - '}
-              Grade {exam.target_year}
-
-            </option>
-
-          ))}
-
-        </select>
-
-        {/* GRADE */}
-
-        <select
-          value={selectedGrade}
-          onChange={(e) =>
-            setSelectedGrade(
-              e.target.value
-            )
-          }
-          className="
-            border
-            border-gray-300
-            rounded-xl
-            px-4
-            py-3
-          "
-        >
-
-          <option value="ALL">
-            All Grades
-          </option>
-
-          {grades.map(g => (
-
-            <option
-              key={g}
-              value={g}
-            >
-              Grade {g}
-            </option>
-
-          ))}
-
-        </select>
-
-        {/* SUBJECT */}
-
-        <select
-          value={selectedSubject}
-          onChange={(e) =>
-            setSelectedSubject(
-              e.target.value
-            )
-          }
-          className="
-            border
-            border-gray-300
-            rounded-xl
-            px-4
-            py-3
-          "
-        >
-
-          <option value="ALL">
-            All Subjects
-          </option>
-
-          {subjects.map(sub => (
-
-            <option
-              key={sub}
-              value={sub}
-            >
-              {sub}
-            </option>
-
-          ))}
-
-        </select>
-
-        {/* BUTTON */}
-
-        <button
-          onClick={generateRankings}
-          disabled={
-            !selectedExam ||
-            generating
-          }
-          className="
-            bg-blue-600
-            hover:bg-blue-700
-            disabled:bg-gray-400
-            text-white
-            px-5
-            py-3
-            rounded-xl
+          <label className="
+            block
+            mb-2
             font-semibold
-          "
-        >
+            text-gray-700
+          ">
+            Select Phase 2 Exam
+          </label>
 
-          {
+          <select
+            value={selectedExam}
+            onChange={(e) =>
+              setSelectedExam(
+                e.target.value
+              )
+            }
+            className="
+              w-full
+              border
+              border-gray-300
+              rounded-xl
+              px-4
+              py-3
+            "
+          >
 
-            generating
+            <option value="">
+              Select Exam
+            </option>
 
-              ? 'Generating...'
+            {exams.map(exam => (
 
-              : 'Generate Rankings'
-          }
+              <option
+                key={exam.id}
+                value={exam.id}
+              >
 
-        </button>
+                {exam.title}
+                {' - '}
+                {exam.olympiad_subject}
+                {' - '}
+                Grade {exam.target_year}
 
-        {/* COUNT */}
-
-        <div className="
-          ml-auto
-          text-sm
-          text-gray-600
-          font-medium
-        ">
-
-          Total Records:
-          {' '}
-          {filteredRows.length}
-
-        </div>
-
-      </div>
-
-      {/* =====================================================
-         TABLE
-      ===================================================== */}
-
-      <div className="
-        bg-white
-        rounded-2xl
-        shadow-sm
-        overflow-x-auto
-      ">
-
-        <table style={styles.table}>
-
-          <thead>
-
-            <tr>
-
-              <th style={styles.th}>
-                Grade
-              </th>
-
-              <th style={styles.th}>
-                Subject
-              </th>
-
-              <th style={styles.th}>
-                National Rank
-              </th>
-
-              <th style={styles.th}>
-                Student
-              </th>
-
-              <th style={styles.th}>
-                School
-              </th>
-
-              <th style={styles.th}>
-                District
-              </th>
-
-              <th style={styles.th}>
-                State
-              </th>
-
-              <th style={styles.th}>
-                Score
-              </th>
-
-              <th style={styles.th}>
-                Accuracy
-              </th>
-
-              <th style={styles.th}>
-                State Rank
-              </th>
-
-              <th style={styles.th}>
-                District Rank
-              </th>
-
-            </tr>
-
-          </thead>
-
-          <tbody>
-
-            {loading && (
-
-              <tr>
-
-                <td
-                  colSpan="11"
-                  style={styles.td}
-                >
-                  Loading...
-                </td>
-
-              </tr>
-
-            )}
-
-            {!loading &&
-              filteredRows.length === 0 && (
-
-              <tr>
-
-                <td
-                  colSpan="11"
-                  style={styles.td}
-                >
-                  No Results Found
-                </td>
-
-              </tr>
-
-            )}
-
-            {!loading &&
-              filteredRows.map(row => (
-
-              <tr key={row.id}>
-
-                <td style={styles.td}>
-                  {row.grade}
-                </td>
-
-                <td style={styles.td}>
-                  {row.olympiad_category}
-                </td>
-
-                <td style={styles.td}>
-
-                  {row.national_rank === 1
-                    && '🥇 '}
-
-                  {row.national_rank === 2
-                    && '🥈 '}
-
-                  {row.national_rank === 3
-                    && '🥉 '}
-
-                  {row.national_rank}
-
-                </td>
-
-                <td style={styles.td}>
-                  {row.student_name}
-                </td>
-
-                <td style={styles.td}>
-                  {row.school_name}
-                </td>
-
-                <td style={styles.td}>
-                  {row.district}
-                </td>
-
-                <td style={styles.td}>
-                  {row.state}
-                </td>
-
-                <td style={styles.td}>
-                  {row.score}
-                </td>
-
-                <td style={styles.td}>
-                  {Number(
-                    row.accuracy || 0
-                  ).toFixed(2)}%
-                </td>
-
-                <td style={styles.td}>
-                  {row.state_rank}
-                </td>
-
-                <td style={styles.td}>
-                  {row.district_rank}
-                </td>
-
-              </tr>
+              </option>
 
             ))}
 
-          </tbody>
+          </select>
 
-        </table>
+        </div>
+
+        {/* =====================================================
+           BUTTONS
+        ===================================================== */}
+
+        <div className="
+          flex
+          flex-wrap
+          gap-4
+        ">
+
+          <button
+            onClick={generateRankings}
+            disabled={
+              generating ||
+              !selectedExam
+            }
+            className="
+              bg-blue-600
+              hover:bg-blue-700
+              disabled:bg-gray-400
+              text-white
+              px-5
+              py-3
+              rounded-xl
+              font-semibold
+            "
+          >
+
+            {
+
+              generating
+
+                ? 'Generating...'
+
+                : 'Generate Rankings'
+            }
+
+          </button>
+
+          <button
+            onClick={openResults}
+            disabled={!selectedExam}
+            className="
+              bg-green-600
+              hover:bg-green-700
+              disabled:bg-gray-400
+              text-white
+              px-5
+              py-3
+              rounded-xl
+              font-semibold
+            "
+          >
+
+            View Results
+
+          </button>
+
+        </div>
+
+        {/* =====================================================
+           STATUS
+        ===================================================== */}
+
+        {status && (
+
+          <div className="
+            mt-6
+            p-4
+            rounded-xl
+            bg-gray-100
+            text-gray-700
+            font-medium
+          ">
+
+            {status}
+
+          </div>
+
+        )}
+
+        {/* =====================================================
+           SUMMARY
+        ===================================================== */}
+
+        {summary && (
+
+          <div className="
+            mt-8
+            grid
+            grid-cols-1
+            md:grid-cols-2
+            gap-5
+          ">
+
+            {/* TOTAL */}
+
+            <div className="
+              bg-blue-50
+              border
+              border-blue-200
+              rounded-2xl
+              p-5
+            ">
+
+              <p className="
+                text-sm
+                text-blue-700
+                font-medium
+              ">
+                Total Rankings Generated
+              </p>
+
+              <h2 className="
+                text-4xl
+                font-bold
+                text-blue-900
+                mt-2
+              ">
+
+                {summary.totalRankings || 0}
+
+              </h2>
+
+            </div>
+
+            {/* PHASE 3 */}
+
+            <div className="
+              bg-purple-50
+              border
+              border-purple-200
+              rounded-2xl
+              p-5
+            ">
+
+              <p className="
+                text-sm
+                text-purple-700
+                font-medium
+              ">
+                Qualified For Phase 3
+              </p>
+
+              <h2 className="
+                text-4xl
+                font-bold
+                text-purple-900
+                mt-2
+              ">
+
+                {summary.phase3Qualified || 0}
+
+              </h2>
+
+            </div>
+
+          </div>
+
+        )}
 
       </div>
 
     </div>
   )
-}
-
-const styles = {
-
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse'
-  },
-
-  th: {
-    border: '1px solid #ccc',
-    padding: '10px',
-    background: '#f3f4f6',
-    textAlign: 'center',
-    fontWeight: 'bold'
-  },
-
-  td: {
-    border: '1px solid #ccc',
-    padding: '10px',
-    textAlign: 'center'
-  }
 }
