@@ -56,11 +56,19 @@ export default function AnseResultsPage() {
       const data =
         await res.json()
 
-      setExams(
-        Array.isArray(data)
-          ? data
-          : []
+     const filtered =
+
+  Array.isArray(data)
+
+    ? data.filter(
+        exam =>
+          exam.phase ===
+          'PHASE_1'
       )
+
+    : []
+
+setExams(filtered)
 
     } catch (err) {
 
