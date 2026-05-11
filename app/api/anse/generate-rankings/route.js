@@ -223,16 +223,16 @@ export async function POST(req) {
 
         if (questionIds.length > 0) {
 
-          const { data: qData } =
-            await supabase
-              .rpc('get_exam_questions')
-              .select(`
-                id,
-                correct_option
-              `)
-              .in('id', questionIds)
+          const rpcResult =
+  await supabase
+    .rpc('get_exam_questions', {
+      p_exam_id: session.exam_id
+    })
 
-          questions = qData || []
+console.log('RPC RESULT:', rpcResult)
+
+const questions =
+  rpcResult?.data || []
         }
 console.log('====================')
 
