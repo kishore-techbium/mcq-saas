@@ -1,13 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-import html2canvas from 'html2canvas'
-import jsPDF from 'jspdf'
-
-export default function AnseResultsPage() {
-
-  const reportRef = useRef()
+export default function Phase2Page() {
 
   const [exams, setExams] =
     useState([])
@@ -15,17 +10,20 @@ export default function AnseResultsPage() {
   const [selectedExam, setSelectedExam] =
     useState('')
 
+  const [loading, setLoading] =
+    useState(false)
+
+  const [generating, setGenerating] =
+    useState(false)
+
   const [rows, setRows] =
     useState([])
 
-  const [selectedSchool, setSelectedSchool] =
+  const [selectedGrade, setSelectedGrade] =
     useState('ALL')
 
-  const [qualifiedOnly, setQualifiedOnly] =
-    useState(false)
-
-  const [loading, setLoading] =
-    useState(false)
+  const [selectedSubject, setSelectedSubject] =
+    useState('ALL')
 
   /* =====================================================
      LOAD EXAMS
@@ -36,14 +34,6 @@ export default function AnseResultsPage() {
     loadExams()
 
   }, [])
-
-  useEffect(() => {
-
-    if (selectedExam) {
-      loadRankings()
-    }
-
-  }, [selectedExam])
 
   async function loadExams() {
 
@@ -68,10 +58,76 @@ export default function AnseResultsPage() {
   }
 
   /* =====================================================
-     LOAD RANKINGS
+     GENERATE RANKINGS
   ===================================================== */
 
-  async function loadRankings() {
+  async function generateRankings() {
+
+    if (!selectedExam) {
+      return
+    }
+
+    try {
+
+      setGenerating(true)
+
+      const res =
+        await fetch(
+          '/api/anse/generate-rankings-phase2',
+          {
+            method: 'POST',
+
+            headers: {
+              'Content-Type':
+                'application/json'
+            },
+
+            body: JSON.stringify({
+              examId: selectedExam
+            })
+          }
+        )
+
+      const data =
+        await res.json()
+
+      if (!res.ok) {
+
+        alert(
+          data.error ||
+          'Failed to generate rankings'
+        )
+
+        return
+      }
+
+      alert(
+        'Phase 2 rankings generated successfully'
+      )
+
+      loadResults()
+
+    } catch (err) {
+
+      console.error(err)
+
+      alert('Something went wrong')
+
+    } finally {
+
+      setGenerating(false)
+    }
+  }
+
+  /* =====================================================
+     LOAD RESULTS
+  ===================================================== */
+
+  async function loadResults() {
+
+    if (!selectedExam) {
+      return
+    }
 
     try {
 
@@ -79,18 +135,15 @@ export default function AnseResultsPage() {
 
       const res =
         await fetch(
-          `/api/anse/results/phase1?examId=${selectedExam}`
+          `/api/anse/results/phase2?examId=${selectedExam}`
         )
 
       const data =
         await res.json()
 
       setRows(
-
         Array.isArray(data.rankings)
-
           ? data.rankings
-
           : []
       )
 
@@ -104,17 +157,39 @@ export default function AnseResultsPage() {
     }
   }
 
+  useEffect(() => {
+
+    if (selectedExam) {
+      loadResults()
+    }
+
+  }, [selectedExam])
+
   /* =====================================================
-     UNIQUE SCHOOLS
+     FILTERS
   ===================================================== */
 
-  const schools = useMemo(() => {
+  const grades = useMemo(() => {
 
     return [
 
       ...new Set(
         rows.map(
-          r => r.school_name
+          r => r.grade
+        )
+      )
+
+    ].sort((a, b) => a - b)
+
+  }, [rows])
+
+  const subjects = useMemo(() => {
+
+    return [
+
+      ...new Set(
+        rows.map(
+          r => r.olympiad_category
         )
       )
 
@@ -122,104 +197,61 @@ export default function AnseResultsPage() {
 
   }, [rows])
 
-  /* =====================================================
-     FILTERED ROWS
-  ===================================================== */
-
   const filteredRows = useMemo(() => {
 
     let data = [...rows]
 
-    if (selectedSchool !== 'ALL') {
+    if (selectedGrade !== 'ALL') {
 
       data = data.filter(
         r =>
-          r.school_name ===
-          selectedSchool
+          String(r.grade) ===
+          String(selectedGrade)
       )
     }
 
-    if (qualifiedOnly) {
+    if (selectedSubject !== 'ALL') {
 
       data = data.filter(
-        r => r.qualified_phase2
+        r =>
+          r.olympiad_category ===
+          selectedSubject
       )
     }
+
+    data.sort((a, b) => {
+
+      if (a.grade !== b.grade) {
+        return a.grade - b.grade
+      }
+
+      if (
+        a.olympiad_category <
+        b.olympiad_category
+      ) {
+        return -1
+      }
+
+      if (
+        a.olympiad_category >
+        b.olympiad_category
+      ) {
+        return 1
+      }
+
+      return (
+        a.national_rank -
+        b.national_rank
+      )
+    })
 
     return data
 
   }, [
     rows,
-    selectedSchool,
-    qualifiedOnly
+    selectedGrade,
+    selectedSubject
   ])
-
-  /* =====================================================
-     PDF DOWNLOAD
-  ===================================================== */
-
-  async function downloadPDF() {
-
-    if (filteredRows.length === 0) {
-      return
-    }
-
-    const canvas =
-      await html2canvas(
-        reportRef.current,
-        {
-          scale: 2
-        }
-      )
-
-    const imgData =
-      canvas.toDataURL('image/png')
-
-    const pdf =
-      new jsPDF(
-        'p',
-        'mm',
-        'a4'
-      )
-
-    const pdfWidth = 210
-
-    const pdfHeight =
-      (canvas.height * pdfWidth)
-      / canvas.width
-
-    pdf.addImage(
-      imgData,
-      'PNG',
-      0,
-      0,
-      pdfWidth,
-      pdfHeight
-    )
-
-    const schoolPart =
-
-      selectedSchool === 'ALL'
-
-        ? 'All_Schools'
-
-        : selectedSchool
-            .replace(/\s+/g, '_')
-
-    pdf.save(
-      `${schoolPart}_Phase1_Results.pdf`
-    )
-  }
-
-  /* =====================================================
-     SELECTED EXAM
-  ===================================================== */
-
-  const selectedExamData =
-
-    exams.find(
-      e => e.id === selectedExam
-    )
 
   return (
 
@@ -233,61 +265,34 @@ export default function AnseResultsPage() {
          HEADER
       ===================================================== */}
 
-      <div className="
-        flex
-        justify-between
-        items-center
-        mb-8
-        flex-wrap
-        gap-4
-      ">
+      <div className="mb-8">
 
-        <div>
+        <h1 className="
+          text-4xl
+          font-bold
+          text-gray-800
+        ">
+          ANSE Phase 2 Rankings
+        </h1>
 
-          <h1 className="
-            text-4xl
-            font-bold
-            text-gray-800
-          ">
-            ANSE Phase 1 Results
-          </h1>
-
-          <p className="
-            text-gray-600
-            mt-2
-          ">
-            School Level Screening Results
-          </p>
-
-        </div>
-
-        <button
-          onClick={downloadPDF}
-          className="
-            bg-blue-600
-            hover:bg-blue-700
-            text-white
-            px-5
-            py-3
-            rounded-xl
-            font-semibold
-            shadow
-          "
-        >
-          Download PDF
-        </button>
+        <p className="
+          text-gray-600
+          mt-2
+        ">
+          National Subject Olympiad Rankings
+        </p>
 
       </div>
 
       {/* =====================================================
-         FILTERS
+         CONTROLS
       ===================================================== */}
 
       <div className="
         bg-white
-        p-5
         rounded-2xl
         shadow-sm
+        p-5
         mb-8
         flex
         flex-wrap
@@ -329,7 +334,7 @@ export default function AnseResultsPage() {
               {' - '}
               {exam.exam_category}
               {' - '}
-              Class {exam.target_year}
+              Grade {exam.target_year}
 
             </option>
 
@@ -337,12 +342,12 @@ export default function AnseResultsPage() {
 
         </select>
 
-        {/* SCHOOL */}
+        {/* GRADE */}
 
         <select
-          value={selectedSchool}
+          value={selectedGrade}
           onChange={(e) =>
-            setSelectedSchool(
+            setSelectedGrade(
               e.target.value
             )
           }
@@ -352,51 +357,91 @@ export default function AnseResultsPage() {
             rounded-xl
             px-4
             py-3
-            min-w-[250px]
           "
         >
 
           <option value="ALL">
-            All Schools
+            All Grades
           </option>
 
-          {schools.map(school => (
+          {grades.map(g => (
 
             <option
-              key={school}
-              value={school}
+              key={g}
+              value={g}
             >
-
-              {school}
-
+              Grade {g}
             </option>
 
           ))}
 
         </select>
 
-        {/* QUALIFIED */}
+        {/* SUBJECT */}
 
-        <label className="
-          flex
-          items-center
-          gap-2
-          font-medium
-        ">
+        <select
+          value={selectedSubject}
+          onChange={(e) =>
+            setSelectedSubject(
+              e.target.value
+            )
+          }
+          className="
+            border
+            border-gray-300
+            rounded-xl
+            px-4
+            py-3
+          "
+        >
 
-          <input
-            type="checkbox"
-            checked={qualifiedOnly}
-            onChange={(e) =>
-              setQualifiedOnly(
-                e.target.checked
-              )
-            }
-          />
+          <option value="ALL">
+            All Subjects
+          </option>
 
-          Qualified Only
+          {subjects.map(sub => (
 
-        </label>
+            <option
+              key={sub}
+              value={sub}
+            >
+              {sub}
+            </option>
+
+          ))}
+
+        </select>
+
+        {/* BUTTON */}
+
+        <button
+          onClick={generateRankings}
+          disabled={
+            !selectedExam ||
+            generating
+          }
+          className="
+            bg-blue-600
+            hover:bg-blue-700
+            disabled:bg-gray-400
+            text-white
+            px-5
+            py-3
+            rounded-xl
+            font-semibold
+          "
+        >
+
+          {
+
+            generating
+
+              ? 'Generating...'
+
+              : 'Generate Rankings'
+          }
+
+        </button>
 
         {/* COUNT */}
 
@@ -416,314 +461,184 @@ export default function AnseResultsPage() {
       </div>
 
       {/* =====================================================
-         REPORT
+         TABLE
       ===================================================== */}
 
-      <div
-        ref={reportRef}
-        className="
-          bg-white
-          rounded-2xl
-          shadow-sm
-          overflow-hidden
-        "
-      >
-
-        {/* =====================================================
-           REPORT HEADER
-        ===================================================== */}
-
-        <div className="
-          border-b
-          border-gray-300
-          p-8
-          text-center
-        ">
-
-          <h2 className="
-            text-3xl
-            font-bold
-            text-gray-800
-          ">
-
-            AURELIUS NATIONAL
-            SCHOLARSHIP EXAM
-
-          </h2>
-
-          <p className="
-            text-lg
-            mt-2
-            text-gray-600
-          ">
-
-            Phase 1 Screening Result Sheet
-
-          </p>
-
-          {selectedExamData && (
-
-            <div className="
-              mt-5
-              text-sm
-              text-gray-700
-              space-y-1
-            ">
-
-              <p>
-                <b>Exam:</b>
-                {' '}
-                {selectedExamData.title}
-              </p>
-
-              <p>
-                <b>Category:</b>
-                {' '}
-                {selectedExamData.exam_category}
-              </p>
-
-              <p>
-                <b>Class:</b>
-                {' '}
-                {selectedExamData.target_year}
-              </p>
-
-              <p>
-                <b>School:</b>
-                {' '}
-                {selectedSchool === 'ALL'
-
-                  ? 'All Schools'
-
-                  : selectedSchool
-                }
-              </p>
-
-            </div>
-
-          )}
-
-        </div>
-
-        {/* =====================================================
-           TABLE
-        ===================================================== */}
-
-        <div className="overflow-x-auto">
+      <div className="
+        bg-white
+        rounded-2xl
+        shadow-sm
+        overflow-x-auto
+      ">
 
         <table style={styles.table}>
-            <thead>
 
-              <tr className="
-                bg-gray-100
-                text-gray-700
-              ">
+          <thead>
 
-           <th style={styles.th}>
-                  School Rank
-                </th>
+            <tr>
 
-     <th style={styles.th}>
-                  Student
-                </th>
+              <th style={styles.th}>
+                Grade
+              </th>
 
-            <th style={styles.th}>
-                  School
-                </th>
+              <th style={styles.th}>
+                Subject
+              </th>
 
-       <th style={styles.th}>
-                  City
-                </th>
+              <th style={styles.th}>
+                National Rank
+              </th>
 
-         <th style={styles.th}>
-                  District
-                </th>
+              <th style={styles.th}>
+                Student
+              </th>
 
-    <th style={styles.th}>
-                  State
-                </th>
+              <th style={styles.th}>
+                School
+              </th>
 
-     <th style={styles.th}>
-                  Score
-                </th>
+              <th style={styles.th}>
+                District
+              </th>
 
-       <th style={styles.th}>
-                  Accuracy
-                </th>
+              <th style={styles.th}>
+                State
+              </th>
 
-           <th style={styles.th}>
-                  Qualified
-                </th>
+              <th style={styles.th}>
+                Score
+              </th>
+
+              <th style={styles.th}>
+                Accuracy
+              </th>
+
+              <th style={styles.th}>
+                State Rank
+              </th>
+
+              <th style={styles.th}>
+                District Rank
+              </th>
+
+            </tr>
+
+          </thead>
+
+          <tbody>
+
+            {loading && (
+
+              <tr>
+
+                <td
+                  colSpan="11"
+                  style={styles.td}
+                >
+                  Loading...
+                </td>
 
               </tr>
 
-            </thead>
+            )}
 
-            <tbody>
+            {!loading &&
+              filteredRows.length === 0 && (
 
-              {loading && (
+              <tr>
 
-                <tr>
-
-         <td style={styles.td}>
-                    Loading...
-
-                  </td>
-
-                </tr>
-
-              )}
-
-              {!loading &&
-                filteredRows.length === 0 && (
-
-                <tr>
-
-      <td style={styles.td}>
-
-                    No results found
-
-                  </td>
-
-                </tr>
-
-              )}
-
-              {!loading &&
-                filteredRows.map((row, idx) => (
-
-                <tr
-                  key={row.id}
-                  className={
-                    idx % 2 === 0
-                      ? 'bg-white'
-                      : 'bg-gray-50'
-                  }
+                <td
+                  colSpan="11"
+                  style={styles.td}
                 >
+                  No Results Found
+                </td>
 
-              <td style={styles.td}>
-                    {row.school_rank === 1 && '🥇 '}
-                    {row.school_rank === 2 && '🥈 '}
-                    {row.school_rank === 3 && '🥉 '}
+              </tr>
 
-                    {row.school_rank}
+            )}
 
-                  </td>
+            {!loading &&
+              filteredRows.map(row => (
 
-              <td style={styles.td}>
+              <tr key={row.id}>
 
-                    {row.student_name}
+                <td style={styles.td}>
+                  {row.grade}
+                </td>
 
-                  </td>
+                <td style={styles.td}>
+                  {row.olympiad_category}
+                </td>
 
-             <td style={styles.td}>
+                <td style={styles.td}>
 
-                    {row.school_name}
+                  {row.national_rank === 1
+                    && '🥇 '}
 
-                  </td>
+                  {row.national_rank === 2
+                    && '🥈 '}
 
-          <td style={styles.td}>
+                  {row.national_rank === 3
+                    && '🥉 '}
 
-                    {row.city}
+                  {row.national_rank}
 
-                  </td>
+                </td>
 
-           <td style={styles.td}>
-                    {row.district}
+                <td style={styles.td}>
+                  {row.student_name}
+                </td>
 
-                  </td>
+                <td style={styles.td}>
+                  {row.school_name}
+                </td>
 
-          <td style={styles.td}>
+                <td style={styles.td}>
+                  {row.district}
+                </td>
 
-                    {row.state}
+                <td style={styles.td}>
+                  {row.state}
+                </td>
 
-                  </td>
+                <td style={styles.td}>
+                  {row.score}
+                </td>
 
-           <td style={styles.td}>
+                <td style={styles.td}>
+                  {Number(
+                    row.accuracy || 0
+                  ).toFixed(2)}%
+                </td>
 
-                    {row.score}
+                <td style={styles.td}>
+                  {row.state_rank}
+                </td>
 
-                  </td>
+                <td style={styles.td}>
+                  {row.district_rank}
+                </td>
 
-           <td style={styles.td}>
-                    {Number(
-                      row.accuracy || 0
-                    ).toFixed(2)}%
+              </tr>
 
-                  </td>
+            ))}
 
-           <td style={styles.td}>
+          </tbody>
 
-                    {row.qualified_phase2
-
-                      ? (
-                        <span className="
-                          text-green-600
-                          font-bold
-                        ">
-                          ✅ Qualified
-                        </span>
-                      )
-
-                      : (
-                        <span className="
-                          text-gray-400
-                        ">
-                          -
-                        </span>
-                      )
-                    }
-
-                  </td>
-
-                </tr>
-
-              ))}
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-        {/* =====================================================
-           FOOTER
-        ===================================================== */}
-
-        <div className="
-          p-6
-          border-t
-          border-gray-300
-          text-sm
-          text-gray-600
-          bg-gray-50
-        ">
-
-          <p>
-
-            <b>Note:</b>
-            {' '}
-            These are Phase 1 school-level screening
-            results used only for qualification into
-            Phase 2. Official National Rankings will
-            be generated after the centralized
-            Phase 2 examination.
-
-          </p>
-
-        </div>
+        </table>
 
       </div>
 
     </div>
   )
 }
+
 const styles = {
 
   table: {
     width: '100%',
-    borderCollapse: 'collapse',
-    tableLayout: 'fixed'
+    borderCollapse: 'collapse'
   },
 
   th: {
