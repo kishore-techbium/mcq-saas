@@ -149,7 +149,10 @@ export async function GET(req) {
           schoolMap[r.school_id]?.state || '-'
       }))
 
-    return Response.json(result)
+    return Response.json({
+  phase: 'PHASE_1',
+  rankings: result
+})
 
   } catch (err) {
 
