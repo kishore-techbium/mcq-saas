@@ -498,7 +498,102 @@ export async function POST(req) {
 
         finalRows.push(...group)
       })
+/* ======================================================
+   PHASE 3 ELIGIBILITY
+====================================================== */
 
+const qualifiedStudents =
+
+  finalRows.filter(
+    r => r.qualified_phase3
+  )
+
+for (const student of qualifiedStudents) {
+
+  /* ==========================================
+     FIND PHASE 3 EXAM
+  ========================================== */
+
+  const {
+    data: phase3Exam
+  } = await supabase
+
+    .from('exams')
+
+    .select('id')
+
+    .eq('phase', 'PHASE_3')
+
+    .eq(
+      'target_year',
+      student.grade
+    )
+
+    .eq(
+      'olympiad_subject',
+      exam.olympiad_subject
+    )
+
+    .single()
+
+  if (!phase3Exam) {
+
+    console.error(
+      'Phase 3 exam not found'
+    )
+
+    continue
+  }
+
+  /* ==========================================
+     UPSERT ELIGIBILITY
+  ========================================== */
+
+  const {
+    error: eligibilityError
+  } = await supabase
+
+    .from(
+      'anse_student_phase_eligibility'
+    )
+
+.upsert(
+  {
+      student_id:
+        student.student_id,
+
+      olympiad_subject:
+        exam.olympiad_subject,
+
+      grade:
+        student.grade,
+
+      qualified_phase2:
+        true,
+
+      qualified_phase3:
+        true,
+
+      phase2_exam_id:
+        examId,
+
+      phase3_exam_id:
+        phase3Exam.id
+    
+},
+{
+  onConflict:
+    'student_id,olympiad_subject,grade'
+}
+)
+
+  if (eligibilityError) {
+
+    console.error(
+      eligibilityError
+    )
+  }
+}
     /* ======================================================
        INSERT INTO DB
     ====================================================== */
