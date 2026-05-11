@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import {
   calculateExamMetrics
-} from '../../../lib/anseExamMetrics'
+} from '../../../../../lib/anseExamMetrics'
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
