@@ -632,3 +632,44 @@ if (eligibleStudents.length > 0) {
     )
   }
 }
+    if (insertError) {
+
+      console.error(insertError)
+
+      return Response.json(
+        {
+          error:
+            insertError.message
+        },
+        { status: 500 }
+      )
+    }
+
+    return Response.json({
+
+      success: true,
+
+      totalRankings:
+        rows.length,
+
+      qualifiedForPhase2:
+
+        rows.filter(
+          r => r.qualified_phase2
+        ).length
+    })
+
+  } catch (err) {
+
+    console.error(err)
+
+    return Response.json(
+      {
+        error:
+          err?.message ||
+          'Internal server error'
+      },
+      { status: 500 }
+    )
+  }
+}
