@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
@@ -18,11 +18,18 @@ export default function AnseResultsPage() {
   const [rows, setRows] =
     useState([])
 
+  const [selectedSchool, setSelectedSchool] =
+    useState('ALL')
+
   const [qualifiedOnly, setQualifiedOnly] =
     useState(false)
 
   const [loading, setLoading] =
     useState(false)
+
+  /* =====================================================
+     LOAD EXAMS
+  ===================================================== */
 
   useEffect(() => {
 
@@ -37,10 +44,6 @@ export default function AnseResultsPage() {
     }
 
   }, [selectedExam])
-
-  /* =====================================================
-     LOAD EXAMS
-  ===================================================== */
 
   async function loadExams() {
 
@@ -102,10 +105,64 @@ export default function AnseResultsPage() {
   }
 
   /* =====================================================
+     UNIQUE SCHOOLS
+  ===================================================== */
+
+  const schools = useMemo(() => {
+
+    return [
+
+      ...new Set(
+        rows.map(
+          r => r.school_name
+        )
+      )
+
+    ].sort()
+
+  }, [rows])
+
+  /* =====================================================
+     FILTERED ROWS
+  ===================================================== */
+
+  const filteredRows = useMemo(() => {
+
+    let data = [...rows]
+
+    if (selectedSchool !== 'ALL') {
+
+      data = data.filter(
+        r =>
+          r.school_name ===
+          selectedSchool
+      )
+    }
+
+    if (qualifiedOnly) {
+
+      data = data.filter(
+        r => r.qualified_phase2
+      )
+    }
+
+    return data
+
+  }, [
+    rows,
+    selectedSchool,
+    qualifiedOnly
+  ])
+
+  /* =====================================================
      PDF DOWNLOAD
   ===================================================== */
 
   async function downloadPDF() {
+
+    if (filteredRows.length === 0) {
+      return
+    }
 
     const canvas =
       await html2canvas(
@@ -140,24 +197,19 @@ export default function AnseResultsPage() {
       pdfHeight
     )
 
+    const schoolPart =
+
+      selectedSchool === 'ALL'
+
+        ? 'All_Schools'
+
+        : selectedSchool
+            .replace(/\s+/g, '_')
+
     pdf.save(
-      'ANSE_Phase1_Results.pdf'
+      `${schoolPart}_Phase1_Results.pdf`
     )
   }
-
-  /* =====================================================
-     FILTERED ROWS
-  ===================================================== */
-
-  const filteredRows =
-
-    qualifiedOnly
-
-      ? rows.filter(
-          r => r.qualified_phase2
-        )
-
-      : rows
 
   /* =====================================================
      SELECTED EXAM
@@ -171,7 +223,11 @@ export default function AnseResultsPage() {
 
   return (
 
-    <div className="p-8 bg-gray-100 min-h-screen">
+    <div className="
+      p-8
+      bg-gray-100
+      min-h-screen
+    ">
 
       {/* =====================================================
          HEADER
@@ -239,6 +295,8 @@ export default function AnseResultsPage() {
         items-center
       ">
 
+        {/* EXAM */}
+
         <select
           value={selectedExam}
           onChange={(e) =>
@@ -252,7 +310,7 @@ export default function AnseResultsPage() {
             rounded-xl
             px-4
             py-3
-            min-w-[350px]
+            min-w-[320px]
           "
         >
 
@@ -279,6 +337,46 @@ export default function AnseResultsPage() {
 
         </select>
 
+        {/* SCHOOL */}
+
+        <select
+          value={selectedSchool}
+          onChange={(e) =>
+            setSelectedSchool(
+              e.target.value
+            )
+          }
+          className="
+            border
+            border-gray-300
+            rounded-xl
+            px-4
+            py-3
+            min-w-[250px]
+          "
+        >
+
+          <option value="ALL">
+            All Schools
+          </option>
+
+          {schools.map(school => (
+
+            <option
+              key={school}
+              value={school}
+            >
+
+              {school}
+
+            </option>
+
+          ))}
+
+        </select>
+
+        {/* QUALIFIED */}
+
         <label className="
           flex
           items-center
@@ -299,6 +397,8 @@ export default function AnseResultsPage() {
           Qualified Only
 
         </label>
+
+        {/* COUNT */}
 
         <div className="
           ml-auto
@@ -388,6 +488,17 @@ export default function AnseResultsPage() {
                 {selectedExamData.target_year}
               </p>
 
+              <p>
+                <b>School:</b>
+                {' '}
+                {selectedSchool === 'ALL'
+
+                  ? 'All Schools'
+
+                  : selectedSchool
+                }
+              </p>
+
             </div>
 
           )}
@@ -419,9 +530,8 @@ export default function AnseResultsPage() {
                 <th className="
                   border
                   border-gray-400
-                  bg-gray-100
                   p-4
-                  text-center
+                  bg-gray-100
                 ">
                   School Rank
                 </th>
@@ -429,8 +539,8 @@ export default function AnseResultsPage() {
                 <th className="
                   border
                   border-gray-400
-                  bg-gray-100
                   p-4
+                  bg-gray-100
                 ">
                   Student
                 </th>
@@ -438,8 +548,8 @@ export default function AnseResultsPage() {
                 <th className="
                   border
                   border-gray-400
-                  bg-gray-100
                   p-4
+                  bg-gray-100
                 ">
                   School
                 </th>
@@ -447,9 +557,8 @@ export default function AnseResultsPage() {
                 <th className="
                   border
                   border-gray-400
-                  bg-gray-100
                   p-4
-                  text-center
+                  bg-gray-100
                 ">
                   City
                 </th>
@@ -457,9 +566,8 @@ export default function AnseResultsPage() {
                 <th className="
                   border
                   border-gray-400
-                  bg-gray-100
                   p-4
-                  text-center
+                  bg-gray-100
                 ">
                   District
                 </th>
@@ -467,9 +575,8 @@ export default function AnseResultsPage() {
                 <th className="
                   border
                   border-gray-400
-                  bg-gray-100
                   p-4
-                  text-center
+                  bg-gray-100
                 ">
                   State
                 </th>
@@ -477,8 +584,8 @@ export default function AnseResultsPage() {
                 <th className="
                   border
                   border-gray-400
-                  bg-gray-100
                   p-4
+                  bg-gray-100
                   text-center
                 ">
                   Score
@@ -487,8 +594,8 @@ export default function AnseResultsPage() {
                 <th className="
                   border
                   border-gray-400
-                  bg-gray-100
                   p-4
+                  bg-gray-100
                   text-center
                 ">
                   Accuracy
@@ -497,8 +604,8 @@ export default function AnseResultsPage() {
                 <th className="
                   border
                   border-gray-400
-                  bg-gray-100
                   p-4
+                  bg-gray-100
                   text-center
                 ">
                   Qualified
@@ -573,7 +680,6 @@ export default function AnseResultsPage() {
                   <td className="
                     border
                     border-gray-400
-                    bg-white
                     p-4
                     text-center
                     font-bold
@@ -590,7 +696,6 @@ export default function AnseResultsPage() {
                   <td className="
                     border
                     border-gray-400
-                    bg-white
                     p-4
                     font-medium
                   ">
@@ -602,7 +707,6 @@ export default function AnseResultsPage() {
                   <td className="
                     border
                     border-gray-400
-                    bg-white
                     p-4
                   ">
 
@@ -613,9 +717,7 @@ export default function AnseResultsPage() {
                   <td className="
                     border
                     border-gray-400
-                    bg-white
                     p-4
-                    text-center
                   ">
 
                     {row.city}
@@ -625,9 +727,7 @@ export default function AnseResultsPage() {
                   <td className="
                     border
                     border-gray-400
-                    bg-white
                     p-4
-                    text-center
                   ">
 
                     {row.district}
@@ -637,9 +737,7 @@ export default function AnseResultsPage() {
                   <td className="
                     border
                     border-gray-400
-                    bg-white
                     p-4
-                    text-center
                   ">
 
                     {row.state}
@@ -649,7 +747,6 @@ export default function AnseResultsPage() {
                   <td className="
                     border
                     border-gray-400
-                    bg-white
                     p-4
                     text-center
                     font-bold
@@ -663,7 +760,6 @@ export default function AnseResultsPage() {
                   <td className="
                     border
                     border-gray-400
-                    bg-white
                     p-4
                     text-center
                     font-semibold
@@ -678,7 +774,6 @@ export default function AnseResultsPage() {
                   <td className="
                     border
                     border-gray-400
-                    bg-white
                     p-4
                     text-center
                   ">
@@ -716,7 +811,7 @@ export default function AnseResultsPage() {
         </div>
 
         {/* =====================================================
-           FOOTER NOTE
+           FOOTER
         ===================================================== */}
 
         <div className="
