@@ -34,24 +34,33 @@ export default function AnseResultsPage() {
 
 useEffect(() => {
 
-  loadExams()
+  async function init() {
 
-  const examId =
-    searchParams.get('examId')
+    await loadExams()
 
-  if (examId) {
+    const examId =
+      searchParams.get('examId')
 
-    setSelectedExam(examId)
+    if (examId) {
+
+      setSelectedExam(examId)
+
+      loadRankings(examId)
+    }
   }
 
+  init()
+
 }, [])
-  useEffect(() => {
 
-    if (selectedExam) {
-      loadRankings()
-    }
+useEffect(() => {
 
-  }, [selectedExam])
+  if (selectedExam) {
+
+    loadRankings(selectedExam)
+  }
+
+}, [selectedExam])
 
   async function loadExams() {
 
@@ -87,7 +96,9 @@ setExams(filtered)
      LOAD RANKINGS
   ===================================================== */
 
-  async function loadRankings() {
+async function loadRankings(
+  examIdParam
+) {
 
     try {
 
@@ -95,7 +106,7 @@ setExams(filtered)
 
       const res =
         await fetch(
-          `/api/anse/results/phase1?examId=${selectedExam}`
+          `/api/anse/results/phase1?examId=${examIdParam || selectedExam}`
         )
 
       const data =
