@@ -69,6 +69,9 @@ export default function ExamPage({ params }) {
   const [loading, setLoading] = useState(true)
   const [showConfirm, setShowConfirm] = useState(false)  
   const [showCertificate, setShowCertificate] = useState(false)
+  console.log('showCertificate:', showCertificate)
+console.log('submitted:', submitted)
+console.log('exam:', exam)
     // 🔐 Integrity tracking (SAFE - no side effects)
   const [tabSwitchCount, setTabSwitchCount] = useState(0)
   const [blurCount, setBlurCount] = useState(0)
@@ -226,11 +229,14 @@ if (!currentUser) {
 })
 
 const data = await res.json()
-
+console.log('API DATA:', data)
 setShowCertificate(
   data.isSchoolStudent || false
 )
-    
+console.log(
+  'SETTING SHOW CERTIFICATE:',
+  data.isSchoolStudent
+)    
 if (!res.ok || !data || data.error) {
   alert('Unable to load exam')
   window.location.href = '/dashboard'
@@ -658,7 +664,15 @@ if (submitted) {
      DIGITAL CERTIFICATE
   ====================================================== */}
 
-  {showCertificate && (
+  {console.log(
+  'RENDER CHECK:',
+  {
+    showCertificate,
+    submitted
+  }
+)}
+
+{showCertificate && (
 
     <button
 
