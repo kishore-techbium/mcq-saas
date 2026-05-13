@@ -104,15 +104,27 @@ async function loadChildCategories(
   // SCHOOL STUDENTS
   // ONLY THEIR CLASS
 
-  if (
-    parentCode === 'SCHOOL' &&
-    studentStudyYear
-  ) {
+ if (studentStudyYear) {
 
-    childCategories = childCategories.filter(
-      cat => cat.code === `CLASS_${studentStudyYear}`
+  const expectedClass =
+    `CLASS_${studentStudyYear}`
+
+  const hasClassCategories =
+
+    childCategories.some(
+      cat =>
+        cat.code?.startsWith('CLASS_')
     )
+
+  if (hasClassCategories) {
+
+    childCategories =
+      childCategories.filter(
+        cat =>
+          cat.code === expectedClass
+      )
   }
+}
 
   setCategories(childCategories)
 }
