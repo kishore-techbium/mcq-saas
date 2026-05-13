@@ -178,121 +178,146 @@ export default function Phase3RankingEngine() {
 
         </p>
 
-        {/* =====================================================
-           SELECT EXAM
-        ===================================================== */}
+      <div className="
+  flex
+  flex-col
+  lg:flex-row
+  gap-5
+  items-stretch
+  lg:items-end
+  justify-between
+  bg-gray-50
+  border
+  border-gray-200
+  rounded-3xl
+  p-6
+  mb-4
+">
 
-        <div className="mb-8">
+  {/* SELECT */}
 
-          <label className="
-            block
-            text-sm
-            font-semibold
-            mb-3
-            text-gray-700
-          ">
+  <div className="flex-1">
 
-            Select Phase 3 Exam
+    <label className="
+      block
+      text-sm
+      font-semibold
+      mb-3
+      text-gray-700
+    ">
 
-          </label>
+      Select Phase 3 Exam
 
-          <select
-            value={selectedExam}
-            onChange={(e) =>
-              setSelectedExam(
-                e.target.value
-              )
-            }
-            className="
-              w-full
-              border
-              border-gray-300
-              rounded-2xl
-              px-5
-              py-4
-              text-lg
-            "
-          >
+    </label>
 
-            <option value="">
-              Select Exam
-            </option>
+    <select
+      value={selectedExam}
+      onChange={(e) =>
+        setSelectedExam(
+          e.target.value
+        )
+      }
+      className="
+        w-full
+        border
+        border-gray-300
+        rounded-2xl
+        px-5
+        py-4
+        text-lg
+        bg-white
+        shadow-sm
+        focus:outline-none
+        focus:ring-2
+        focus:ring-yellow-400
+      "
+    >
 
-            {exams.map(exam => (
+      <option value="">
+        Select Exam
+      </option>
 
-              <option
-                key={exam.id}
-                value={exam.id}
-              >
+      {exams.map(exam => (
 
-                {exam.title}
-                {' - '}
-                {exam.exam_category}
-                {' - '}
-                Grade {exam.target_year}
+        <option
+          key={exam.id}
+          value={exam.id}
+        >
 
-              </option>
+          {exam.title}
+          {' - '}
+          {exam.exam_category}
+          {' - '}
+          Grade {exam.target_year}
 
-            ))}
+        </option>
 
-          </select>
+      ))}
 
-        </div>
+    </select>
 
-        {/* =====================================================
-           ACTION BUTTONS
-        ===================================================== */}
+  </div>
 
-        <div className="
-          flex
-          gap-4
-          flex-wrap
-        ">
+  {/* BUTTONS */}
 
-          <button
-            onClick={generateRankings}
-            disabled={loading}
-            className="
-              bg-black
-              hover:bg-gray-800
-              text-white
-              px-6
-              py-4
-              rounded-2xl
-              font-semibold
-              text-lg
-            "
-          >
+  <div className="
+    flex
+    gap-3
+    flex-wrap
+  ">
 
-            {loading
+    <button
+      onClick={generateRankings}
+      disabled={loading}
+      className="
+        bg-gradient-to-r
+        from-yellow-500
+        to-orange-500
+        hover:from-yellow-600
+        hover:to-orange-600
+        text-black
+        px-6
+        py-4
+        rounded-2xl
+        font-bold
+        text-lg
+        shadow-lg
+      "
+    >
 
-              ? 'Generating...'
+      {loading
 
-              : 'Generate Crown Rankings'
-            }
+        ? 'Generating...'
 
-          </button>
+        : '👑 Generate Crown Rankings'
+      }
 
-          <button
-            onClick={viewResults}
-            className="
-              bg-yellow-500
-              hover:bg-yellow-600
-              text-black
-              px-6
-              py-4
-              rounded-2xl
-              font-semibold
-              text-lg
-            "
-          >
+    </button>
 
-            View Results
+    <button
+      onClick={viewResults}
+      className="
+        bg-white
+        border
+        border-gray-300
+        hover:bg-gray-100
+        text-gray-800
+        px-6
+        py-4
+        rounded-2xl
+        font-bold
+        text-lg
+        shadow-sm
+      "
+    >
 
-          </button>
+      📊 View Results
 
-        </div>
+    </button>
 
+  </div>
+
+</div>
         {/* =====================================================
            STATUS
         ===================================================== */}
