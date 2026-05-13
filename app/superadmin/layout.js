@@ -30,7 +30,7 @@ export default function SuperAdminLayout({ children }) {
         <Link href="/superadmin/anse/phase2">ANSE ranking engine phase II</Link>
         <Link href="/superadmin/anse/phase3">ANSE ranking engine phase III</Link>
         <Link href="/superadmin/anse/results">ANSE results</Link>
-        <Link href="/superadmin/anse/school-championships">ANSE results</Link>
+        <Link href="/superadmin/anse/school-championships">ANSE School rankings</Link>
         <button onClick={logout} style={styles.logout}>
           Logout
         </button>
