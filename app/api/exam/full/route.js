@@ -6,18 +6,66 @@ const supabase = createClient(
 )
 
 export async function POST(req) {
-  const { examId } = await req.json()
+
+  const {
+    examId,
+    studentId
+  } = await req.json()
+
+  /* ======================================================
+     LOAD EXAM
+  ====================================================== */
 
   const { data: exam } = await supabase
+
     .from('exams')
+
     .select('*')
+
     .eq('id', examId)
+
     .single()
 
+  /* ======================================================
+     LOAD QUESTIONS
+  ====================================================== */
+
   const { data: questions } = await supabase.rpc(
+
     'get_exam_questions',
+
     { p_exam_id: examId }
   )
 
-  return Response.json({ exam, questions })
+  /* ======================================================
+     SCHOOL STUDENT CHECK
+  ====================================================== */
+
+  let isSchoolStudent = false
+
+  if (studentId) {
+
+    const {
+      data: student
+    } = await supabase
+
+      .from('students')
+
+      .select('school_id')
+
+      .eq('id', studentId)
+
+      .single()
+
+    isSchoolStudent =
+      !!student?.school_id
+  }
+
+  return Response.json({
+
+    exam,
+    questions,
+
+    isSchoolStudent
+  })
 }
