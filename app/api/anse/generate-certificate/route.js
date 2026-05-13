@@ -27,39 +27,62 @@ export async function POST(req) {
     const body =
       await req.json()
 
-const {
-  sessionId,
-  examId
-} = body
+    const {
+      sessionId,
+      examId
+    } = body
 
-if (
-  !sessionId ||
-  !examId
-) {
+    /* ======================================================
+       VALIDATION
+    ====================================================== */
 
-  return Response.json(
-    {
-      error:
-        'Missing data'
-    },
-    { status: 400 }
-  )
-}
+    if (
+      !sessionId ||
+      !examId
+    ) {
 
-const {
-  data: session
-} = await supabase
+      return Response.json(
+        {
+          error:
+            'Missing data'
+        },
+        { status: 400 }
+      )
+    }
 
-  .from('exam_sessions')
+    /* ======================================================
+       LOAD SESSION
+    ====================================================== */
 
-  .select('student_id')
+    const {
+      data: examSession,
+      error: sessionError
+    } = await supabase
 
-  .eq('id', sessionId)
+      .from('exam_sessions')
 
-  .single()
+      .select('*')
 
-const studentId =
-  session?.student_id
+      .eq('id', sessionId)
+
+      .single()
+
+    if (
+      sessionError ||
+      !examSession
+    ) {
+
+      return Response.json(
+        {
+          error:
+            'Session not found'
+        },
+        { status: 404 }
+      )
+    }
+
+    const studentId =
+      examSession.student_id
 
     /* ======================================================
        CHECK EXISTING CERTIFICATE
@@ -109,7 +132,10 @@ const studentId =
 
       .single()
 
-    if (studentError || !student) {
+    if (
+      studentError ||
+      !student
+    ) {
 
       return Response.json(
         {
@@ -137,7 +163,10 @@ const studentId =
 
       .single()
 
-    if (examError || !exam) {
+    if (
+      examError ||
+      !exam
+    ) {
 
       return Response.json(
         {
@@ -149,7 +178,7 @@ const studentId =
     }
 
     /* ======================================================
-       LOAD RANKING
+       LOAD RANKINGS
     ====================================================== */
 
     const {
@@ -163,30 +192,6 @@ const studentId =
       .eq('student_id', studentId)
 
       .eq('exam_id', examId)
-
-      .maybeSingle()
-
-    /* ======================================================
-       LOAD SESSION SCORE
-    ====================================================== */
-
-    const {
-      data: session
-    } = await supabase
-
-      .from('exam_sessions')
-
-      .select('*')
-
-      .eq('student_id', studentId)
-
-      .eq('exam_id', examId)
-
-      .order('created_at', {
-        ascending: false
-      })
-
-      .limit(1)
 
       .maybeSingle()
 
@@ -220,7 +225,7 @@ const studentId =
     }
 
     /* ======================================================
-       INSERT
+       INSERT CERTIFICATE
     ====================================================== */
 
     const insertData = {
@@ -264,7 +269,7 @@ const studentId =
         ranking?.district_rank || null,
 
       score:
-        session?.score || null
+        examSession?.score || null
     }
 
     const {
