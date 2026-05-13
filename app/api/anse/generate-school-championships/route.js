@@ -165,7 +165,7 @@ export async function POST() {
     ]
 
     const {
-      data: schools
+      data: schoolRows
     } = await supabase
 
       .from('schools')
@@ -176,7 +176,7 @@ export async function POST() {
 
     const schoolsLookup = {}
 
-    ;(schools || []).forEach(s => {
+    ;(schoolRows || []).forEach(s => {
 
       schoolsLookup[s.id] = s
     })
@@ -278,10 +278,10 @@ export async function POST() {
        FINALIZE TOTAL POINTS
     ====================================================== */
 
-    let schools =
+    const schoolsData =
       Object.values(schoolMap)
 
-    schools.forEach(s => {
+    schoolsData.forEach(s => {
 
       s.total_points =
 
@@ -300,14 +300,14 @@ export async function POST() {
        NATIONAL RANKINGS
     ====================================================== */
 
-    schools.sort((a, b) =>
+    schoolsData.sort((a, b) =>
 
       b.total_points -
       a.total_points
     )
 
     assignCompetitionRanks(
-      schools,
+      schoolsData,
       'national_rank'
     )
 
@@ -315,7 +315,7 @@ export async function POST() {
        NATIONAL TITLES
     ====================================================== */
 
-    schools.forEach(s => {
+    schoolsData.forEach(s => {
 
       if (s.national_rank === 1) {
 
@@ -344,7 +344,7 @@ export async function POST() {
 
     const stateGroups = {}
 
-    schools.forEach(s => {
+    schoolsData.forEach(s => {
 
       if (!stateGroups[s.state]) {
 
@@ -398,7 +398,7 @@ export async function POST() {
 
     const districtGroups = {}
 
-    schools.forEach(s => {
+    schoolsData.forEach(s => {
 
       const key =
         `${s.state}_${s.district}`
@@ -459,7 +459,7 @@ export async function POST() {
 
       .from('anse_school_championships')
 
-      .insert(schools)
+      .insert(schoolsData)
 
     if (insertError) {
 
@@ -479,11 +479,11 @@ export async function POST() {
       success: true,
 
       totalSchools:
-        schools.length,
+        schoolsData.length,
 
       nationalChampion:
 
-        schools.find(
+        schoolsData.find(
           s =>
             s.national_rank === 1
         )?.school_name || null
