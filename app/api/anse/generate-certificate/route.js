@@ -147,6 +147,30 @@ export async function POST(req) {
     }
 
     /* ======================================================
+       LOAD SCHOOL
+    ====================================================== */
+
+    let schoolName = ''
+
+    if (student.school_id) {
+
+      const {
+        data: school
+      } = await supabase
+
+        .from('schools')
+
+        .select('school_name')
+
+        .eq('id', student.school_id)
+
+        .single()
+
+      schoolName =
+        school?.school_name || ''
+    }
+
+    /* ======================================================
        LOAD EXAM
     ====================================================== */
 
@@ -233,8 +257,11 @@ export async function POST(req) {
       student_id:
         student.id,
 
-student_name:
-  `${student.first_name || ''} ${student.last_name || ''}`.trim(),
+      student_name:
+        `${student.first_name || ''} ${student.last_name || ''}`.trim(),
+
+      school_name:
+        schoolName,
 
       exam_id:
         exam.id,
