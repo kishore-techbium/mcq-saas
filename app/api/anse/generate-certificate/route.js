@@ -233,10 +233,8 @@ export async function POST(req) {
       student_id:
         student.id,
 
-      student_name:
-        student.full_name ||
-        student.name ||
-        '',
+student_name:
+  `${student.first_name || ''} ${student.last_name || ''}`.trim(),
 
       exam_id:
         exam.id,
