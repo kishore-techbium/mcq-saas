@@ -175,21 +175,14 @@ export async function POST() {
 
       schoolMap[s.id] = s
     })
-    /* ======================================================
-       SCHOOL AGGREGATION
-    ====================================================== */
-
-    const schoolMap = {}
-
-    for (const row of rankings) {
-
-      if (!row.school_id) {
-        continue
-      }
-
-
       const school =
         schoolMap[row.school_id]      
+      if (!schoolMap[row.school_id]) {
+
+        schoolMap[row.school_id] = {
+      const school =
+        schoolMap[row.school_id]
+
       if (!schoolMap[row.school_id]) {
 
         schoolMap[row.school_id] = {
@@ -197,20 +190,17 @@ export async function POST() {
           school_id:
             row.school_id,
 
-       const school =
-  schoolMap[row.school_id]
+          school_name:
+            school?.name || '',
 
-school_name:
-  school?.name || '',
+          city:
+            school?.city || '',
 
-city:
-  school?.city || '',
+          district:
+            school?.district || '',
 
-district:
-  school?.district || '',
-
-state:
-  school?.state || '',
+          state:
+            school?.state || '',
 
           academic_year:
             2027,
