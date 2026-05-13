@@ -68,6 +68,7 @@ export default function ExamPage({ params }) {
   const [review, setReview] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showConfirm, setShowConfirm] = useState(false)  
+  const [isSchoolStudent, setIsSchoolStudent] = useState(false)
     // 🔐 Integrity tracking (SAFE - no side effects)
   const [tabSwitchCount, setTabSwitchCount] = useState(0)
   const [blurCount, setBlurCount] = useState(0)
@@ -217,12 +218,19 @@ if (!currentUser) {
   const res = await fetch('/api/exam/full', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ examId })
+  body: JSON.stringify({
+  examId,
+  studentId:
+    currentUser.id
+})
 })
 
 
 const data = await res.json()
-
+setIsSchoolStudent(
+  data.isSchoolStudent || false
+)
+    
 if (!res.ok || !data || data.error) {
   alert('Unable to load exam')
   window.location.href = '/dashboard'
@@ -644,14 +652,109 @@ if (submitted) {
           You can view your results anytime from your dashboard.
         </p>
 
-        <div style={{ marginTop: 25 }}>
-          <button
-            style={styles.primaryBtn}
-            onClick={() => window.location.href = '/dashboard'}
-          >
-            🏠 Go to Dashboard
-          </button>
-        </div>
+       <div style={{ marginTop: 25 }}>
+
+  {/* ======================================================
+     DIGITAL CERTIFICATE
+  ====================================================== */}
+
+  {isSchoolStudent && (
+
+    <button
+
+      style={{
+        ...styles.primaryBtn,
+        marginRight: 10,
+        background: '#7c3aed'
+      }}
+
+      onClick={async () => {
+
+        try {
+
+          const currentUser =
+            await getCurrentUser(supabase)
+
+          if (!currentUser) {
+            return
+          }
+
+          const res =
+            await fetch(
+              '/api/anse/generate-certificate',
+              {
+                method: 'POST',
+
+                headers: {
+                  'Content-Type':
+                    'application/json'
+                },
+
+                body: JSON.stringify({
+
+                  studentId:
+                    currentUser.id,
+
+                  examId
+                })
+              }
+            )
+
+          const data =
+            await res.json()
+
+          if (!res.ok) {
+
+            alert(
+              data.error ||
+              'Certificate generation failed'
+            )
+
+            return
+          }
+
+          window.open(
+
+            `/anse/certificate/${data.certificateId}`,
+
+            '_blank'
+          )
+
+        } catch (err) {
+
+          console.error(err)
+
+          alert(
+            'Something went wrong'
+          )
+        }
+      }}
+
+    >
+
+      🏅 Get Digital Certificate
+
+    </button>
+
+  )}
+
+  {/* ======================================================
+     DASHBOARD
+  ====================================================== */}
+
+  <button
+    style={styles.primaryBtn}
+    onClick={() =>
+      window.location.href =
+        '/dashboard'
+    }
+  >
+
+    🏠 Go to Dashboard
+
+  </button>
+
+</div>
 
       </div>
     </div>
