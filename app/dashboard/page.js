@@ -130,7 +130,7 @@ await Promise.all([
     return
   }
 
-  console.log("COLLEGE ID:", userData.college_id)
+  
 
 const res = await fetch('/api/exam/list', {
   method: 'POST',
@@ -142,10 +142,8 @@ const res = await fetch('/api/exam/list', {
   studentId: studentId
 })
 })
-console.log("FETCH STATUS:", res.status)
-const text = await res.text()
 
-console.log("RAW RESPONSE:", text)
+const text = await res.text()
 
 const exams = JSON.parse(text)
  
@@ -155,7 +153,7 @@ const exams = JSON.parse(text)
       return
     }
 
-console.log("API RESPONSE EXAMS:", exams)
+
   
 const examIds = exams.map(e => e.id)
 
