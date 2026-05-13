@@ -57,8 +57,8 @@ export async function POST(req) {
 
       .single()
 
-    isSchoolStudent =
-      !!student?.school_id
+isSchoolStudent =
+  !!exam?.phase
   }
 
   return Response.json({
