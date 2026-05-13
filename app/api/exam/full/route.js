@@ -30,13 +30,6 @@ export async function POST(req) {
       { p_exam_id: examId }
     )
 
-  console.log(
-    'CERTIFICATE CHECK:',
-    {
-      phase: exam?.phase,
-      result: !!exam?.phase
-    }
-  )
 
   return Response.json({
 
