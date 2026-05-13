@@ -690,8 +690,7 @@ if (submitted) {
 
                 body: JSON.stringify({
 
-                  studentId
-
+                  studentId,
                   examId
                 })
               }
