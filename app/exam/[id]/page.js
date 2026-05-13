@@ -69,6 +69,7 @@ export default function ExamPage({ params }) {
   const [loading, setLoading] = useState(true)
   const [showConfirm, setShowConfirm] = useState(false)  
   const [showCertificate, setShowCertificate] = useState(false)
+  const [studentId, setStudentId] = useState(null)
   
     // 🔐 Integrity tracking (SAFE - no side effects)
   const [tabSwitchCount, setTabSwitchCount] = useState(0)
@@ -210,7 +211,9 @@ useEffect(() => {
   
   async function init() {
    const currentUser = await getCurrentUser(supabase)
-
+setStudentId(
+  currentUser.id
+)
 if (!currentUser) {
   window.location.href = '/'
   return
@@ -672,12 +675,7 @@ if (submitted) {
 
         try {
 
-          const currentUser =
-            await getCurrentUser(supabase)
-
-          if (!currentUser) {
-            return
-          }
+        
 
           const res =
             await fetch(
@@ -692,8 +690,7 @@ if (submitted) {
 
                 body: JSON.stringify({
 
-                  studentId:
-                    currentUser.id,
+                  studentId
 
                   examId
                 })
