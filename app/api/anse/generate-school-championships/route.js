@@ -143,7 +143,38 @@ export async function POST() {
         message: 'No phase 2 rankings found'
       })
     }
+    /* ======================================================
+       FETCH SCHOOLS
+    ====================================================== */
 
+    const schoolIds = [
+
+      ...new Set(
+
+        rankings
+          .map(r => r.school_id)
+          .filter(Boolean)
+
+      )
+
+    ]
+
+    const {
+      data: schools
+    } = await supabase
+
+      .from('schools')
+
+      .select('*')
+
+      .in('id', schoolIds)
+
+    const schoolMap = {}
+
+    ;(schools || []).forEach(s => {
+
+      schoolMap[s.id] = s
+    })
     /* ======================================================
        SCHOOL AGGREGATION
     ====================================================== */
@@ -156,6 +187,9 @@ export async function POST() {
         continue
       }
 
+
+      const school =
+        schoolMap[row.school_id]      
       if (!schoolMap[row.school_id]) {
 
         schoolMap[row.school_id] = {
@@ -163,17 +197,20 @@ export async function POST() {
           school_id:
             row.school_id,
 
-          school_name:
-            row.school_name || '',
+       const school =
+  schoolMap[row.school_id]
 
-          city:
-            row.city || '',
+school_name:
+  school?.name || '',
 
-          district:
-            row.district || '',
+city:
+  school?.city || '',
 
-          state:
-            row.state || '',
+district:
+  school?.district || '',
+
+state:
+  school?.state || '',
 
           academic_year:
             2027,
