@@ -160,14 +160,14 @@ export async function POST(req) {
 
         .from('schools')
 
-        .select('school_name')
+        .select('name')
 
         .eq('id', student.school_id)
 
         .single()
 
-      schoolName =
-        school?.school_name || ''
+schoolName =
+  school?.name || ''
     }
 
     /* ======================================================
