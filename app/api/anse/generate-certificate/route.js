@@ -27,16 +27,30 @@ export async function POST(req) {
     const body =
       await req.json()
 
-    const {
-      studentId,
-      examId
-    } = body
+const {
+  sessionId,
+  examId
+} = body
 
-    if (
-      !studentId ||
-      !examId
-    ) {
+if (
+  !sessionId ||
+  !examId
+)
+const {
+  data: session
+} = await supabase
 
+  .from('exam_sessions')
+
+  .select('student_id')
+
+  .eq('id', sessionId)
+
+  .single()
+
+const studentId =
+  session?.student_id
+{
       return Response.json(
         {
           error:
