@@ -7,65 +7,43 @@ const supabase = createClient(
 
 export async function POST(req) {
 
-  const {
-    examId,
-    studentId
-  } = await req.json()
+  const body =
+    await req.json()
 
-  /* ======================================================
-     LOAD EXAM
-  ====================================================== */
+  const examId =
+    body.examId
 
-  const { data: exam } = await supabase
+  const { data: exam } =
+    await supabase
 
-    .from('exams')
+      .from('exams')
 
-    .select('*')
+      .select('*')
 
-    .eq('id', examId)
-
-    .single()
-
-  /* ======================================================
-     LOAD QUESTIONS
-  ====================================================== */
-
-  const { data: questions } = await supabase.rpc(
-
-    'get_exam_questions',
-
-    { p_exam_id: examId }
-  )
-
-  /* ======================================================
-     SCHOOL STUDENT CHECK
-  ====================================================== */
-
-  let isSchoolStudent = false
-
-  if (studentId) {
-
-    const {
-      data: student
-    } = await supabase
-
-      .from('students')
-
-      .select('school_id')
-
-      .eq('id', studentId)
+      .eq('id', examId)
 
       .single()
 
-isSchoolStudent =
-  !!exam?.phase
-  }
+  const { data: questions } =
+    await supabase.rpc(
+      'get_exam_questions',
+      { p_exam_id: examId }
+    )
+
+  console.log(
+    'CERTIFICATE CHECK:',
+    {
+      phase: exam?.phase,
+      result: !!exam?.phase
+    }
+  )
 
   return Response.json({
 
     exam,
     questions,
 
-    isSchoolStudent
+    isSchoolStudent:
+      !!exam?.phase
   })
 }
