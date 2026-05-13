@@ -68,7 +68,7 @@ export default function ExamPage({ params }) {
   const [review, setReview] = useState(false)
   const [loading, setLoading] = useState(true)
   const [showConfirm, setShowConfirm] = useState(false)  
-  const [isSchoolStudent, setIsSchoolStudent] = useState(false)
+  const [showCertificate, setShowCertificate] = useState(false)
     // 🔐 Integrity tracking (SAFE - no side effects)
   const [tabSwitchCount, setTabSwitchCount] = useState(0)
   const [blurCount, setBlurCount] = useState(0)
@@ -227,7 +227,7 @@ if (!currentUser) {
 
 const data = await res.json()
 
-setIsSchoolStudent(
+setShowCertificate(
   data.isSchoolStudent || false
 )
     
@@ -658,7 +658,7 @@ if (submitted) {
      DIGITAL CERTIFICATE
   ====================================================== */}
 
-  {exam?.phase && (
+  {showCertificate && (
 
     <button
 
