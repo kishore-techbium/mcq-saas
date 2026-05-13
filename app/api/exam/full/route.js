@@ -60,7 +60,7 @@ export async function POST(req) {
 isSchoolStudent =
   !!exam?.phase
   }
-
+console.log(exam)
   return Response.json({
 
     exam,
