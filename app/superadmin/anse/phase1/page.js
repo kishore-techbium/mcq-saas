@@ -185,123 +185,150 @@ export default function Phase1RankingEngine() {
         max-w-3xl
       ">
 
-        {/* =====================================================
-           EXAM DROPDOWN
-        ===================================================== */}
+ <div className="
+  flex
+  flex-col
+  lg:flex-row
+  gap-5
+  items-stretch
+  lg:items-center
+  justify-between
+  bg-gray-50
+  border
+  border-gray-200
+  rounded-2xl
+  p-5
+">
 
-        <div className="mb-6">
+  {/* EXAM SELECT */}
 
-          <label className="
-            block
-            mb-2
-            font-semibold
-            text-gray-700
-          ">
-            Select Exam
-          </label>
+  <div className="flex-1">
 
-          <select
-            value={selectedExam}
-            onChange={(e) =>
-              setSelectedExam(
-                e.target.value
-              )
-            }
-            className="
-              w-full
-              border
-              border-gray-300
-              rounded-xl
-              px-4
-              py-3
-            "
-          >
+    <label className="
+      block
+      mb-2
+      font-semibold
+      text-gray-700
+    ">
 
-            <option value="">
-              Select Exam
-            </option>
+      Select Exam
 
-            {exams.map(exam => (
+    </label>
 
-              <option
-                key={exam.id}
-                value={exam.id}
-              >
+    <select
+      value={selectedExam}
+      onChange={(e) =>
+        setSelectedExam(
+          e.target.value
+        )
+      }
+      className="
+        w-full
+        border
+        border-gray-300
+        rounded-xl
+        px-4
+        py-3
+        bg-white
+        shadow-sm
+        focus:outline-none
+        focus:ring-2
+        focus:ring-blue-400
+      "
+    >
 
-                {exam.title}
-                {' - '}
-                {exam.exam_category}
-                {' - '}
-                Grade {exam.target_year}
+      <option value="">
+        Select Exam
+      </option>
 
-              </option>
+      {exams.map(exam => (
 
-            ))}
+        <option
+          key={exam.id}
+          value={exam.id}
+        >
 
-          </select>
+          {exam.title}
+          {' - '}
+          {exam.exam_category}
+          {' - '}
+          Grade {exam.target_year}
 
-        </div>
+        </option>
 
-        {/* =====================================================
-           BUTTONS
-        ===================================================== */}
+      ))}
 
-        <div className="
-          flex
-          flex-wrap
-          gap-4
-        ">
+    </select>
 
-          <button
-            onClick={generateRankings}
-            disabled={
-              generating ||
-              !selectedExam
-            }
-            className="
-              bg-blue-600
-              hover:bg-blue-700
-              disabled:bg-gray-400
-              text-white
-              px-5
-              py-3
-              rounded-xl
-              font-semibold
-            "
-          >
+  </div>
 
-            {
+  {/* ACTION BUTTONS */}
 
-              generating
+  <div className="
+    flex
+    flex-wrap
+    gap-3
+    items-end
+  ">
 
-                ? 'Generating...'
+    <button
+      onClick={generateRankings}
+      disabled={
+        generating ||
+        !selectedExam
+      }
+      className="
+        bg-gradient-to-r
+        from-blue-600
+        to-indigo-600
+        hover:from-blue-700
+        hover:to-indigo-700
+        disabled:bg-gray-400
+        text-white
+        px-6
+        py-3
+        rounded-xl
+        font-semibold
+        shadow-lg
+      "
+    >
 
-                : 'Generate Rankings'
-            }
+      {
 
-          </button>
+        generating
 
-          <button
-            onClick={openResults}
-            disabled={!selectedExam}
-            className="
-              bg-green-600
-              hover:bg-green-700
-              disabled:bg-gray-400
-              text-white
-              px-5
-              py-3
-              rounded-xl
-              font-semibold
-            "
-          >
+          ? 'Generating...'
 
-            View Results
+          : '⚡ Generate Rankings'
+      }
 
-          </button>
+    </button>
 
-        </div>
+    <button
+      onClick={openResults}
+      disabled={!selectedExam}
+      className="
+        bg-white
+        border
+        border-gray-300
+        hover:bg-gray-100
+        disabled:bg-gray-200
+        text-gray-800
+        px-6
+        py-3
+        rounded-xl
+        font-semibold
+        shadow-sm
+      "
+    >
 
+      📊 View Results
+
+    </button>
+
+  </div>
+
+</div>
         {/* =====================================================
            STATUS
         ===================================================== */}
