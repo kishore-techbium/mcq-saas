@@ -226,7 +226,7 @@ if (!currentUser) {
 })
 
 const data = await res.json()
-console.log(data)    
+
 setIsSchoolStudent(
   data.isSchoolStudent || false
 )
@@ -658,7 +658,7 @@ if (submitted) {
      DIGITAL CERTIFICATE
   ====================================================== */}
 
-  {isSchoolStudent && (
+  {exam?.phase && (
 
     <button
 
