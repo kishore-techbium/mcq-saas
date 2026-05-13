@@ -113,7 +113,10 @@ export async function POST() {
     await supabase
       .from('anse_school_championships')
       .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000')
+      .neq(
+        'id',
+        '00000000-0000-0000-0000-000000000000'
+      )
 
     /* ======================================================
        FETCH PHASE 2 RANKINGS
@@ -140,9 +143,11 @@ export async function POST() {
 
         success: false,
 
-        message: 'No phase 2 rankings found'
+        message:
+          'No phase 2 rankings found'
       })
     }
+
     /* ======================================================
        FETCH SCHOOLS
     ====================================================== */
@@ -169,19 +174,27 @@ export async function POST() {
 
       .in('id', schoolIds)
 
-    const schoolMap = {}
+    const schoolsLookup = {}
 
     ;(schools || []).forEach(s => {
 
-      schoolMap[s.id] = s
+      schoolsLookup[s.id] = s
     })
-      const school =
-        schoolMap[row.school_id]      
-      if (!schoolMap[row.school_id]) {
 
-        schoolMap[row.school_id] = {
+    /* ======================================================
+       SCHOOL AGGREGATION
+    ====================================================== */
+
+    const schoolMap = {}
+
+    for (const row of rankings) {
+
+      if (!row.school_id) {
+        continue
+      }
+
       const school =
-        schoolMap[row.school_id]
+        schoolsLookup[row.school_id]
 
       if (!schoolMap[row.school_id]) {
 
