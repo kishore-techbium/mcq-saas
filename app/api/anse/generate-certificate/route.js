@@ -35,7 +35,17 @@ const {
 if (
   !sessionId ||
   !examId
-)
+) {
+
+  return Response.json(
+    {
+      error:
+        'Missing data'
+    },
+    { status: 400 }
+  )
+}
+
 const {
   data: session
 } = await supabase
@@ -50,15 +60,6 @@ const {
 
 const studentId =
   session?.student_id
-{
-      return Response.json(
-        {
-          error:
-            'Missing data'
-        },
-        { status: 400 }
-      )
-    }
 
     /* ======================================================
        CHECK EXISTING CERTIFICATE
