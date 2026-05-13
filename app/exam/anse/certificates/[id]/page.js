@@ -8,6 +8,24 @@ import {
 import { supabase }
 from '../../../../../lib/supabase'
 
+function toRoman(num) {
+
+  const romans = {
+    1:'I',
+    2:'II',
+    3:'III',
+    4:'IV',
+    5:'V',
+    6:'VI',
+    7:'VII',
+    8:'VIII',
+    9:'IX',
+    10:'X'
+  }
+
+  return romans[num] || num
+}
+
 export default function CertificatePage({
   params
 }) {
@@ -120,10 +138,6 @@ I participated in the Aurelius National Scholarship Examination (ANSE) and recei
     }
   }
 
-  /* ======================================================
-     LOADING
-  ====================================================== */
-
   if (loading) {
 
     return (
@@ -152,13 +166,18 @@ I participated in the Aurelius National Scholarship Examination (ANSE) and recei
     )
   }
 
+  const examYear =
+    new Date(
+      certificate.created_at ||
+      certificate.issued_at ||
+      new Date()
+    ).getFullYear()
+
   return (
 
     <div style={styles.page}>
 
-      {/* ======================================================
-         ACTIONS
-      ====================================================== */}
+      {/* ACTIONS */}
 
       <div style={styles.topBar}>
 
@@ -182,21 +201,18 @@ I participated in the Aurelius National Scholarship Examination (ANSE) and recei
 
       </div>
 
-      {/* ======================================================
-         CERTIFICATE
-      ====================================================== */}
+      {/* CERTIFICATE */}
 
-      <div id="certificate" style={styles.certificate}>
-
-        {/* LOGO */}
+      <div
+        id="certificate"
+        style={styles.certificate}
+      >
 
         <div style={styles.logo}>
 
           🏆
 
         </div>
-
-        {/* TITLE */}
 
         <p style={styles.smallTitle}>
           Aurelius National Scholarship Examination
@@ -206,15 +222,11 @@ I participated in the Aurelius National Scholarship Examination (ANSE) and recei
           Digital Certificate
         </h1>
 
-        {/* CERTIFICATE TYPE */}
-
         <div style={styles.typeBadge}>
 
           {certificate.certificate_type}
 
         </div>
-
-        {/* STUDENT */}
 
         <p style={styles.presentedText}>
           This certificate is proudly presented to
@@ -226,15 +238,13 @@ I participated in the Aurelius National Scholarship Examination (ANSE) and recei
 
         </h2>
 
-        {/* DETAILS */}
-
         <p style={styles.details}>
 
           for participating in
 
           <strong>
             {' '}
-            {certificate.exam_title}
+            ANSE {examYear}
           </strong>
 
         </p>
@@ -254,26 +264,25 @@ I participated in the Aurelius National Scholarship Examination (ANSE) and recei
           Grade:
           {' '}
           <strong>
-            {certificate.grade}
+            {toRoman(certificate.grade)}
           </strong>
 
         </p>
 
-        {certificate.phase && (
+        {!!certificate.school_name && (
 
           <p style={styles.details}>
 
-            Phase:
+            School:
             {' '}
+
             <strong>
-              {certificate.phase}
+              {certificate.school_name}
             </strong>
 
           </p>
 
         )}
-
-        {/* RANKS */}
 
         {(certificate.national_rank ||
           certificate.state_rank ||
@@ -331,8 +340,6 @@ I participated in the Aurelius National Scholarship Examination (ANSE) and recei
 
         )}
 
-        {/* FOOTER */}
-
         <div style={styles.footer}>
 
           <div>
@@ -358,7 +365,8 @@ I participated in the Aurelius National Scholarship Examination (ANSE) and recei
             <p style={styles.footerValue}>
 
               {new Date(
-                certificate.issued_at
+                certificate.created_at ||
+                new Date()
               ).toLocaleDateString()}
 
             </p>
