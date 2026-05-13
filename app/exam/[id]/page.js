@@ -674,7 +674,12 @@ if (submitted) {
       onClick={async () => {
 
         try {
+console.log({
 
+  studentId,
+
+  examId
+})
         
 
           const res =
@@ -688,11 +693,12 @@ if (submitted) {
                     'application/json'
                 },
 
-                body: JSON.stringify({
+body: JSON.stringify({
 
-                  studentId,
-                  examId
-                })
+  sessionId,
+
+  examId
+})
               }
             )
 
