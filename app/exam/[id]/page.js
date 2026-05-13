@@ -715,7 +715,7 @@ if (submitted) {
 
           window.open(
 
-            `/anse/certificate/${data.certificateId}`,
+            `/exam/anse/certificates/${data.certificateId}`,
 
             '_blank'
           )
