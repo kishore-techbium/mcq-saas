@@ -186,27 +186,54 @@ if (
 
         const { error: insertError } =
           await supabase
-            .from('students')
-            .insert({
-              id,
-              user_id: id,
-              email: email.trim(),
-              first_name: first_name?.trim(),
-              last_name: last_name?.trim(),
-              login_id: login_id?.trim(),
-              password: password?.trim(),
-              exam_preference: exam_preference?.trim(),
-              phone: String(phone || '').trim(),
-              address: address?.trim(),
-              study_year: Number(parsedStudyYear),
-              role: 'student',
-              college_id: admin.college_id,
-              college_name: admin.college_name,
-              school_id:
-                admin.role === 'school_admin'
-                  ? admin.school_id
-                  : null
-            })
+  .from('students')
+  .insert({
+
+    id,
+
+    user_id: id,
+
+    email:
+      String(email || '').trim(),
+
+    first_name:
+      String(first_name || '').trim(),
+
+    last_name:
+      String(last_name || '').trim(),
+
+    login_id:
+      String(login_id || '').trim(),
+
+    password:
+      String(password || '').trim(),
+
+    exam_preference:
+      String(exam_preference || '').trim(),
+
+    phone:
+      String(phone || '').trim(),
+
+    address:
+      String(address || '').trim(),
+
+    study_year:
+      Number(parsedStudyYear),
+
+    role: 'student',
+
+    college_id:
+      admin.college_id,
+
+    college_name:
+      admin.college_name,
+
+    school_id:
+      admin.role === 'school_admin'
+        ? admin.school_id
+        : null
+
+  })
 
 if (insertError) {
 
