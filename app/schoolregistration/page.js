@@ -138,7 +138,7 @@ export default function SchoolRegistrationPage() {
             <div className="field">
 
               <label>
-                School Name
+                School Name*
               </label>
 
               <input
@@ -155,7 +155,7 @@ export default function SchoolRegistrationPage() {
             <div className="field">
 
               <label>
-                Coordinator First Name
+                Coordinator First Name*
               </label>
 
               <input
@@ -172,7 +172,7 @@ export default function SchoolRegistrationPage() {
             <div className="field">
 
               <label>
-                Coordinator Last Name
+                Coordinator Last Name*
               </label>
 
               <input
@@ -189,7 +189,7 @@ export default function SchoolRegistrationPage() {
             <div className="field">
 
               <label>
-                Mobile Number
+                Mobile Number*
               </label>
 
               <input
@@ -206,7 +206,7 @@ export default function SchoolRegistrationPage() {
             <div className="field">
 
               <label>
-                Email Address
+                Email Address*
               </label>
 
 <input
@@ -222,7 +222,7 @@ export default function SchoolRegistrationPage() {
 <div className="field">
 
   <label>
-    City / Town
+    City / Town*
   </label>
 
   <input
@@ -238,7 +238,7 @@ export default function SchoolRegistrationPage() {
             <div className="field">
 
               <label>
-                District
+                District*
               </label>
 
               <input
@@ -255,7 +255,7 @@ export default function SchoolRegistrationPage() {
             <div className="field full">
 
               <label>
-                State
+                State*
               </label>
 
               <input
