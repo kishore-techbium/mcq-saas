@@ -14,6 +14,12 @@ export default function ApproveSchoolStudentsPage() {
   const [message, setMessage] =
     useState('')
 
+  const [editingId, setEditingId] =
+    useState(null)
+
+  const [editForm, setEditForm] =
+    useState({})
+
   useEffect(() => {
     checkAccess()
   }, [])
@@ -71,6 +77,62 @@ export default function ApproveSchoolStudentsPage() {
     }
   }
 
+  function startEdit(r) {
+
+    setEditingId(r.id)
+
+    setEditForm(r)
+  }
+
+  function cancelEdit() {
+
+    setEditingId(null)
+
+    setEditForm({})
+  }
+
+  async function saveEdit() {
+
+    await supabase
+
+      .from(
+        'student_ofschool_registration_requests'
+      )
+
+      .update({
+
+        first_name:
+          editForm.first_name,
+
+        last_name:
+          editForm.last_name,
+
+        school_name:
+          editForm.school_name,
+
+        phone:
+          editForm.phone,
+
+        email:
+          editForm.email,
+
+        city:
+          editForm.city,
+
+        district:
+          editForm.district,
+
+        state:
+          editForm.state
+      })
+
+      .eq('id', editingId)
+
+    setEditingId(null)
+
+    loadRequests()
+  }
+
   async function approveStudent(
     request
   ) {
@@ -78,9 +140,6 @@ export default function ApproveSchoolStudentsPage() {
     setMessage('')
 
     try {
-
-   
-      // SHARED OLYMPIAD COLLEGE
 
       const {
         data: olympiadCollege
@@ -99,8 +158,6 @@ export default function ApproveSchoolStudentsPage() {
           'Olympiad college missing'
         )
       }
-
-      // CHECK EXISTING STUDENT
 
       const {
         data: existingStudent
@@ -140,7 +197,7 @@ export default function ApproveSchoolStudentsPage() {
               college_name:
                 'AURELIUS_OLYMPIAD',
 
-school_id: null,
+              school_id: null,
 
               study_year: 4,
 
@@ -151,8 +208,6 @@ school_id: null,
             }
           ])
       }
-
-      // UPDATE REQUEST STATUS
 
       await supabase
         .from(
@@ -283,29 +338,176 @@ school_id: null,
               <tr key={r.id}>
 
                 <td style={styles.td}>
-                  {r.first_name}
-                  {' '}
-                  {r.last_name}
+
+                  {editingId === r.id ? (
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: 8
+                      }}
+                    >
+
+                      <input
+                        style={styles.input}
+                        value={
+                          editForm.first_name || ''
+                        }
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            first_name:
+                              e.target.value
+                          })
+                        }
+                      />
+
+                      <input
+                        style={styles.input}
+                        value={
+                          editForm.last_name || ''
+                        }
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            last_name:
+                              e.target.value
+                          })
+                        }
+                      />
+
+                    </div>
+
+                  ) : (
+
+                    <>
+                      {r.first_name}
+                      {' '}
+                      {r.last_name}
+                    </>
+
+                  )}
+
                 </td>
 
                 <td style={styles.td}>
-                  {r.school_name}
+
+                  {editingId === r.id ? (
+
+                    <input
+                      style={styles.input}
+                      value={
+                        editForm.school_name || ''
+                      }
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          school_name:
+                            e.target.value
+                        })
+                      }
+                    />
+
+                  ) : (
+                    r.school_name
+                  )}
+
                 </td>
 
                 <td style={styles.td}>
-                  {r.phone}
+
+                  {editingId === r.id ? (
+
+                    <input
+                      style={styles.input}
+                      value={
+                        editForm.phone || ''
+                      }
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          phone:
+                            e.target.value
+                        })
+                      }
+                    />
+
+                  ) : (
+                    r.phone
+                  )}
+
                 </td>
 
                 <td style={styles.td}>
-                  {r.city}
+
+                  {editingId === r.id ? (
+
+                    <input
+                      style={styles.input}
+                      value={
+                        editForm.city || ''
+                      }
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          city:
+                            e.target.value
+                        })
+                      }
+                    />
+
+                  ) : (
+                    r.city
+                  )}
+
                 </td>
 
                 <td style={styles.td}>
-                  {r.district}
+
+                  {editingId === r.id ? (
+
+                    <input
+                      style={styles.input}
+                      value={
+                        editForm.district || ''
+                      }
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          district:
+                            e.target.value
+                        })
+                      }
+                    />
+
+                  ) : (
+                    r.district
+                  )}
+
                 </td>
 
                 <td style={styles.td}>
-                  {r.state}
+
+                  {editingId === r.id ? (
+
+                    <input
+                      style={styles.input}
+                      value={
+                        editForm.state || ''
+                      }
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          state:
+                            e.target.value
+                        })
+                      }
+                    />
+
+                  ) : (
+                    r.state
+                  )}
+
                 </td>
 
                 <td style={styles.td}>
@@ -351,29 +553,72 @@ school_id: null,
                       }
                     >
 
-                      <button
-                        style={
-                          styles.approveBtn
-                        }
-                        onClick={() =>
-                          approveStudent(r)
-                        }
-                      >
-                        Approve
-                      </button>
+                      {editingId === r.id ? (
 
-                      <button
-                        style={
-                          styles.rejectBtn
-                        }
-                        onClick={() =>
-                          rejectRequest(
-                            r.id
-                          )
-                        }
-                      >
-                        Reject
-                      </button>
+                        <>
+
+                          <button
+                            style={
+                              styles.saveBtn
+                            }
+                            onClick={saveEdit}
+                          >
+                            Save
+                          </button>
+
+                          <button
+                            style={
+                              styles.cancelBtn
+                            }
+                            onClick={cancelEdit}
+                          >
+                            Cancel
+                          </button>
+
+                        </>
+
+                      ) : (
+
+                        <>
+
+                          <button
+                            style={
+                              styles.editBtn
+                            }
+                            onClick={() =>
+                              startEdit(r)
+                            }
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            style={
+                              styles.approveBtn
+                            }
+                            onClick={() =>
+                              approveStudent(r)
+                            }
+                          >
+                            Approve
+                          </button>
+
+                          <button
+                            style={
+                              styles.rejectBtn
+                            }
+                            onClick={() =>
+                              rejectRequest(
+                                r.id
+                              )
+                            }
+                          >
+                            Reject
+                          </button>
+
+                        </>
+
+                      )}
 
                     </div>
 
@@ -423,7 +668,7 @@ const styles = {
   card: {
     background: '#fff',
     borderRadius: 14,
-    overflow: 'hidden',
+    overflowX: 'auto',
     border: '1px solid #e2e8f0'
   },
 
@@ -448,6 +693,13 @@ const styles = {
     fontSize: 14
   },
 
+  input: {
+    padding: 8,
+    borderRadius: 8,
+    border: '1px solid #cbd5e1',
+    width: '100%'
+  },
+
   badge: {
     padding: '6px 10px',
     borderRadius: 999,
@@ -458,7 +710,38 @@ const styles = {
 
   actions: {
     display: 'flex',
-    gap: 10
+    gap: 8,
+    flexWrap: 'wrap'
+  },
+
+  editBtn: {
+    background: '#2563eb',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 14px',
+    borderRadius: 8,
+    cursor: 'pointer',
+    fontWeight: 600
+  },
+
+  saveBtn: {
+    background: '#7c3aed',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 14px',
+    borderRadius: 8,
+    cursor: 'pointer',
+    fontWeight: 600
+  },
+
+  cancelBtn: {
+    background: '#64748b',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 14px',
+    borderRadius: 8,
+    cursor: 'pointer',
+    fontWeight: 600
   },
 
   approveBtn: {
@@ -480,4 +763,5 @@ const styles = {
     cursor: 'pointer',
     fontWeight: 600
   }
+
 }
