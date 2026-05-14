@@ -242,17 +242,6 @@ if (insertError) {
     insertError
   )
 
-  console.log(
-    'ROW:',
-    {
-      email,
-      first_name,
-      last_name,
-      login_id,
-      study_year
-    }
-  )
-
   failed++
 
   continue
@@ -281,20 +270,7 @@ const subjects =
       }))
 
 
- console.log({
-
-  email,
-  first_name,
-  last_name,
-  login_id,
-  password,
-  exam_preference,
-  phone,
-  address,
-  study_year,
-  olympiad_subjects
-})
-    
+  
     await supabase
       .from('student_exam_categories')
       .insert(entitlementRows)
