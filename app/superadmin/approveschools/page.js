@@ -138,11 +138,21 @@ export default function ApproveSchoolsPage() {
       }
 
       const { data: existingSchool } =
-        await supabase
-          .from('schools')
-          .select('*')
-          .eq('name', request.school_name)
-          .maybeSingle()
+  await supabase
+
+    .from('schools')
+
+    .select('*')
+
+    .eq('name', request.school_name)
+
+    .eq('city', request.city)
+
+    .eq('district', request.district)
+
+    .eq('state', request.state)
+
+    .maybeSingle()
 
       let schoolId = null
 
