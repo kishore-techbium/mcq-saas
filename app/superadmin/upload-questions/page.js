@@ -40,17 +40,69 @@ export default function UploadGlobalQuestions() {
 
   async function loadGlobalExams() {
 
-    const { data, error } = await supabase
-      .from('exams')
-      .select('id,title')
-      .eq('is_global', true)
+  /* ================= GET GLOBAL EXAMS ================= */
 
-    if (error) {
-      console.error(error)
-    } else {
-      setExams(data || [])
-    }
+  const {
+    data: exams,
+    error
+  } = await supabase
+
+    .from('exams')
+
+    .select('id, title')
+
+    .eq('is_global', true)
+
+  if (error) {
+
+    console.error(error)
+
+    return
   }
+
+  if (!exams || exams.length === 0) {
+
+    setExams([])
+
+    return
+  }
+
+  /* ================= GET ALREADY MAPPED EXAMS ================= */
+
+  const examIds =
+    exams.map(e => e.id)
+
+  const {
+    data: mapped
+  } = await supabase
+
+    .from('exam_questions')
+
+    .select('exam_id')
+
+    .in('exam_id', examIds)
+
+  const mappedIds =
+    [...new Set(
+      (mapped || [])
+        .map(m => m.exam_id)
+    )]
+
+  /* ================= REMOVE ALREADY UPLOADED ================= */
+
+  const available =
+    exams.filter(e =>
+      !mappedIds.includes(e.id)
+    )
+
+  /* ================= SORT ALPHABETICALLY ================= */
+
+  available.sort((a, b) =>
+    a.title.localeCompare(b.title)
+  )
+
+  setExams(available)
+}
 
   // =========================================
   // TOAST
