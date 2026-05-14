@@ -120,7 +120,7 @@ if (!res.ok) {
 
 <input
   type="file"
-  accept=".csv"
+  accept=".csv,.xlsx"
   onChange={handleFileChange}
 />
 
