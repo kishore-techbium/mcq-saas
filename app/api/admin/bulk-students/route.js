@@ -176,9 +176,9 @@ if (
               login_id: login_id?.trim(),
               password: password?.trim(),
               exam_preference: exam_preference?.trim(),
-              phone: phone?.trim(),
+              phone: String(phone || '').trim(),
               address: address?.trim(),
-              study_year: parsedStudyYear,
+              study_year: Number(parsedStudyYear),
               role: 'student',
               college_id: admin.college_id,
               college_name: admin.college_name,
@@ -188,20 +188,39 @@ if (
                   : null
             })
 
-        if (insertError) {
-          failed++
-          continue
-        }
+if (insertError) {
+
+  console.log(
+    'INSERT ERROR:',
+    insertError
+  )
+
+  console.log(
+    'ROW:',
+    {
+      email,
+      first_name,
+      last_name,
+      login_id,
+      study_year
+    }
+  )
+
+  failed++
+
+  continue
+}
 if (
   admin.role === 'school_admin' &&
   olympiad_subjects
 ) {
 
-  const subjects =
-    olympiad_subjects
-      .split('|')
-      .map(s => s.trim())
-      .filter(Boolean)
+const subjects =
+  olympiad_subjects
+    ?.replace(/\r/g, '')
+    .split('|')
+    .map(s => s.trim())
+    .filter(Boolean)
 
   if (subjects.length > 0) {
 
@@ -214,6 +233,21 @@ if (
 
       }))
 
+
+ console.log({
+
+  email,
+  first_name,
+  last_name,
+  login_id,
+  password,
+  exam_preference,
+  phone,
+  address,
+  study_year,
+  olympiad_subjects
+})
+    
     await supabase
       .from('student_exam_categories')
       .insert(entitlementRows)
