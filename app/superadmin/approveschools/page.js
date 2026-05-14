@@ -11,6 +11,12 @@ export default function ApproveSchoolsPage() {
 
   const [message, setMessage] = useState('')
 
+  const [editingId, setEditingId] =
+    useState(null)
+
+  const [editForm, setEditForm] =
+    useState({})
+
   useEffect(() => {
     checkAccess()
   }, [])
@@ -40,7 +46,6 @@ export default function ApproveSchoolsPage() {
     await loadRequests()
 
     setLoading(false)
-
   }
 
   async function loadRequests() {
@@ -56,174 +61,215 @@ export default function ApproveSchoolsPage() {
     if (!error) {
       setRequests(data || [])
     }
+  }
 
+  function startEdit(r) {
+
+    setEditingId(r.id)
+
+    setEditForm(r)
+  }
+
+  function cancelEdit() {
+
+    setEditingId(null)
+
+    setEditForm({})
+  }
+
+  async function saveEdit() {
+
+    await supabase
+
+      .from('school_registration_requests')
+
+      .update({
+
+        school_name:
+          editForm.school_name,
+
+        coordinator_first_name:
+          editForm.coordinator_first_name,
+
+        coordinator_last_name:
+          editForm.coordinator_last_name,
+
+        phone:
+          editForm.phone,
+
+        email:
+          editForm.email,
+
+        city:
+          editForm.city,
+
+        district:
+          editForm.district,
+
+        state:
+          editForm.state
+      })
+
+      .eq('id', editingId)
+
+    setEditingId(null)
+
+    loadRequests()
   }
 
   async function approveSchool(request) {
 
-  setMessage('')
+    setMessage('')
 
-  try {
+    try {
 
-    // 🔥 GET SHARED OLYMPIAD COLLEGE
+      const { data: olympiadCollege } =
+        await supabase
+          .from('colleges')
+          .select('*')
+          .eq('name', 'AURELIUS_OLYMPIAD')
+          .single()
 
-    const { data: olympiadCollege } =
+      if (!olympiadCollege) {
+
+        throw new Error(
+          'AURELIUS_OLYMPIAD college not found'
+        )
+      }
+
+      const { data: existingSchool } =
+        await supabase
+          .from('schools')
+          .select('*')
+          .eq('name', request.school_name)
+          .maybeSingle()
+
+      let schoolId = null
+
+      if (existingSchool) {
+
+        schoolId = existingSchool.id
+
+      } else {
+
+        const {
+          data: schoolData,
+          error: schoolError
+        } = await supabase
+          .from('schools')
+          .insert([
+            {
+              name: request.school_name,
+              city: request.city,
+              district: request.district,
+              state: request.state
+            }
+          ])
+          .select()
+          .single()
+
+        if (schoolError) {
+          throw schoolError
+        }
+
+        schoolId = schoolData.id
+      }
+
+      const { data: existingAdmin } =
+        await supabase
+          .from('students')
+          .select('*')
+          .eq('phone', request.phone)
+          .eq('role', 'school_admin')
+          .maybeSingle()
+
+      if (!existingAdmin) {
+
+        const newId =
+          crypto.randomUUID()
+
+        const {
+          data: adminData,
+          error: studentError
+        } = await supabase
+          .from('students')
+          .insert([
+            {
+              id: newId,
+
+              user_id: newId,
+
+              first_name:
+                request.coordinator_first_name,
+
+              last_name:
+                request.coordinator_last_name,
+
+              phone: request.phone,
+
+              email: request.email,
+
+              role: 'school_admin',
+
+              college_id:
+                olympiadCollege.id,
+
+              school_id: schoolId,
+
+              college_name:
+                'AURELIUS_OLYMPIAD',
+
+              address:
+                `${request.city}, ` +
+                `${request.district}, ` +
+                `${request.state}`,
+
+              exam_preference:
+                'SCHOOL',
+
+              is_active: true
+            }
+          ])
+          .select()
+          .single()
+
+        if (studentError) {
+          throw studentError
+        }
+
+        await supabase
+          .from('schools')
+          .update({
+            school_admin_id:
+              adminData.id
+          })
+          .eq('id', schoolId)
+      }
+
       await supabase
-        .from('colleges')
-        .select('*')
-        .eq('name', 'AURELIUS_OLYMPIAD')
-        .single()
+        .from(
+          'school_registration_requests'
+        )
+        .update({
+          status: 'approved'
+        })
+        .eq('id', request.id)
 
-    if (!olympiadCollege) {
-      throw new Error(
-        'AURELIUS_OLYMPIAD college not found'
+      setMessage(
+        '✅ School approved successfully'
+      )
+
+      loadRequests()
+
+    } catch (err) {
+
+      console.log(err)
+
+      setMessage(
+        '❌ Something went wrong'
       )
     }
-
-    // 🔥 CHECK EXISTING SCHOOL
-
-    const { data: existingSchool } =
-      await supabase
-        .from('schools')
-        .select('*')
-        .eq('name', request.school_name)
-        .maybeSingle()
-
-    let schoolId = null
-
-    // 🔥 CREATE SCHOOL IF NOT EXISTS
-
-    if (existingSchool) {
-
-      schoolId = existingSchool.id
-
-    } else {
-
-      const {
-        data: schoolData,
-        error: schoolError
-      } = await supabase
-        .from('schools')
-        .insert([
-          {
-  name: request.school_name,
-  city: request.city,
-  district: request.district,
-  state: request.state
-}
-        ])
-        .select()
-        .single()
-
-      if (schoolError) {
-        throw schoolError
-      }
-
-      schoolId = schoolData.id
-
-    }
-
-    // 🔥 CHECK EXISTING SCHOOL ADMIN
-
-    const { data: existingAdmin } =
-      await supabase
-        .from('students')
-        .select('*')
-        .eq('phone', request.phone)
-        .eq('role', 'school_admin')
-        .maybeSingle()
-
-    // 🔥 CREATE SCHOOL ADMIN
-
-    if (!existingAdmin) {
-
-     const newId = crypto.randomUUID()
-
-const {
-  data: adminData,
-  error: studentError
-} = await supabase
-  .from('students')
-  .insert([
-    {
-      id: newId,
-
-      user_id: newId,
-
-      first_name:
-        request.coordinator_first_name,
-
-      last_name:
-        request.coordinator_last_name,
-
-      phone: request.phone,
-
-      email: request.email,
-
-      role: 'school_admin',
-
-      // 🔥 SHARED OLYMPIAD COLLEGE
-      college_id: olympiadCollege.id,
-
-      school_id: schoolId,
-
-      college_name:
-        'AURELIUS_OLYMPIAD',
-
-      address:
-`${request.city}, ` +
-`${request.district}, ` +
-`${request.state}`,
-
-      exam_preference: 'SCHOOL',
-
-      is_active: true
-    }
-  ])
-  .select()
-  .single()
-
-      if (studentError) {
-        throw studentError
-      }
-
-// 🔥 UPDATE SCHOOL WITH ADMIN ID
-
-await supabase
-  .from('schools')
-  .update({
-    school_admin_id: adminData.id
-  })
-  .eq('id', schoolId)
-
-    }
-
-    // 🔥 UPDATE REQUEST STATUS
-
-    await supabase
-      .from('school_registration_requests')
-      .update({
-        status: 'approved'
-      })
-      .eq('id', request.id)
-
-    setMessage(
-      '✅ School approved successfully'
-    )
-
-    loadRequests()
-
-  } catch (err) {
-
-    console.log(err)
-
-    setMessage(
-      '❌ Something went wrong'
-    )
-
   }
-
-}
 
   async function rejectRequest(id) {
 
@@ -235,10 +281,10 @@ await supabase
       .eq('id', id)
 
     loadRequests()
-
   }
 
   if (loading) {
+
     return (
       <p style={{ padding: 40 }}>
         Loading...
@@ -247,6 +293,7 @@ await supabase
   }
 
   return (
+
     <div style={{ padding: 30 }}>
 
       <div style={styles.header}>
@@ -266,9 +313,11 @@ await supabase
       </div>
 
       {message && (
+
         <div style={styles.message}>
           {message}
         </div>
+
       )}
 
       <div style={styles.card}>
@@ -290,9 +339,11 @@ await supabase
               <th style={styles.th}>
                 Phone
               </th>
-<th style={styles.th}>
-  City / Town
-</th>
+
+              <th style={styles.th}>
+                City
+              </th>
+
               <th style={styles.th}>
                 District
               </th>
@@ -320,25 +371,178 @@ await supabase
               <tr key={r.id}>
 
                 <td style={styles.td}>
-                  {r.school_name}
+
+                  {editingId === r.id ? (
+
+                    <input
+                      style={styles.input}
+                      value={
+                        editForm.school_name || ''
+                      }
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          school_name:
+                            e.target.value
+                        })
+                      }
+                    />
+
+                  ) : (
+
+                    r.school_name
+
+                  )}
+
                 </td>
 
                 <td style={styles.td}>
-                  {r.coordinator_first_name} {r.coordinator_last_name}
+
+                  {editingId === r.id ? (
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: 8
+                      }}
+                    >
+
+                      <input
+                        style={styles.input}
+                        value={
+                          editForm.coordinator_first_name || ''
+                        }
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            coordinator_first_name:
+                              e.target.value
+                          })
+                        }
+                      />
+
+                      <input
+                        style={styles.input}
+                        value={
+                          editForm.coordinator_last_name || ''
+                        }
+                        onChange={(e) =>
+                          setEditForm({
+                            ...editForm,
+                            coordinator_last_name:
+                              e.target.value
+                          })
+                        }
+                      />
+
+                    </div>
+
+                  ) : (
+
+                    <>
+                      {r.coordinator_first_name}
+                      {' '}
+                      {r.coordinator_last_name}
+                    </>
+
+                  )}
+
                 </td>
 
                 <td style={styles.td}>
-                  {r.phone}
-                </td>
-<td style={styles.td}>
-  {r.city}
-</td>
-                <td style={styles.td}>
-                  {r.district}
+
+                  {editingId === r.id ? (
+
+                    <input
+                      style={styles.input}
+                      value={
+                        editForm.phone || ''
+                      }
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          phone:
+                            e.target.value
+                        })
+                      }
+                    />
+
+                  ) : (
+                    r.phone
+                  )}
+
                 </td>
 
                 <td style={styles.td}>
-                  {r.state}
+
+                  {editingId === r.id ? (
+
+                    <input
+                      style={styles.input}
+                      value={
+                        editForm.city || ''
+                      }
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          city:
+                            e.target.value
+                        })
+                      }
+                    />
+
+                  ) : (
+                    r.city
+                  )}
+
+                </td>
+
+                <td style={styles.td}>
+
+                  {editingId === r.id ? (
+
+                    <input
+                      style={styles.input}
+                      value={
+                        editForm.district || ''
+                      }
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          district:
+                            e.target.value
+                        })
+                      }
+                    />
+
+                  ) : (
+                    r.district
+                  )}
+
+                </td>
+
+                <td style={styles.td}>
+
+                  {editingId === r.id ? (
+
+                    <input
+                      style={styles.input}
+                      value={
+                        editForm.state || ''
+                      }
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          state:
+                            e.target.value
+                        })
+                      }
+                    />
+
+                  ) : (
+                    r.state
+                  )}
+
                 </td>
 
                 <td style={styles.td}>
@@ -373,23 +577,60 @@ await supabase
 
                     <div style={styles.actions}>
 
-                      <button
-                        style={styles.approveBtn}
-                        onClick={() =>
-                          approveSchool(r)
-                        }
-                      >
-                        Approve
-                      </button>
+                      {editingId === r.id ? (
 
-                      <button
-                        style={styles.rejectBtn}
-                        onClick={() =>
-                          rejectRequest(r.id)
-                        }
-                      >
-                        Reject
-                      </button>
+                        <>
+
+                          <button
+                            style={styles.saveBtn}
+                            onClick={saveEdit}
+                          >
+                            Save
+                          </button>
+
+                          <button
+                            style={styles.cancelBtn}
+                            onClick={cancelEdit}
+                          >
+                            Cancel
+                          </button>
+
+                        </>
+
+                      ) : (
+
+                        <>
+
+                          <button
+                            style={styles.editBtn}
+                            onClick={() =>
+                              startEdit(r)
+                            }
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            style={styles.approveBtn}
+                            onClick={() =>
+                              approveSchool(r)
+                            }
+                          >
+                            Approve
+                          </button>
+
+                          <button
+                            style={styles.rejectBtn}
+                            onClick={() =>
+                              rejectRequest(r.id)
+                            }
+                          >
+                            Reject
+                          </button>
+
+                        </>
+
+                      )}
 
                     </div>
 
@@ -439,7 +680,7 @@ const styles = {
   card: {
     background: '#fff',
     borderRadius: 14,
-    overflow: 'hidden',
+    overflowX: 'auto',
     border: '1px solid #e2e8f0'
   },
 
@@ -462,6 +703,13 @@ const styles = {
     fontSize: 14
   },
 
+  input: {
+    padding: 8,
+    borderRadius: 8,
+    border: '1px solid #cbd5e1',
+    width: '100%'
+  },
+
   badge: {
     padding: '6px 10px',
     borderRadius: 999,
@@ -472,7 +720,38 @@ const styles = {
 
   actions: {
     display: 'flex',
-    gap: 10
+    gap: 8,
+    flexWrap: 'wrap'
+  },
+
+  editBtn: {
+    background: '#2563eb',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 14px',
+    borderRadius: 8,
+    cursor: 'pointer',
+    fontWeight: 600
+  },
+
+  saveBtn: {
+    background: '#7c3aed',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 14px',
+    borderRadius: 8,
+    cursor: 'pointer',
+    fontWeight: 600
+  },
+
+  cancelBtn: {
+    background: '#64748b',
+    color: '#fff',
+    border: 'none',
+    padding: '8px 14px',
+    borderRadius: 8,
+    cursor: 'pointer',
+    fontWeight: 600
   },
 
   approveBtn: {
