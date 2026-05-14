@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'crypto'
-
+import * as XLSX from 'xlsx'
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -63,9 +63,59 @@ const validPreferences =
     const formData = await req.formData()
     const file = formData.get('file')
 
-    const text = await file.text()
+    let rows = []
 
-    const rows = text.split('\n').slice(1) // skip header
+if (
+  file.name.endsWith('.csv')
+) {
+
+  const text =
+    await file.text()
+
+  rows =
+    text
+      .split('\n')
+      .slice(1)
+
+} else if (
+
+  file.name.endsWith('.xlsx')
+
+) {
+
+  const bytes =
+    await file.arrayBuffer()
+
+  const workbook =
+    XLSX.read(bytes)
+
+  const sheetName =
+    workbook.SheetNames[0]
+
+  const worksheet =
+    workbook.Sheets[sheetName]
+
+  const json =
+    XLSX.utils.sheet_to_json(
+      worksheet,
+      { header: 1 }
+    )
+
+  rows =
+    json
+      .slice(1)
+      .map(r => r.join(','))
+
+} else {
+
+  return Response.json(
+    {
+      error:
+        'Only CSV or XLSX files allowed'
+    },
+    { status: 400 }
+  )
+}
 
     let inserted = 0
     let failed = 0
