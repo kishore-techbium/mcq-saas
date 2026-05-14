@@ -10,8 +10,15 @@ const [collegesList, setCollegesList] = useState([])
 const [assignments, setAssignments] = useState([])
 const [selectedExam, setSelectedExam] = useState('')
 const [selectedCollege, setSelectedCollege] = useState('')
-const [examDate, setExamDate] = useState('')
-const [examTime, setExamTime] = useState('')
+const today =
+  new Date()
+    .toISOString()
+    .split('T')[0]
+
+const [examDate, setExamDate] =
+  useState(today)
+  const [examTime, setExamTime] =
+  useState('08:00')
 
 const [assignMsg, setAssignMsg] = useState('')
 
@@ -113,19 +120,54 @@ const [assignMsg, setAssignMsg] = useState('')
 
   async function loadGlobalData() {
 
-  // 🔹 Fetch global exams
-  const { data: exams } = await supabase
-    .from('exams')
-    .select('id, title')
-    .eq('is_global', true)
+  /* ================= FETCH ASSIGNED EXAMS ================= */
 
-  // 🔹 Fetch colleges
-  const { data: colleges } = await supabase
-    .from('colleges')
-    .select('id, name')
+  const {
+    data: assigned
+  } = await supabase
 
-  setGlobalExams(exams || [])
-  setCollegesList(colleges || [])
+    .from('exam_assignments')
+
+    .select('exam_id')
+
+  const assignedIds =
+    (assigned || [])
+      .map(a => a.exam_id)
+
+  /* ================= FETCH GLOBAL EXAMS ================= */
+
+  const { data: exams } =
+    await supabase
+
+      .from('exams')
+
+      .select('id, title')
+
+      .eq('is_global', true)
+
+  /* ================= REMOVE ASSIGNED ================= */
+
+  const availableExams =
+    (exams || []).filter(e =>
+      !assignedIds.includes(e.id)
+    )
+
+  /* ================= FETCH COLLEGES ================= */
+
+  const { data: colleges } =
+    await supabase
+
+      .from('colleges')
+
+      .select('id, name')
+
+  setGlobalExams(
+    availableExams
+  )
+
+  setCollegesList(
+    colleges || []
+  )
 }
   
   function getInfraRecommendation(exams) {
@@ -204,11 +246,20 @@ async function assignExam() {
 
   setAssignMsg('✅ Assigned successfully')
 
-  // reset
-  setSelectedExam('')
-  setSelectedCollege('')
-  setExamDate('')
-  setExamTime('')
+// reset
+setSelectedExam('')
+setSelectedCollege('')
+
+setExamDate(
+  new Date()
+    .toISOString()
+    .split('T')[0]
+)
+
+setExamTime('08:00')
+
+await loadGlobalData()
+await loadAssignments()
 }
 
 async function loadAssignments() {
