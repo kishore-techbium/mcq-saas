@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '../../../../lib/supabase'
-
+import * as XLSX from 'xlsx'
 export default function BulkUpload() {
   const [file, setFile] = useState(null)
   
@@ -24,47 +24,131 @@ async function handleFileChange(e) {
 
   setFile(selectedFile)
 
-  const text =
-    await selectedFile.text()
+  let parsed = []
 
-  const rows =
-    text
-      .split('\n')
-      .slice(1)
-      .filter(r => r.trim())
+  /* ================= CSV ================= */
 
-  const parsed =
-    rows.map(row => {
+  if (
+    selectedFile.name.endsWith('.csv')
+  ) {
 
-      const [
+    const text =
+      await selectedFile.text()
 
-        email,
-        first_name,
-        last_name,
-        login_id,
-        password,
-        exam_preference,
-        phone,
-        address,
-        study_year,
-        olympiad_subjects
+    const rows =
+      text
+        .split('\n')
+        .slice(1)
+        .filter(r => r.trim())
 
-      ] = row.split(',')
+    parsed =
+      rows.map(row => {
 
-      return {
+        const [
 
-        email,
-        first_name,
-        last_name,
-        login_id,
-        password,
-        exam_preference,
-        phone,
-        address,
-        study_year,
-        olympiad_subjects
-      }
-    })
+          email,
+          first_name,
+          last_name,
+          login_id,
+          password,
+          exam_preference,
+          phone,
+          address,
+          study_year,
+          olympiad_subjects
+
+        ] = row.split(',')
+
+        return {
+
+          email,
+          first_name,
+          last_name,
+          login_id,
+          password,
+          exam_preference,
+          phone,
+          address,
+          study_year,
+          olympiad_subjects
+        }
+      })
+
+  }
+
+  /* ================= XLSX ================= */
+
+  else if (
+
+    selectedFile.name.endsWith('.xlsx')
+
+  ) {
+
+    const data =
+      await selectedFile.arrayBuffer()
+
+    const workbook =
+      XLSX.read(data)
+
+    const sheetName =
+      workbook.SheetNames[0]
+
+    const worksheet =
+      workbook.Sheets[sheetName]
+
+    const json =
+      XLSX.utils.sheet_to_json(
+        worksheet,
+        { header: 1 }
+      )
+
+    parsed =
+      json
+        .slice(1)
+        .filter(r => r.length > 0)
+        .map(row => ({
+
+          email:
+            row[0],
+
+          first_name:
+            row[1],
+
+          last_name:
+            row[2],
+
+          login_id:
+            row[3],
+
+          password:
+            row[4],
+
+          exam_preference:
+            row[5],
+
+          phone:
+            row[6],
+
+          address:
+            row[7],
+
+          study_year:
+            row[8],
+
+          olympiad_subjects:
+            row[9]
+        }))
+
+  }
+
+  else {
+
+    alert(
+      'Only CSV or XLSX files allowed'
+    )
+
+    return
+  }
 
   setPreviewRows(parsed)
 }
