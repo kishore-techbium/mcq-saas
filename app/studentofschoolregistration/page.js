@@ -188,7 +188,7 @@ export default function StudentRegistrationPage() {
             <div className="field">
 
               <label>
-                First Name
+                First Name*
               </label>
 
               <input
@@ -209,7 +209,7 @@ export default function StudentRegistrationPage() {
             <div className="field">
 
               <label>
-                Last Name
+                Last Name(Surname)*
               </label>
 
               <input
@@ -230,7 +230,7 @@ export default function StudentRegistrationPage() {
             <div className="field">
 
               <label>
-                School Name
+                School Name*
               </label>
 
               <input
@@ -251,7 +251,7 @@ export default function StudentRegistrationPage() {
             <div className="field">
 
               <label>
-                Mobile Number
+                Mobile Number*
               </label>
 
               <input
@@ -272,7 +272,7 @@ export default function StudentRegistrationPage() {
             <div className="field">
 
               <label>
-                Email Address
+                Email Address*
               </label>
 
               <input
@@ -293,7 +293,7 @@ export default function StudentRegistrationPage() {
             <div className="field">
 
               <label>
-                City / Town
+                City / Town*
               </label>
 
               <input
@@ -314,7 +314,7 @@ export default function StudentRegistrationPage() {
             <div className="field">
 
               <label>
-                District
+                District*
               </label>
 
               <input
@@ -335,7 +335,7 @@ export default function StudentRegistrationPage() {
             <div className="field">
 
               <label>
-                State
+                State*
               </label>
 
               <input
