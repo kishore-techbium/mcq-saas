@@ -101,10 +101,10 @@ if (
       { header: 1 }
     )
 
-  rows =
-    json
-      .slice(1)
-      .map(r => r.join(','))
+rows =
+  json
+    .slice(1)
+    .filter(r => r.length > 0)
 
 } else {
 
@@ -122,10 +122,30 @@ if (
 
     /* ================= PROCESS ROWS ================= */
 
-    for (let row of rows) {
-      if (!row.trim()) continue
+   for (let row of rows) {
 
-      const [
+  if (!row) continue
+
+  let parsedRow = []
+
+  /* ================= CSV ================= */
+
+  if (typeof row === 'string') {
+
+    if (!row.trim()) continue
+
+    parsedRow = row.split(',')
+
+  }
+
+  /* ================= XLSX ================= */
+
+  else {
+
+    parsedRow = row
+  }
+
+  const [
         email,
         first_name,
         last_name,
@@ -136,7 +156,7 @@ if (
         address,
         study_year,
         olympiad_subjects
-      ] = row.split(',')
+      ] = parsedRow
 
       if (!email || !login_id) {
         failed++
