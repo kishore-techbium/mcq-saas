@@ -377,11 +377,25 @@ export default function StudentRegistrationPage() {
                 State*
               </label>
 
-            <select
+  <select
   name="state"
   value={form.state}
   onChange={handleChange}
   required
+  style={{
+    width: "100%",
+    height: "60px",
+    borderRadius: "18px",
+    border: "1px solid rgba(255,255,255,0.08)",
+    background: "rgba(8,15,40,0.95)",
+    color: "#fff",
+    padding: "0 18px",
+    fontSize: "16px",
+    outline: "none",
+    appearance: "none",
+    WebkitAppearance: "none",
+    MozAppearance: "none",
+  }}
 >
 
   <option value="">
@@ -393,6 +407,9 @@ export default function StudentRegistrationPage() {
     <option
       key={state}
       value={state}
+      style={{
+        color: "#000"
+      }}
     >
 
       {state}
