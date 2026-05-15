@@ -97,8 +97,10 @@ export default function ApproveSchoolsPage() {
         phone:
           editForm.phone,
 
-        email:
-          editForm.email,
+email:
+  editForm.email
+    ?.trim()
+    .toLowerCase(),
 
         city:
           editForm.city,
@@ -217,7 +219,10 @@ export default function ApproveSchoolsPage() {
 
               phone: request.phone,
 
-              email: request.email,
+              email:
+  request.email
+    ?.trim()
+    .toLowerCase(),
 
               role: 'school_admin',
 
@@ -389,13 +394,14 @@ export default function ApproveSchoolsPage() {
                       value={
                         editForm.school_name || ''
                       }
-                      onChange={(e) =>
-                        setEditForm({
-                          ...editForm,
-                          school_name:
-                            e.target.value
-                        })
-                      }
+                     onChange={(e) =>
+  setEditForm({
+    ...editForm,
+    email:
+      e.target.value
+        .toLowerCase()
+  })
+}
                     />
 
                   ) : (
