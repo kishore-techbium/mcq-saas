@@ -24,6 +24,7 @@ export default function SuperAdminLayout({ children }) {
         <Link href="/superadmin/colleges">Colleges</Link>
         <Link href="/superadmin/admins">Admins</Link>
         <Link href="/superadmin/examcategories">Exam Categories</Link>
+        <Link href="/superadmin/bulkuploadstudents">Upload Students</Link>
         <Link href="/superadmin/approveschools">Approve Schools</Link>
         <Link href="/superadmin/approveschoolstudents">Approve Students without school</Link>
         <Link href="/superadmin/anse/phase1">ANSE ranking engine phase I</Link>
