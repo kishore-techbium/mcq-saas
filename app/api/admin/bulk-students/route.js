@@ -40,6 +40,38 @@ export async function POST(req) {
         { status: 400 }
       )
     }
+const formData =
+  await req.formData()
+
+const file =
+  formData.get('file')
+
+const selectedSchoolId =
+  formData.get('school_id')
+let finalSchoolId = null
+
+/* ================= SCHOOL ADMIN ================= */
+
+if (
+  admin.role === 'school_admin'
+) {
+
+  finalSchoolId =
+    admin.school_id
+}
+
+/* ================= SUPERADMIN ================= */
+
+else if (
+
+  admin.role === 'superadmin'
+
+) {
+
+  finalSchoolId =
+    selectedSchoolId
+}
+    
 const {
   data: parentCategories,
   error: categoryError
@@ -60,8 +92,7 @@ const validPreferences =
     .map(c => c.code)
     /* ================= READ FILE ================= */
 
-    const formData = await req.formData()
-    const file = formData.get('file')
+
 
     let rows = []
 
@@ -228,10 +259,8 @@ if (
     college_name:
       admin.college_name,
 
-    school_id:
-      admin.role === 'school_admin'
-        ? admin.school_id
-        : null
+   school_id:
+  finalSchoolId
 
   })
 
@@ -247,7 +276,7 @@ if (insertError) {
   continue
 }
 if (
-  admin.role === 'school_admin' &&
+  finalSchoolId &&
   olympiad_subjects
 ) {
 
