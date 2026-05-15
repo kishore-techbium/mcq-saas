@@ -7,33 +7,65 @@ import { useEffect, useState } from 'react'
 export default function StudentHome() {
   const [category, setCategory] = useState(null)
   const [loading, setLoading] = useState(true)
+const [user, setUser] = useState(null)
 
-  useEffect(() => {
-    async function init() {
+const isSchoolStudent =
+  !!user?.school_id
+  
+useEffect(() => {
 
-  const currentUser = await getCurrentUser(supabase)
+  async function init() {
 
-  // ❌ Not logged in
-  if (!currentUser) {
-    window.location.href = '/'
-    return
+    const currentUser =
+      await getCurrentUser(supabase)
+
+    if (!currentUser) {
+
+      window.location.href = '/'
+
+      return
+    }
+
+    const params =
+      new URLSearchParams(
+        window.location.search
+      )
+
+    const cat =
+      params.get('category')
+
+    if (!cat) {
+
+      window.location.href =
+        '/select-category'
+
+      return
+    }
+
+    const { data: student } =
+      await supabase
+
+        .from('students')
+
+        .select('*')
+
+        .eq(
+          'id',
+          currentUser.user.id
+        )
+
+        .maybeSingle()
+
+    setUser(student)
+
+    setCategory(cat)
+
+    setLoading(false)
   }
 
-  // ✅ Continue normal flow
-  const params = new URLSearchParams(window.location.search)
-  const cat = params.get('category')
+  init()
 
-  if (!cat) {
-    window.location.href = '/select-category'
-    return
-  }
-
-  setCategory(cat)
-  setLoading(false)
-}
-
-    init()
-  }, [])
+}, [])
 
   function goCreateTest() {
     window.location.href = `/student/create-test?category=${category}`
@@ -63,18 +95,27 @@ export default function StudentHome() {
       <div style={styles.grid}>
         
         {/* CREATE YOUR OWN TEST */}
-        <div style={styles.card}>
-          <h2>🧠 Create Your Own Test</h2>
-          <p style={styles.desc}>
-            Select subjects, chapters and number of questions.
-            Perfect for daily practice and weak-area improvement.
-          </p>
+{!isSchoolStudent && (
 
-          <button style={styles.primaryBtn} onClick={goCreateTest}>
-            Create Test
-          </button>
-        </div>
+<div style={styles.card}>
 
+  <h2>🧠 Create Your Own Test</h2>
+
+  <p style={styles.desc}>
+    Select subjects, chapters and number of questions.
+    Perfect for daily practice and weak-area improvement.
+  </p>
+
+  <button
+    style={styles.primaryBtn}
+    onClick={goCreateTest}
+  >
+    Create Test
+  </button>
+
+</div>
+
+)}
         {/* TAKE AVAILABLE TESTS */}
         <div style={{ ...styles.card, background: '#fefce8' }}>
           <h2>📘 Take Available Tests</h2>
