@@ -361,9 +361,22 @@ ${data.nationalChampion}`
 
                     </td>
 
-                    <td className={tdStyle}>
-                      {row.school_name}
-                    </td>
+<td className={tdStyle}>
+
+  <a
+    href={`/superadmin/anse/schools/${row.school_id}`}
+    className="
+      text-blue-600
+      font-bold
+      hover:underline
+    "
+  >
+
+    {row.school_name}
+
+  </a>
+
+</td>
 
                     <td className={tdStyle}>
                       {row.district}
