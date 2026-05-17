@@ -32,17 +32,8 @@ export default function SchoolExamAnalyticsPage() {
   const [leaderboard, setLeaderboard] =
     useState([])
 
-  const [stats, setStats] =
-    useState({
-
-      totalStudents: 0,
-
-      avgScore: 0,
-
-      highestScore: 0,
-
-      lowestScore: 0
-    })
+  const [distribution, setDistribution] =
+    useState([])
 
   useEffect(() => {
 
@@ -103,7 +94,7 @@ export default function SchoolExamAnalyticsPage() {
       setExam(examData)
 
       /* ======================================================
-         SCHOOL STUDENTS
+         STUDENTS
       ====================================================== */
 
       const {
@@ -198,49 +189,51 @@ export default function SchoolExamAnalyticsPage() {
       setLeaderboard(rows)
 
       /* ======================================================
-         KPI
+         SCORE DISTRIBUTION
       ====================================================== */
 
-      const scores =
-        rows.map(r => r.score)
+      const buckets = {
 
-      const total =
-        scores.length
+        '90+': 0,
+        '75-89': 0,
+        '60-74': 0,
+        '40-59': 0,
+        '<40': 0
+      }
 
-      const avg =
-        total > 0
+      rows.forEach(r => {
 
-          ? scores.reduce(
-              (a,b) => a+b,
-              0
-            ) / total
+        const score = r.score
 
-          : 0
+        if (score >= 90) {
+          buckets['90+']++
+        }
 
-      const highest =
-        total > 0
-          ? Math.max(...scores)
-          : 0
+        else if (score >= 75) {
+          buckets['75-89']++
+        }
 
-      const lowest =
-        total > 0
-          ? Math.min(...scores)
-          : 0
+        else if (score >= 60) {
+          buckets['60-74']++
+        }
 
-      setStats({
+        else if (score >= 40) {
+          buckets['40-59']++
+        }
 
-        totalStudents:
-          total,
-
-        avgScore:
-          avg.toFixed(2),
-
-        highestScore:
-          highest,
-
-        lowestScore:
-          lowest
+        else {
+          buckets['<40']++
+        }
       })
+
+      setDistribution(
+
+        Object.entries(buckets)
+          .map(([label, value]) => ({
+            label,
+            value
+          }))
+      )
 
     } catch (err) {
 
@@ -256,18 +249,28 @@ export default function SchoolExamAnalyticsPage() {
 
     return (
 
-      <div className="p-10">
+      <div className="
+        p-10
+      ">
         Loading...
       </div>
 
     )
   }
 
+  const podium =
+    leaderboard.slice(0, 3)
+
+  const others =
+    leaderboard.slice(3)
+
   return (
 
     <div className="
       min-h-screen
-      bg-gray-100
+      bg-gradient-to-br
+      from-slate-50
+      to-indigo-50
       p-8
     ">
 
@@ -282,85 +285,294 @@ export default function SchoolExamAnalyticsPage() {
 
         <div className="
           bg-white
-          rounded-3xl
+          rounded-[32px]
           p-8
           shadow-sm
           mb-8
         ">
 
-          <h1 className="
-            text-4xl
-            font-black
-            text-gray-800
-            mb-3
-          ">
-
-            🏆 {school?.name}
-
-          </h1>
-
-          <p className="
-            text-lg
-            text-gray-600
-            mb-6
-          ">
-
-            {exam?.title}
-
-          </p>
-
           <div className="
             flex
-            flex-wrap
-            gap-3
+            flex-col
+            lg:flex-row
+            lg:items-center
+            lg:justify-between
+            gap-6
           ">
 
-            <Badge>
-              {exam?.phase}
-            </Badge>
+            <div>
 
-            <Badge>
-              {exam?.olympiad_subject}
-            </Badge>
+              <div className="
+                inline-flex
+                items-center
+                gap-2
+                bg-indigo-100
+                text-indigo-700
+                px-4
+                py-2
+                rounded-full
+                text-sm
+                font-bold
+                mb-5
+              ">
 
-            <Badge>
-              {exam?.exam_category}
-            </Badge>
+                🏆 School Olympiad Analytics
+
+              </div>
+
+              <h1 className="
+                text-4xl
+                font-black
+                text-gray-900
+                mb-3
+              ">
+
+                {school?.name}
+
+              </h1>
+
+              <p className="
+                text-lg
+                text-gray-600
+                mb-4
+              ">
+
+                {school?.city},
+                {' '}
+                {school?.district},
+                {' '}
+                {school?.state}
+
+              </p>
+
+              <div className="
+                flex
+                flex-wrap
+                gap-3
+              ">
+
+                <Badge>
+                  {exam?.phase}
+                </Badge>
+
+                <Badge>
+                  {exam?.olympiad_subject}
+                </Badge>
+
+                <Badge>
+                  {exam?.exam_category}
+                </Badge>
+
+              </div>
+
+            </div>
+
+            <div className="
+              bg-slate-50
+              rounded-3xl
+              p-6
+              min-w-[260px]
+            ">
+
+              <div className="
+                text-sm
+                text-gray-500
+                mb-2
+              ">
+                Exam
+              </div>
+
+              <div className="
+                text-2xl
+                font-black
+                text-gray-900
+                leading-snug
+              ">
+
+                {exam?.title}
+
+              </div>
+
+            </div>
 
           </div>
 
         </div>
 
         {/* ======================================================
-           KPI
+           PODIUM
+        ====================================================== */}
+
+        {podium.length > 0 && (
+
+          <div className="
+            mb-10
+          ">
+
+            <h2 className="
+              text-3xl
+              font-black
+              mb-6
+            ">
+
+              🏅 School Toppers
+
+            </h2>
+
+            <div className="
+              grid
+              md:grid-cols-3
+              gap-6
+            ">
+
+              {/* SECOND */}
+
+              <PodiumCard
+                rank={2}
+                emoji="🥈"
+                row={podium[1]}
+              />
+
+              {/* FIRST */}
+
+              <PodiumCard
+                rank={1}
+                emoji="👑"
+                row={podium[0]}
+                highlight
+              />
+
+              {/* THIRD */}
+
+              <PodiumCard
+                rank={3}
+                emoji="🥉"
+                row={podium[2]}
+              />
+
+            </div>
+
+          </div>
+
+        )}
+
+        {/* ======================================================
+           SCORE DISTRIBUTION
         ====================================================== */}
 
         <div className="
-          grid
-          md:grid-cols-4
-          gap-6
-          mb-8
+          bg-white
+          rounded-[32px]
+          p-8
+          shadow-sm
+          mb-10
         ">
 
-          <KPI
-            title="Participants"
-            value={stats.totalStudents}
-          />
+          <div className="
+            flex
+            items-center
+            justify-between
+            mb-8
+          ">
 
-          <KPI
-            title="Average Score"
-            value={stats.avgScore}
-          />
+            <h2 className="
+              text-3xl
+              font-black
+            ">
 
-          <KPI
-            title="Highest Score"
-            value={stats.highestScore}
-          />
+              📊 Score Distribution
 
-          <KPI
-            title="Lowest Score"
-            value={stats.lowestScore}
-          />
+            </h2>
+
+            <div className="
+              text-sm
+              text-gray-500
+            ">
+
+              Total Participants:
+              {' '}
+              <span className="
+                font-black
+                text-black
+              ">
+                {leaderboard.length}
+              </span>
+
+            </div>
+
+          </div>
+
+          <div className="
+            flex
+            items-end
+            gap-5
+            h-[320px]
+          ">
+
+            {distribution.map(item => {
+
+              const max =
+                Math.max(
+                  ...distribution.map(
+                    d => d.value
+                  ),
+                  1
+                )
+
+              const height =
+                (item.value / max) * 240
+
+              return (
+
+                <div
+                  key={item.label}
+                  className="
+                    flex-1
+                    flex
+                    flex-col
+                    items-center
+                  "
+                >
+
+                  <div className="
+                    font-black
+                    mb-3
+                  ">
+
+                    {item.value}
+
+                  </div>
+
+                  <div
+                    style={{
+                      height
+                    }}
+                    className="
+                      w-full
+                      rounded-t-3xl
+                      bg-gradient-to-t
+                      from-indigo-600
+                      to-indigo-300
+                      transition-all
+                    "
+                  />
+
+                  <div className="
+                    mt-4
+                    text-sm
+                    font-bold
+                    text-gray-700
+                  ">
+
+                    {item.label}
+
+                  </div>
+
+                </div>
+              )
+            })}
+
+          </div>
 
         </div>
 
@@ -370,136 +582,171 @@ export default function SchoolExamAnalyticsPage() {
 
         <div className="
           bg-white
-          rounded-3xl
+          rounded-[32px]
           shadow-sm
-          overflow-x-auto
+          overflow-hidden
         ">
 
           <div className="
-            p-6
+            p-8
             border-b
-            border-gray-200
+            border-gray-100
           ">
 
             <h2 className="
-              text-2xl
+              text-3xl
               font-black
             ">
 
-              📊 School Leaderboard
+              🏆 Full Leaderboard
 
             </h2>
 
           </div>
 
-          <table className="
-            w-full
-            border-collapse
+          <div className="
+            overflow-x-auto
           ">
 
-            <thead>
+            <table className="
+              w-full
+              border-collapse
+            ">
 
-              <tr className="
-                bg-gray-50
-              ">
+              <thead>
 
-                <th className={thStyle}>
-                  Rank
-                </th>
+                <tr className="
+                  bg-slate-50
+                ">
 
-                <th className={thStyle}>
-                  Student
-                </th>
+                  <th className={thStyle}>
+                    Rank
+                  </th>
 
-                <th className={thStyle}>
-                  Score
-                </th>
+                  <th className={thStyle}>
+                    Student
+                  </th>
 
-                <th className={thStyle}>
-                  Submitted
-                </th>
+                  <th className={thStyle}>
+                    Score
+                  </th>
 
-              </tr>
-
-            </thead>
-
-            <tbody>
-
-              {leaderboard.map(
-                (row, idx) => (
-
-                <tr
-                  key={idx}
-                  className="
-                    border-b
-                    border-gray-100
-                  "
-                >
-
-                  <td className={tdStyle}>
-
-                    {idx === 0 && '👑 '}
-                    {idx === 1 && '🥈 '}
-                    {idx === 2 && '🥉 '}
-
-                    {idx + 1}
-
-                  </td>
-
-                  <td className={tdStyle}>
-                    {row.name}
-                  </td>
-
-                  <td className={tdStyle}>
-
-                    <span className="
-                      font-black
-                      text-lg
-                    ">
-
-                      {row.score}
-
-                    </span>
-
-                  </td>
-
-                  <td className={tdStyle}>
-
-                    {row.submitted_at
-
-                      ? new Date(
-                          row.submitted_at
-                        ).toLocaleString()
-
-                      : '-'
-                    }
-
-                  </td>
+                  <th className={thStyle}>
+                    Submitted
+                  </th>
 
                 </tr>
 
-              ))}
+              </thead>
 
-              {leaderboard.length === 0 && (
+              <tbody>
 
-                <tr>
+                {leaderboard.map(
+                  (row, idx) => (
 
-                  <td
-                    className={tdStyle}
-                    colSpan={4}
+                  <tr
+                    key={idx}
+                    className="
+                      border-b
+                      border-slate-100
+                      hover:bg-slate-50
+                    "
                   >
 
-                    No submissions found
+                    <td className={tdStyle}>
 
-                  </td>
+                      <div className="
+                        font-black
+                        text-lg
+                      ">
 
-                </tr>
+                        {idx === 0 && '👑 '}
+                        {idx === 1 && '🥈 '}
+                        {idx === 2 && '🥉 '}
 
-              )}
+                        #{idx + 1}
 
-            </tbody>
+                      </div>
 
-          </table>
+                    </td>
+
+                    <td className={tdStyle}>
+
+                      <div className="
+                        font-bold
+                        text-gray-900
+                      ">
+
+                        {row.name}
+
+                      </div>
+
+                    </td>
+
+                    <td className={tdStyle}>
+
+                      <div className="
+                        inline-flex
+                        items-center
+                        justify-center
+                        px-4
+                        py-2
+                        rounded-2xl
+                        bg-indigo-100
+                        text-indigo-700
+                        font-black
+                        text-lg
+                      ">
+
+                        {row.score}
+
+                      </div>
+
+                    </td>
+
+                    <td className={tdStyle}>
+
+                      {row.submitted_at
+
+                        ? new Date(
+                            row.submitted_at
+                          ).toLocaleString()
+
+                        : '-'
+                      }
+
+                    </td>
+
+                  </tr>
+
+                ))}
+
+                {leaderboard.length === 0 && (
+
+                  <tr>
+
+                    <td
+                      className="
+                        p-10
+                        text-center
+                        text-gray-500
+                      "
+                      colSpan={4}
+                    >
+
+                      No submissions found
+
+                    </td>
+
+                  </tr>
+
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
 
         </div>
 
@@ -510,40 +757,85 @@ export default function SchoolExamAnalyticsPage() {
 }
 
 /* ======================================================
-   KPI
+   PODIUM CARD
 ====================================================== */
 
-function KPI({
-  title,
-  value
+function PodiumCard({
+  rank,
+  emoji,
+  row,
+  highlight
 }) {
+
+  if (!row) {
+
+    return (
+      <div />
+    )
+  }
 
   return (
 
-    <div className="
-      bg-white
-      rounded-3xl
-      p-6
+    <div className={`
+      rounded-[32px]
+      p-8
       shadow-sm
-    ">
+      text-center
+      flex
+      flex-col
+      justify-center
+      ${highlight
+        ? 'bg-gradient-to-br from-yellow-100 to-orange-100'
+        : 'bg-white'
+      }
+    `}>
 
       <div className="
-        text-sm
-        text-gray-500
-        mb-2
+        text-6xl
+        mb-4
       ">
 
-        {title}
+        {emoji}
 
       </div>
 
       <div className="
-        text-4xl
-        font-black
-        text-gray-800
+        text-sm
+        font-bold
+        text-gray-500
+        mb-2
       ">
 
-        {value}
+        Rank #{rank}
+
+      </div>
+
+      <div className="
+        text-2xl
+        font-black
+        mb-4
+        text-gray-900
+      ">
+
+        {row.name}
+
+      </div>
+
+      <div className="
+        inline-flex
+        items-center
+        justify-center
+        mx-auto
+        bg-black
+        text-white
+        px-6
+        py-3
+        rounded-2xl
+        text-2xl
+        font-black
+      ">
+
+        {row.score}
 
       </div>
 
@@ -568,6 +860,7 @@ function Badge({
       py-2
       rounded-2xl
       font-bold
+      text-sm
     ">
 
       {children}
@@ -578,14 +871,14 @@ function Badge({
 
 const thStyle = `
   text-left
-  p-4
+  p-5
   border-b
   border-gray-200
-  font-bold
+  font-black
   text-gray-700
 `
 
 const tdStyle = `
-  p-4
+  p-5
   text-gray-700
 `
