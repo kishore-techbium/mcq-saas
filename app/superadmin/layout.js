@@ -35,6 +35,7 @@ export default function SuperAdminLayout({ children }) {
         <Link href="/superadmin/anse/schools">ANSE School Commmand Centre</Link>
         <Link href="/superadmin/anse/districts">ANSE District Commmand Centre</Link>
         <Link href="/superadmin/anse/states">ANSE State Commmand Centre</Link>
+        <Link href="/superadmin/anse/national">ANSE National Commmand Centre</Link>
         <button onClick={logout} style={styles.logout}>
           Logout
         </button>
