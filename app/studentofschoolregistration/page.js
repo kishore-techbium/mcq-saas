@@ -104,98 +104,154 @@ export default function StudentRegistrationPage() {
     setLoading(true);
 
     setMessage("");
+      const orderRes = await fetch(
+        "/api/anse/create-order",
+        {
+          method: "POST",
+        }
+      );
 
-    try {
+      const orderData =
+        await orderRes.json();
 
-      const {
-        data: existing
-      } = await supabase
-        .from(
-          "student_ofschool_registration_requests"
-        )
-        .select("*")
-        .eq("phone", form.phone)
-        .maybeSingle();
+      const options = {
 
-      if (existing) {
+        key:
+          process.env
+            .NEXT_PUBLIC_RAZORPAY_KEY_ID,
 
-        setMessage(
-          "A request already exists for this mobile number."
+        amount:
+          orderData.amount,
+
+        currency:
+          orderData.currency,
+
+        name:
+          "Aurelius Scholarship",
+
+        description:
+          "Olympiad Registration",
+
+        order_id:
+          orderData.id,
+
+        handler: async function (
+          response
+        ) {
+
+          const {
+            data: existing
+          } = await supabase
+            .from(
+              "student_ofschool_registration_requests"
+            )
+            .select("*")
+            .eq(
+              "phone",
+              form.phone
+            )
+            .maybeSingle();
+
+          if (existing) {
+
+            setMessage(
+              "A request already exists for this mobile number."
+            );
+
+            setLoading(false);
+
+            return;
+          }
+
+          const { error } =
+            await supabase
+              .from(
+                "student_ofschool_registration_requests"
+              )
+              .insert([
+                {
+                  school_name:
+                    form.schoolName,
+
+                  first_name:
+                    form.firstName,
+
+                  last_name:
+                    form.lastName,
+
+                  phone:
+                    form.phone,
+
+                  email:
+                    form.email,
+
+                  city:
+                    form.city,
+
+                  district:
+                    form.district,
+
+                  state:
+                    form.state,
+
+                  selected_subjects:
+                    subjects,
+
+                  payment_id:
+                    response.razorpay_payment_id,
+
+                  status:
+                    "paid",
+                },
+              ]);
+
+          if (error) {
+
+            console.log(error);
+
+            setMessage(
+              "Database save failed."
+            );
+
+            setLoading(false);
+
+            return;
+          }
+
+          setMessage(
+            "Payment successful and registration completed."
+          );
+
+          setForm({
+            schoolName: "",
+            firstName: "",
+            lastName: "",
+            phone: "",
+            email: "",
+            city: "",
+            district: "",
+            state: "",
+          });
+
+          setSubjects([]);
+
+          setLoading(false);
+        },
+
+        theme: {
+          color: "#2563eb",
+        },
+      };
+
+      const razorpay =
+        new window.Razorpay(
+          options
         );
 
-        setLoading(false);
+      razorpay.open();
 
-        return;
-      }
-
-      const { error } =
-        await supabase
-          .from(
-            "student_ofschool_registration_requests"
-          )
-          .insert([
-            {
-              school_name:
-                form.schoolName,
-
-              first_name:
-                form.firstName,
-
-              last_name:
-                form.lastName,
-
-              phone:
-                form.phone,
-
-              email:
-                form.email,
-
-              city:
-                form.city,
-
-              district:
-                form.district,
-
-              state:
-                form.state,
-
-              selected_subjects:
-                subjects,
-
-              status:
-                "pending",
-            },
-          ]);
-
-      if (error) {
-        throw error;
-      }
-
-      setMessage(
-        "Registration request submitted successfully."
-      );
-
-      setForm({
-        schoolName: "",
-        firstName: "",
-        lastName: "",
-        phone: "",
-        email: "",
-        city: "",
-        district: "",
-        state: "",
-      });
-
-      setSubjects([]);
-
-    } catch (err) {
-
-      console.log(err);
-
-      setMessage(
-        "Something went wrong."
-      );
-    }
+      return;
+  
 
     setLoading(false);
   }
@@ -557,7 +613,7 @@ export default function StudentRegistrationPage() {
 
             {loading
               ? "Submitting..."
-              : "Submit Registration Request"}
+              : "Proceed To Payment"}
 
           </button>
 
