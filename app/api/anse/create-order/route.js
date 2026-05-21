@@ -12,12 +12,17 @@ const razorpay = new Razorpay({
       .RAZORPAY_KEY_SECRET,
 })
 
-export async function POST() {
+export async function POST(req) {
 
   try {
+    const body =
+      await req.json()
 
+    const amount =
+      body.amount
+    
     const options = {
-      amount: 9900,
+      amount: amount * 100,
       currency: 'INR',
       receipt:
         `receipt_${Date.now()}`,
