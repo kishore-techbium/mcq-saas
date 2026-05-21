@@ -196,9 +196,46 @@ export default function StudentRegistrationPage() {
       order_id:
         orderData.id,
 
-      handler: async function (
-        response
-      ) {
+   handler: async function (
+  response
+) {
+
+  const verifyRes = await fetch(
+    "/api/anse/verify-payment",
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type":
+          "application/json",
+      },
+
+      body: JSON.stringify({
+        razorpay_order_id:
+          response.razorpay_order_id,
+
+        razorpay_payment_id:
+          response.razorpay_payment_id,
+
+        razorpay_signature:
+          response.razorpay_signature,
+      }),
+    }
+  );
+
+  const verifyData =
+    await verifyRes.json();
+
+  if (!verifyData.success) {
+
+    setMessage(
+      "Payment verification failed."
+    );
+
+    setLoading(false);
+
+    return;
+  }
 
         const { error } =
           await supabase
