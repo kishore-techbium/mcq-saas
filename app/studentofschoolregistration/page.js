@@ -114,7 +114,7 @@ export default function StudentRegistrationPage() {
 
   return;
 }
-   let amount = 399;
+   let amount = 1;
 
 if (subjects.length === 2) {
   amount = 699;
@@ -646,17 +646,17 @@ const orderRes = await fetch(
 
             {loading
               ? "Submitting..."
-              : `Pay ₹${
-    subjects.length === 1
-      ? 399
-      : subjects.length === 2
-      ? 699
-      : subjects.length === 3
-      ? 899
-      : subjects.length === 4
-      ? 999
-      : 0
-  }`}
+             : subjects.length === 0
+  ? "Select Subjects"
+  : `Pay ₹${
+      subjects.length === 1
+        ? 399
+        : subjects.length === 2
+        ? 699
+        : subjects.length === 3
+        ? 899
+        : 999
+    }`}
 
           </button>
 
