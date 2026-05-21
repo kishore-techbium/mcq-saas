@@ -104,12 +104,45 @@ export default function StudentRegistrationPage() {
     setLoading(true);
 
     setMessage("");
-      const orderRes = await fetch(
-        "/api/anse/create-order",
-        {
-          method: "POST",
-        }
-      );
+    if (subjects.length === 0) {
+
+  setMessage(
+    "Please select at least one subject."
+  );
+
+  setLoading(false);
+
+  return;
+}
+   let amount = 399;
+
+if (subjects.length === 2) {
+  amount = 699;
+}
+
+if (subjects.length === 3) {
+  amount = 899;
+}
+
+if (subjects.length === 4) {
+  amount = 999;
+}
+
+const orderRes = await fetch(
+  "/api/anse/create-order",
+  {
+    method: "POST",
+
+    headers: {
+      "Content-Type":
+        "application/json",
+    },
+
+    body: JSON.stringify({
+      amount,
+    }),
+  }
+);
 
       const orderData =
         await orderRes.json();
@@ -613,7 +646,17 @@ export default function StudentRegistrationPage() {
 
             {loading
               ? "Submitting..."
-              : "Proceed To Payment"}
+              : `Pay ₹${
+    subjects.length === 1
+      ? 399
+      : subjects.length === 2
+      ? 699
+      : subjects.length === 3
+      ? 899
+      : subjects.length === 4
+      ? 999
+      : 0
+  }`}
 
           </button>
 
