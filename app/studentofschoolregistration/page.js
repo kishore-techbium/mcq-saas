@@ -4,6 +4,7 @@ import "../schoolregistration/page.css";
 
 import { useState } from "react";
 import { supabase } from "../../lib/supabase";
+
 const INDIAN_STATES = [
 
   "Andhra Pradesh",
@@ -44,6 +45,7 @@ const INDIAN_STATES = [
   "Lakshadweep",
   "Puducherry"
 ]
+
 export default function StudentRegistrationPage() {
 
   const [loading, setLoading] =
@@ -104,189 +106,186 @@ export default function StudentRegistrationPage() {
     setLoading(true);
 
     setMessage("");
+
     if (subjects.length === 0) {
 
-  setMessage(
-    "Please select at least one subject."
-  );
+      setMessage(
+        "Please select at least one subject."
+      );
 
-  setLoading(false);
+      setLoading(false);
 
-  return;
-}
-   let amount = 1;
+      return;
+    }
 
-if (subjects.length === 2) {
-  amount = 699;
-}
+    let amount = 399;
 
-if (subjects.length === 3) {
-  amount = 899;
-}
+    if (subjects.length === 2) {
+      amount = 699;
+    }
 
-if (subjects.length === 4) {
-  amount = 999;
-}
+    if (subjects.length === 3) {
+      amount = 899;
+    }
 
-const orderRes = await fetch(
-  "/api/anse/create-order",
-  {
-    method: "POST",
+    if (subjects.length === 4) {
+      amount = 999;
+    }
 
-    headers: {
-      "Content-Type":
-        "application/json",
-    },
+    const {
+      data: existing
+    } = await supabase
+      .from(
+        "student_ofschool_registration_requests"
+      )
+      .select("*")
+      .eq(
+        "email",
+        form.email
+      )
+      .maybeSingle();
 
-    body: JSON.stringify({
-      amount,
-    }),
-  }
-);
+    if (existing) {
 
-      const orderData =
-        await orderRes.json();
+      setMessage(
+        "This email is already registered."
+      );
 
-      const options = {
+      setLoading(false);
 
-        key:
-          process.env
-            .NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      return;
+    }
 
-        amount:
-          orderData.amount,
+    const orderRes = await fetch(
+      "/api/anse/create-order",
+      {
+        method: "POST",
 
-        currency:
-          orderData.currency,
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
 
-        name:
-          "Aurelius Scholarship",
+        body: JSON.stringify({
+          amount,
+        }),
+      }
+    );
 
-        description:
-          "Olympiad Registration",
+    const orderData =
+      await orderRes.json();
 
-        order_id:
-          orderData.id,
+    const options = {
 
-        handler: async function (
-          response
-        ) {
+      key:
+        process.env
+          .NEXT_PUBLIC_RAZORPAY_KEY_ID,
 
-          const {
-            data: existing
-          } = await supabase
+      amount:
+        orderData.amount,
+
+      currency:
+        orderData.currency,
+
+      name:
+        "Aurelius Scholarship",
+
+      description:
+        "Olympiad Registration",
+
+      order_id:
+        orderData.id,
+
+      handler: async function (
+        response
+      ) {
+
+        const { error } =
+          await supabase
             .from(
               "student_ofschool_registration_requests"
             )
-            .select("*")
-            .eq(
-              "phone",
-              form.phone
-            )
-            .maybeSingle();
+            .insert([
+              {
+                school_name:
+                  form.schoolName,
 
-          if (existing) {
+                first_name:
+                  form.firstName,
 
-            setMessage(
-              "A request already exists for this mobile number."
-            );
+                last_name:
+                  form.lastName,
 
-            setLoading(false);
+                phone:
+                  form.phone,
 
-            return;
-          }
+                email:
+                  form.email,
 
-          const { error } =
-            await supabase
-              .from(
-                "student_ofschool_registration_requests"
-              )
-              .insert([
-                {
-                  school_name:
-                    form.schoolName,
+                city:
+                  form.city,
 
-                  first_name:
-                    form.firstName,
+                district:
+                  form.district,
 
-                  last_name:
-                    form.lastName,
+                state:
+                  form.state,
 
-                  phone:
-                    form.phone,
+                selected_subjects:
+                  subjects,
 
-                  email:
-                    form.email,
+                payment_id:
+                  response.razorpay_payment_id,
 
-                  city:
-                    form.city,
+                status:
+                  "paid",
+              },
+            ]);
 
-                  district:
-                    form.district,
+        if (error) {
 
-                  state:
-                    form.state,
-
-                  selected_subjects:
-                    subjects,
-
-                  payment_id:
-                    response.razorpay_payment_id,
-
-                  status:
-                    "paid",
-                },
-              ]);
-
-          if (error) {
-
-            console.log(error);
-
-            setMessage(
-              "Database save failed."
-            );
-
-            setLoading(false);
-
-            return;
-          }
+          console.log(error);
 
           setMessage(
-            "Payment successful and registration completed."
+            "Database save failed."
           );
 
-          setForm({
-            schoolName: "",
-            firstName: "",
-            lastName: "",
-            phone: "",
-            email: "",
-            city: "",
-            district: "",
-            state: "",
-          });
-
-          setSubjects([]);
-
           setLoading(false);
-        },
 
-        theme: {
-          color: "#2563eb",
-        },
-      };
+          return;
+        }
 
-      const razorpay =
-        new window.Razorpay(
-          options
+        setMessage(
+          "Payment successful and registration completed."
         );
 
-      razorpay.open();
+        setForm({
+          schoolName: "",
+          firstName: "",
+          lastName: "",
+          phone: "",
+          email: "",
+          city: "",
+          district: "",
+          state: "",
+        });
 
-      return;
-  
+        setSubjects([]);
 
-    setLoading(false);
+        setLoading(false);
+      },
+
+      theme: {
+        color: "#2563eb",
+      },
+    };
+
+    const razorpay =
+      new window.Razorpay(
+        options
+      );
+
+    razorpay.open();
   }
 
   return (
@@ -466,54 +465,52 @@ const orderRes = await fetch(
                 State*
               </label>
 
-  <select
-  name="state"
-  value={form.state}
-  onChange={handleChange}
-  required
-  style={{
-    width: "100%",
-    height: "60px",
-    borderRadius: "18px",
-    border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(8,15,40,0.95)",
-    color: "#fff",
-    padding: "0 18px",
-    fontSize: "16px",
-    outline: "none",
-    appearance: "none",
-    WebkitAppearance: "none",
-    MozAppearance: "none",
-  }}
->
+              <select
+                name="state"
+                value={form.state}
+                onChange={handleChange}
+                required
+                style={{
+                  width: "100%",
+                  height: "60px",
+                  borderRadius: "18px",
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "rgba(8,15,40,0.95)",
+                  color: "#fff",
+                  padding: "0 18px",
+                  fontSize: "16px",
+                  outline: "none",
+                  appearance: "none",
+                  WebkitAppearance: "none",
+                  MozAppearance: "none",
+                }}
+              >
 
-  <option value="">
-    Select State
-  </option>
+                <option value="">
+                  Select State
+                </option>
 
-  {INDIAN_STATES.map(state => (
+                {INDIAN_STATES.map(state => (
 
-    <option
-      key={state}
-      value={state}
-      style={{
-        color: "#000"
-      }}
-    >
+                  <option
+                    key={state}
+                    value={state}
+                    style={{
+                      color: "#000"
+                    }}
+                  >
 
-      {state}
+                    {state}
 
-    </option>
+                  </option>
 
-  ))}
+                ))}
 
-</select>
+              </select>
 
             </div>
 
           </div>
-
-          {/* SUBJECTS */}
 
           <div
             style={{
@@ -646,17 +643,17 @@ const orderRes = await fetch(
 
             {loading
               ? "Submitting..."
-             : subjects.length === 0
-  ? "Select Subjects"
-  : `Pay ₹${
-      subjects.length === 1
-        ? 399
-        : subjects.length === 2
-        ? 699
-        : subjects.length === 3
-        ? 899
-        : 999
-    }`}
+              : subjects.length === 0
+              ? "Select Subjects"
+              : `Pay ₹${
+                  subjects.length === 1
+                    ? 399
+                    : subjects.length === 2
+                    ? 699
+                    : subjects.length === 3
+                    ? 899
+                    : 999
+                }`}
 
           </button>
 
