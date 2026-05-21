@@ -292,24 +292,12 @@ export default function StudentRegistrationPage() {
           return;
         }
 
-        setMessage(
-          "Payment successful and registration completed."
-        );
+window.location.href =
+  "/studentofschoolregistration/registration-success";
 
-        setForm({
-          schoolName: "",
-          firstName: "",
-          lastName: "",
-          phone: "",
-          email: "",
-          city: "",
-          district: "",
-          state: "",
-        });
+return;
 
-        setSubjects([]);
-
-        setLoading(false);
+      
       },
 
       theme: {
