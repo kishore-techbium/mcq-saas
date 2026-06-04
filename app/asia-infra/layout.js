@@ -77,6 +77,11 @@ export default function AsiaInfraLayout({
               Reports
             </Link>
           </p>
+<p>
+        <Link href="/asia-infra/parties">
+  Parties
+</Link>
+           </p>
 
         </div>
 
