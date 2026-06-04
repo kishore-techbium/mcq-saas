@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-
+import Link from 'next/link'
 import { supabase } from '../../../lib/supabase'
 export default function ProjectsPage() {
 
@@ -42,9 +42,11 @@ export default function ProjectsPage() {
       >
         <h1>Projects</h1>
 
-        <button>
-          + New Project
-        </button>
+<Link href="/asia-infra/projects/new">
+  <button>
+    + New Project
+  </button>
+</Link>
       </div>
 
       <table
