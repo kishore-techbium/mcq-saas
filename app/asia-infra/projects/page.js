@@ -70,10 +70,18 @@ export default function ProjectsPage() {
 
             <tr key={project.id}>
 
-              <td>
-                {project.project_name}
-              </td>
-
+             <td>
+  <a
+    href={`/asia-infra/projects/${project.id}`}
+    style={{
+      color: '#2563eb',
+      textDecoration: 'none',
+      fontWeight: '600'
+    }}
+  >
+    {project.project_name}
+  </a>
+</td>
               <td>
                 {project.client_name}
               </td>
