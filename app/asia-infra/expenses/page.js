@@ -14,7 +14,7 @@ export default function ExpensesPage() {
 
   const [todayExpenses, setTodayExpenses] = useState([])
   const [todayTotal, setTodayTotal] = useState(0)
-
+const [summary, setSummary] = useState([])
   const [saving, setSaving] = useState(false)
 
   const [showPartyBox, setShowPartyBox] = useState(false)
@@ -80,26 +80,49 @@ export default function ExpensesPage() {
 
     const { data } = await supabase
       .from('ai_expense')
-      .select(`
-        *,
-        ai_project(project_name),
-        ai_expense_category(category_name),
-        ai_party(party_name)
-      `)
+.select(`
+  *,
+  ai_project(project_name),
+  ai_expense_category(category_name),
+  ai_expense_subcategory(subcategory_name),
+  ai_party(party_name)
+`)
       .eq('expense_date', today)
       .order('created_at', { ascending: false })
 
-    const rows = data || []
+  const rows = data || []
 
-    setTodayExpenses(rows)
+setTodayExpenses(rows)
 
-    let total = 0
+let total = 0
 
-    rows.forEach(row => {
-      total += Number(row.amount || 0)
-    })
+const categoryTotals = {}
 
-    setTodayTotal(total)
+rows.forEach(row => {
+
+  total += Number(row.amount || 0)
+
+  const category =
+    row.ai_expense_category?.category_name ||
+    'Others'
+
+  categoryTotals[category] =
+    (categoryTotals[category] || 0) +
+    Number(row.amount || 0)
+
+})
+
+setTodayTotal(total)
+
+const summaryRows =
+  Object.entries(categoryTotals)
+    .map(([category, amount]) => ({
+      category,
+      amount
+    }))
+    .sort((a, b) => b.amount - a.amount)
+
+setSummary(summaryRows)
   }
 
   async function addParty() {
@@ -250,18 +273,26 @@ export default function ExpensesPage() {
     loadTodayExpenses()
   }, [])
 
-  return (
-    <div>
+return (
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: '420px 1fr',
+      gap: '20px'
+    }}
+  >
+ <div>
 
-      <h1>Expenses</h1>
+<h1>Expenses</h1>
 
-      <div
-        style={{
-          border: '1px solid #ddd',
-          padding: '20px',
-          marginBottom: '20px'
-        }}
-      >
+<div>
+
+  <div
+    style={{
+      border: '1px solid #ddd',
+      padding: '20px'
+    }}
+  >
 
         <h3>New Expense</h3>
 
@@ -480,7 +511,7 @@ export default function ExpensesPage() {
           {saving ? 'Saving...' : 'Save & Next'}
         </button>
 
-        <button
+               <button
           onClick={copyPrevious}
           style={{ marginLeft: '10px' }}
         >
@@ -489,65 +520,137 @@ export default function ExpensesPage() {
 
       </div>
 
-      <div
-        style={{
-          background: '#f5f5f5',
-          padding: '15px',
-          marginBottom: '20px'
-        }}
-      >
-        <strong>
-          Today's Total:
-        </strong>{' '}
-        ₹{todayTotal.toLocaleString('en-IN')}
-      </div>
+    </div>
+
+</div>
+
+<div>
+            <div
+  style={{
+    background: '#f8fafc',
+    border: '1px solid #ddd',
+    padding: '15px',
+    marginBottom: '20px'
+  }}
+>
+
+  <h3>Today's Summary</h3>
+
+  {summary.map(item => (
+
+    <div
+      key={item.category}
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginBottom: '8px'
+      }}
+    >
+
+      <span>
+        {item.category}
+      </span>
+
+      <strong>
+        ₹{item.amount.toLocaleString('en-IN')}
+      </strong>
+
+    </div>
+
+  ))}
+
+  <hr />
+
+  <div
+    style={{
+      display: 'flex',
+      justifyContent: 'space-between'
+    }}
+  >
+
+    <strong>Total</strong>
+
+    <strong>
+      ₹{todayTotal.toLocaleString('en-IN')}
+    </strong>
+
+  </div>
+
+</div>
 
       <h3>Today's Entries</h3>
 
-      <table
-        border="1"
-        cellPadding="8"
-        width="100%"
-      >
-        <thead>
-          <tr>
-            <th>Project</th>
-            <th>Category</th>
-            <th>Amount</th>
-            <th>Paid To</th>
-          </tr>
-        </thead>
+     <table
+  border="1"
+  cellPadding="8"
+  width="100%"
+>
+  <thead>
+    <tr>
 
-        <tbody>
+      <th>Date</th>
 
-          {todayExpenses.map(row => (
+      <th>Project</th>
 
-            <tr key={row.id}>
+      <th>Category</th>
 
-              <td>
-                {row.ai_project?.project_name}
-              </td>
+      <th>Sub Category</th>
+<th>Mode</th>
+      <th>Amount</th>
 
-              <td>
-                {row.ai_expense_category?.category_name}
-              </td>
+      <th>Paid To</th>
 
-              <td>
-                ₹{Number(row.amount)
-                  .toLocaleString('en-IN')}
-              </td>
+      <th>Remarks</th>
 
-              <td>
-                {row.ai_party?.party_name}
-              </td>
+    </tr>
+  </thead>
 
-            </tr>
+  <tbody>
 
-          ))}
+    {todayExpenses.map(row => (
 
-        </tbody>
+      <tr key={row.id}>
 
-      </table>
+        <td>
+          {row.expense_date}
+        </td>
+
+        <td>
+          {row.ai_project?.project_name}
+        </td>
+
+        <td>
+          {row.ai_expense_category?.category_name}
+        </td>
+
+        <td>
+          {row.ai_expense_subcategory?.subcategory_name}
+        </td>
+
+     <td>
+  {row.payment_mode}
+</td>
+
+<td>
+  ₹
+  {Number(row.amount || 0)
+    .toLocaleString('en-IN')}
+</td>
+        <td>
+          {row.ai_party?.party_name}
+        </td>
+
+        <td>
+          {row.remarks}
+        </td>
+
+      </tr>
+
+    ))}
+
+  </tbody>
+
+</table>
 
     </div>
   )
