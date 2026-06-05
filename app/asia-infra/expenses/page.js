@@ -1,17 +1,29 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 
 export default function ExpensesPage() {
+
+  const amountRef = useRef(null)
 
   const [projects, setProjects] = useState([])
   const [categories, setCategories] = useState([])
   const [subcategories, setSubcategories] = useState([])
   const [parties, setParties] = useState([])
-  const [expenses, setExpenses] = useState([])
+
+  const [todayExpenses, setTodayExpenses] = useState([])
+  const [todayTotal, setTodayTotal] = useState(0)
 
   const [saving, setSaving] = useState(false)
+
+  const [showPartyBox, setShowPartyBox] = useState(false)
+  const [showSubBox, setShowSubBox] = useState(false)
+
+  const [newParty, setNewParty] = useState('')
+  const [newSubCategory, setNewSubCategory] = useState('')
+
+  const [lastEntry, setLastEntry] = useState(null)
 
   const [form, setForm] = useState({
     expense_date: new Date().toISOString().split('T')[0],
@@ -46,22 +58,6 @@ export default function ExpensesPage() {
     setParties(partyData || [])
   }
 
-  async function loadExpenses() {
-
-    const { data } = await supabase
-      .from('ai_expense')
-      .select(`
-        *,
-        ai_project(project_name),
-        ai_expense_category(category_name),
-        ai_party(party_name)
-      `)
-      .order('expense_date', { ascending: false })
-      .limit(50)
-
-    setExpenses(data || [])
-  }
-
   async function loadSubcategories(categoryId) {
 
     if (!categoryId) {
@@ -78,37 +74,133 @@ export default function ExpensesPage() {
     setSubcategories(data || [])
   }
 
-  async function saveExpense() {
+  async function loadTodayExpenses() {
 
-    if (!form.project_id) {
-      alert('Select Project')
+    const today = new Date().toISOString().split('T')[0]
+
+    const { data } = await supabase
+      .from('ai_expense')
+      .select(`
+        *,
+        ai_project(project_name),
+        ai_expense_category(category_name),
+        ai_party(party_name)
+      `)
+      .eq('expense_date', today)
+      .order('created_at', { ascending: false })
+
+    const rows = data || []
+
+    setTodayExpenses(rows)
+
+    let total = 0
+
+    rows.forEach(row => {
+      total += Number(row.amount || 0)
+    })
+
+    setTodayTotal(total)
+  }
+
+  async function addParty() {
+
+    if (!newParty.trim()) return
+
+    const { data, error } = await supabase
+      .from('ai_party')
+      .insert({
+        party_name: newParty,
+        party_type: 'vendor'
+      })
+      .select()
+      .single()
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    await loadMasters()
+
+    setForm({
+      ...form,
+      party_id: data.id
+    })
+
+    setNewParty('')
+    setShowPartyBox(false)
+  }
+
+  async function addSubCategory() {
+
+    if (!newSubCategory.trim()) {
+      alert('Enter sub category')
       return
     }
 
     if (!form.category_id) {
-      alert('Select Category')
+      alert('Select category first')
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('ai_expense_subcategory')
+      .insert({
+        category_id: form.category_id,
+        subcategory_name: newSubCategory
+      })
+      .select()
+      .single()
+
+    if (error) {
+      alert(error.message)
+      return
+    }
+
+    await loadSubcategories(form.category_id)
+
+    setForm({
+      ...form,
+      subcategory_id: data.id
+    })
+
+    setNewSubCategory('')
+    setShowSubBox(false)
+  }
+
+  async function saveExpense() {
+
+    if (!form.project_id) {
+      alert('Select project')
+      return
+    }
+
+    if (!form.category_id) {
+      alert('Select category')
       return
     }
 
     if (!form.amount) {
-      alert('Enter Amount')
+      alert('Enter amount')
       return
     }
 
     setSaving(true)
 
+    const payload = {
+      expense_date: form.expense_date,
+      project_id: form.project_id,
+      category_id: form.category_id,
+      subcategory_id: form.subcategory_id || null,
+      party_id: form.party_id || null,
+      payment_mode: form.payment_mode,
+      amount: Number(form.amount),
+      remarks: form.remarks
+    }
+
     const { error } = await supabase
       .from('ai_expense')
-      .insert({
-        expense_date: form.expense_date,
-        project_id: form.project_id,
-        category_id: form.category_id,
-        subcategory_id: form.subcategory_id || null,
-        party_id: form.party_id || null,
-        remarks:
-          `[${form.payment_mode}] ${form.remarks}`,
-        amount: Number(form.amount)
-      })
+      .insert(payload)
 
     setSaving(false)
 
@@ -117,20 +209,45 @@ export default function ExpensesPage() {
       return
     }
 
-    alert('Expense Saved')
+    setLastEntry({
+      project_id: form.project_id,
+      category_id: form.category_id,
+      subcategory_id: form.subcategory_id,
+      payment_mode: form.payment_mode
+    })
 
     setForm({
       ...form,
+      party_id: '',
       amount: '',
       remarks: ''
     })
 
-    loadExpenses()
+    await loadTodayExpenses()
+
+    if (amountRef.current) {
+      amountRef.current.focus()
+    }
+  }
+
+  function copyPrevious() {
+
+    if (!lastEntry) {
+      alert('No previous entry')
+      return
+    }
+
+    setForm({
+      ...form,
+      ...lastEntry
+    })
+
+    loadSubcategories(lastEntry.category_id)
   }
 
   useEffect(() => {
     loadMasters()
-    loadExpenses()
+    loadTodayExpenses()
   }, [])
 
   return (
@@ -142,7 +259,7 @@ export default function ExpensesPage() {
         style={{
           border: '1px solid #ddd',
           padding: '20px',
-          marginBottom: '30px'
+          marginBottom: '20px'
         }}
       >
 
@@ -170,9 +287,7 @@ export default function ExpensesPage() {
             })
           }
         >
-          <option value="">
-            Select Project
-          </option>
+          <option value="">Select Project</option>
 
           {projects.map(project => (
             <option
@@ -199,9 +314,7 @@ export default function ExpensesPage() {
             })
           }}
         >
-          <option value="">
-            Select Category
-          </option>
+          <option value="">Select Category</option>
 
           {categories.map(category => (
             <option
@@ -238,6 +351,31 @@ export default function ExpensesPage() {
           ))}
         </select>
 
+        <button
+          onClick={() =>
+            setShowSubBox(!showSubBox)
+          }
+          style={{ marginLeft: '10px' }}
+        >
+          + Add Sub Category
+        </button>
+
+        {showSubBox && (
+          <div style={{ marginTop: '10px' }}>
+            <input
+              placeholder="New Sub Category"
+              value={newSubCategory}
+              onChange={(e) =>
+                setNewSubCategory(e.target.value)
+              }
+            />
+
+            <button onClick={addSubCategory}>
+              Save
+            </button>
+          </div>
+        )}
+
         <br /><br />
 
         <select
@@ -263,6 +401,31 @@ export default function ExpensesPage() {
           ))}
         </select>
 
+        <button
+          onClick={() =>
+            setShowPartyBox(!showPartyBox)
+          }
+          style={{ marginLeft: '10px' }}
+        >
+          + Add Party
+        </button>
+
+        {showPartyBox && (
+          <div style={{ marginTop: '10px' }}>
+            <input
+              placeholder="Party Name"
+              value={newParty}
+              onChange={(e) =>
+                setNewParty(e.target.value)
+              }
+            />
+
+            <button onClick={addParty}>
+              Save
+            </button>
+          </div>
+        )}
+
         <br /><br />
 
         <select
@@ -274,22 +437,15 @@ export default function ExpensesPage() {
             })
           }
         >
-          <option>
-            Bank Transfer
-          </option>
-
-          <option>
-            PhonePe
-          </option>
-
-          <option>
-            Cash
-          </option>
+          <option>Bank Transfer</option>
+          <option>PhonePe</option>
+          <option>Cash</option>
         </select>
 
         <br /><br />
 
         <input
+          ref={amountRef}
           type="number"
           placeholder="Amount"
           value={form.amount}
@@ -304,7 +460,7 @@ export default function ExpensesPage() {
         <br /><br />
 
         <textarea
-          rows="4"
+          rows="3"
           placeholder="Remarks"
           value={form.remarks}
           onChange={(e) =>
@@ -321,12 +477,32 @@ export default function ExpensesPage() {
           onClick={saveExpense}
           disabled={saving}
         >
-          {saving ? 'Saving...' : 'Save Expense'}
+          {saving ? 'Saving...' : 'Save & Next'}
+        </button>
+
+        <button
+          onClick={copyPrevious}
+          style={{ marginLeft: '10px' }}
+        >
+          Copy Previous
         </button>
 
       </div>
 
-      <h3>Recent Expenses</h3>
+      <div
+        style={{
+          background: '#f5f5f5',
+          padding: '15px',
+          marginBottom: '20px'
+        }}
+      >
+        <strong>
+          Today's Total:
+        </strong>{' '}
+        ₹{todayTotal.toLocaleString('en-IN')}
+      </div>
+
+      <h3>Today's Entries</h3>
 
       <table
         border="1"
@@ -335,7 +511,6 @@ export default function ExpensesPage() {
       >
         <thead>
           <tr>
-            <th>Date</th>
             <th>Project</th>
             <th>Category</th>
             <th>Amount</th>
@@ -345,30 +520,25 @@ export default function ExpensesPage() {
 
         <tbody>
 
-          {expenses.map(expense => (
+          {todayExpenses.map(row => (
 
-            <tr key={expense.id}>
+            <tr key={row.id}>
 
               <td>
-                {expense.expense_date}
+                {row.ai_project?.project_name}
               </td>
 
               <td>
-                {expense.ai_project?.project_name}
+                {row.ai_expense_category?.category_name}
               </td>
 
               <td>
-                {expense.ai_expense_category?.category_name}
+                ₹{Number(row.amount)
+                  .toLocaleString('en-IN')}
               </td>
 
               <td>
-                ₹{Number(
-                  expense.amount || 0
-                ).toLocaleString('en-IN')}
-              </td>
-
-              <td>
-                {expense.ai_party?.party_name}
+                {row.ai_party?.party_name}
               </td>
 
             </tr>
