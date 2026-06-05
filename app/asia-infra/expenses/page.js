@@ -277,7 +277,7 @@ return (
   <div
     style={{
       display: 'grid',
-      gridTemplateColumns: '420px 1fr',
+      gridTemplateColumns: '500px 1fr',
       gap: '20px'
     }}
   >
@@ -653,5 +653,8 @@ return (
 </table>
 
     </div>
+
+  </div>
+
   )
 }
