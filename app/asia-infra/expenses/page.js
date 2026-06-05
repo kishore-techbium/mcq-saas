@@ -257,17 +257,19 @@ if (editingExpense) {
     })
 
     setForm({
-      ...form,
-      party_id: '',
-      amount: '',
-      remarks: ''
-    })
-setEditingExpense(null)
-    await loadTodayExpenses()
+  ...form,
+  party_id: '',
+  amount: '',
+  remarks: ''
+})
 
-    if (amountRef.current) {
-      amountRef.current.focus()
-    }
+setEditingExpense(null)
+
+await loadTodayExpenses()
+
+if (amountRef.current) {
+  amountRef.current.focus()
+}
   }
 function editExpense(row) {
 
@@ -562,16 +564,16 @@ return (
 
         <br /><br />
 
-        <button
-          onClick={saveExpense}
-          disabled={saving}
-        >
-          saving
-  ? 'Saving...'
-  : editingExpense
-    ? 'Update Expense'
-    : 'Save & Next'
-        </button>
+      <button
+  onClick={saveExpense}
+  disabled={saving}
+>
+  {saving
+    ? 'Saving...'
+    : editingExpense
+      ? 'Update Expense'
+      : 'Save & Next'}
+</button>
 
                <button
           onClick={copyPrevious}
