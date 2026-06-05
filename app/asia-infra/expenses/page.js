@@ -24,6 +24,7 @@ const [summary, setSummary] = useState([])
   const [newSubCategory, setNewSubCategory] = useState('')
 
   const [lastEntry, setLastEntry] = useState(null)
+  const [editingExpense, setEditingExpense] = useState(null)
 
   const [form, setForm] = useState({
     expense_date: new Date().toISOString().split('T')[0],
@@ -221,9 +222,25 @@ setSummary(summaryRows)
       remarks: form.remarks
     }
 
-    const { error } = await supabase
-      .from('ai_expense')
-      .insert(payload)
+  let error
+
+if (editingExpense) {
+
+  const result = await supabase
+    .from('ai_expense')
+    .update(payload)
+    .eq('id', editingExpense)
+
+  error = result.error
+
+} else {
+
+  const result = await supabase
+    .from('ai_expense')
+    .insert(payload)
+
+  error = result.error
+}
 
     setSaving(false)
 
@@ -245,14 +262,55 @@ setSummary(summaryRows)
       amount: '',
       remarks: ''
     })
-
+setEditingExpense(null)
     await loadTodayExpenses()
 
     if (amountRef.current) {
       amountRef.current.focus()
     }
   }
+function editExpense(row) {
 
+  setEditingExpense(row.id)
+
+  setForm({
+    expense_date: row.expense_date,
+    project_id: row.project_id,
+    category_id: row.category_id,
+    subcategory_id: row.subcategory_id || '',
+    party_id: row.party_id || '',
+    payment_mode: row.payment_mode || 'Bank Transfer',
+    amount: row.amount,
+    remarks: row.remarks || ''
+  })
+
+  loadSubcategories(row.category_id)
+
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  })
+}
+  async function deleteExpense(id) {
+
+  const yes = confirm(
+    'Delete this expense?'
+  )
+
+  if (!yes) return
+
+  const { error } = await supabase
+    .from('ai_expense')
+    .delete()
+    .eq('id', id)
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  loadTodayExpenses()
+}
   function copyPrevious() {
 
     if (!lastEntry) {
@@ -508,7 +566,11 @@ return (
           onClick={saveExpense}
           disabled={saving}
         >
-          {saving ? 'Saving...' : 'Save & Next'}
+          saving
+  ? 'Saving...'
+  : editingExpense
+    ? 'Update Expense'
+    : 'Save & Next'
         </button>
 
                <button
@@ -601,7 +663,8 @@ return (
       <th>Paid To</th>
 
       <th>Remarks</th>
-
+<th>Edit</th>
+<th>Delete</th>
     </tr>
   </thead>
 
@@ -643,7 +706,25 @@ return (
         <td>
           {row.remarks}
         </td>
+<td>
+  <button
+    onClick={() =>
+      editExpense(row)
+    }
+  >
+    Edit
+  </button>
+</td>
 
+<td>
+  <button
+    onClick={() =>
+      deleteExpense(row.id)
+    }
+  >
+    Delete
+  </button>
+</td>
       </tr>
 
     ))}
