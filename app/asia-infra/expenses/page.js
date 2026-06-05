@@ -702,7 +702,7 @@ return (
     .toLocaleString('en-IN')}
 </td>
         <td>
-          {row.ai_party?.party_name}
+          {row.ai_party?.party_name || '-'}
         </td>
 
         <td>
