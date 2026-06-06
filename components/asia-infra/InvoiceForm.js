@@ -239,15 +239,22 @@ gross_amount: '',
   Project
 </label>
 <br />
-      <select
-        value={form.project_id}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            project_id: e.target.value
-          })
-        }
-      >
+<select
+  value={form.project_id}
+  onChange={(e) => {
+
+    const selectedProject =
+      projects.find(
+        p => p.id === e.target.value
+      )
+
+    setForm({
+      ...form,
+      project_id: e.target.value
+    })
+
+  }}
+>
 
         <option value="">
           Select Project
@@ -267,7 +274,21 @@ gross_amount: '',
       </select>
 
       <br /><br />
+<label>
+  Work Order Number
+</label>
+<br />
 
+<input
+  disabled
+  value={
+    projects.find(
+      p => p.id === form.project_id
+    )?.work_order_number || ''
+  }
+/>
+
+<br /><br />
 <label>
   Running Bill No
 </label>
