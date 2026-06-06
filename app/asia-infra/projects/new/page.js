@@ -11,14 +11,17 @@ export default function NewProjectPage() {
   const [saving, setSaving] = useState(false)
 
   const [form, setForm] = useState({
-    project_name: '',
-    client_name: '',
-    work_order_number: '',
-    work_order_value: '',
-    retention_percentage: '5',
-    status: 'active'
-  })
-
+  project_name: '',
+  client_name: '',
+  work_order_number: '',
+  work_order_date:
+    new Date()
+      .toISOString()
+      .split('T')[0],
+  work_order_value: '',
+  retention_percentage: '5',
+  status: 'active'
+})
   async function saveProject() {
 
     if (!form.project_name) {
@@ -35,16 +38,24 @@ export default function NewProjectPage() {
 
     const { error } = await supabase
       .from('ai_project')
-      .insert({
-        project_name: form.project_name,
-        client_name: form.client_name,
-        work_order_number: form.work_order_number,
-        work_order_value:
-          Number(form.work_order_value || 0),
-        retention_percentage:
-          Number(form.retention_percentage || 0),
-        status: form.status
-      })
+   .insert({
+  project_name: form.project_name,
+  client_name: form.client_name,
+
+  work_order_number:
+    form.work_order_number,
+
+  work_order_date:
+    form.work_order_date,
+
+  work_order_value:
+    Number(form.work_order_value || 0),
+
+  retention_percentage:
+    Number(form.retention_percentage || 0),
+
+  status: form.status
+})
 
     setSaving(false)
 
@@ -131,7 +142,29 @@ export default function NewProjectPage() {
       </div>
 
       <br />
+<div>
 
+  <label>
+    WO Date
+  </label>
+
+  <br />
+
+  <input
+    type="date"
+    value={form.work_order_date}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        work_order_date:
+          e.target.value
+      })
+    }
+  />
+
+</div>
+
+<br />
       <div>
 
         <label>
