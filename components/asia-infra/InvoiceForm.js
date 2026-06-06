@@ -34,7 +34,7 @@ gst_amount: '',
     bill_period_from: '',
     bill_period_to: '',
 
-    retention_release_date: '',
+    
 
     submitted_to: '',
     remarks: ''
@@ -202,7 +202,7 @@ gross_amount: '',
       bill_period_from: '',
       bill_period_to: '',
 
-      retention_release_date: '',
+      
 
       submitted_to: '',
       remarks: ''
@@ -559,26 +559,7 @@ autoFocus
       />
 
       <br /><br />
-<label>
-  Retention Release Date
-</label>
-<br />
 
-<input
-  type="date"
-        value={
-          form.retention_release_date
-        }
-        onChange={(e) =>
-          setForm({
-            ...form,
-            retention_release_date:
-              e.target.value
-          })
-        }
-      />
-
-      <br /><br />
 <label>
   Submitted To
 </label>
