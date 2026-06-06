@@ -33,7 +33,7 @@ export default function InvoicesPage() {
           )
         `)
         .order(
-          'invoice_date',
+         'created_at',
           {
             ascending: false
           }
