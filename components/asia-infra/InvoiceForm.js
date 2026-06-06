@@ -17,12 +17,14 @@ export default function InvoiceForm({
     invoice_number: '',
     invoice_date: new Date().toISOString().split('T')[0],
 
-    basic_amount: '',
-    gst_amount: '',
+basic_amount: '',
 
+gst_percent: 18,
+
+gst_amount: '',
     gross_amount: '',
 
-    retention_type: 'Basic',
+    
     retention_percentage: 5,
     retention_amount: '',
 
@@ -58,62 +60,65 @@ export default function InvoiceForm({
       Number(form.basic_amount || 0)
 
     const gst =
-      Number(form.gst_amount || 0)
-
+  basic *
+  Number(
+    form.gst_percent || 0
+  ) / 100
     const gross = basic + gst
 
-    let retention = 0
+    const retention =
+  basic *
+  Number(
+    form.retention_percentage || 0
+  ) / 100
 
-    if (
-      form.retention_type === 'Basic'
-    ) {
-
-      retention =
-        basic *
-        Number(
-          form.retention_percentage || 0
-        ) / 100
-
-    } else if (
-      form.retention_type === 'Gross'
-    ) {
-
-      retention =
-        gross *
-        Number(
-          form.retention_percentage || 0
-        ) / 100
-
-    }
+    
 
     const tds =
       basic *
       Number(form.tds_percent || 0) /
       100
 
-    setForm(prev => ({
-      ...prev,
-      gross_amount: gross,
-      retention_amount: retention,
-      tds_amount: tds
-    }))
+setForm(prev => {
+
+  const newValues = {
+    ...prev,
+    gst_amount: Number(gst.toFixed(2)),
+    gross_amount: Number(gross.toFixed(2)),
+    retention_amount: Number(retention.toFixed(2)),
+    tds_amount: Number(tds.toFixed(2))
+  }
+
+  if (
+    prev.gst_amount === newValues.gst_amount &&
+    prev.gross_amount === newValues.gross_amount &&
+    prev.retention_amount === newValues.retention_amount &&
+    prev.tds_amount === newValues.tds_amount
+  ) {
+    return prev
+  }
+
+  return newValues
+})
 
   }, [
-    form.basic_amount,
-    form.gst_amount,
-    form.retention_percentage,
-    form.retention_type,
-    form.tds_percent
-  ])
+  form.basic_amount,
+  form.gst_percent,
+  form.retention_percentage,
+  form.tds_percent
+])
 
   useEffect(() => {
 
     if (!editingInvoice) return
 
-    setForm({
-      ...editingInvoice
-    })
+setForm({
+  gst_percent: 18,
+  retention_percentage: 5,
+  tds_percent: 2,
 
+  ...editingInvoice
+})
   }, [editingInvoice])
 
   async function saveInvoice() {
@@ -160,11 +165,15 @@ export default function InvoiceForm({
           .toISOString()
           .split('T')[0],
 
-      basic_amount: '',
-      gst_amount: '',
-      gross_amount: '',
+basic_amount: '',
 
-      retention_type: 'Basic',
+gst_percent: 18,
+
+gst_amount: '',
+
+gross_amount: '',
+
+      
       retention_percentage: 5,
       retention_amount: '',
 
@@ -191,13 +200,26 @@ export default function InvoiceForm({
         padding: '20px'
       }}
     >
-
+<div
+  style={{
+    background: '#f3f4f6',
+    padding: '10px',
+    borderRadius: '6px',
+    marginBottom: '15px'
+  }}
+>
+  Default:
+  GST 18% | TDS 2% | Retention 5%
+</div>
       <h2>
         {editingInvoice
           ? 'Edit Invoice'
           : 'New Invoice'}
       </h2>
-
+<label>
+  Project
+</label>
+<br />
       <select
         value={form.project_id}
         onChange={(e) =>
@@ -227,8 +249,13 @@ export default function InvoiceForm({
 
       <br /><br />
 
-      <input
-        placeholder="Running Bill No"
+<label>
+  Running Bill No
+</label>
+<br />
+
+<input
+  placeholder="RA-01 / RA-02"
         value={form.running_bill_no}
         onChange={(e) =>
           setForm({
@@ -241,8 +268,13 @@ export default function InvoiceForm({
 
       <br /><br />
 
-      <input
-        placeholder="Invoice Number"
+      <label>
+  Invoice Number
+</label>
+<br />
+
+<input
+  placeholder="Invoice Number"
         value={form.invoice_number}
         onChange={(e) =>
           setForm({
@@ -255,23 +287,66 @@ export default function InvoiceForm({
 
       <br /><br />
 
-      <input
-        type="date"
-        value={form.invoice_date}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            invoice_date:
-              e.target.value
-          })
-        }
-      />
+      <label>
+  Invoice Date
+</label>
+<br />
+
+<input
+  type="date"
+  value={form.invoice_date}
+  onChange={(e) =>
+    setForm({
+      ...form,
+      invoice_date: e.target.value
+    })
+  }
+/>
 
       <br /><br />
+<label>
+  Bill Period From
+</label>
+<br />
 
-      <input
-        type="number"
-        placeholder="Basic Amount"
+<input
+  type="date"
+  value={form.bill_period_from}
+  onChange={(e) =>
+    setForm({
+      ...form,
+      bill_period_from: e.target.value
+    })
+  }
+/>
+
+<br /><br />
+
+<label>
+  Bill Period To
+</label>
+<br />
+
+<input
+  type="date"
+  value={form.bill_period_to}
+  onChange={(e) =>
+    setForm({
+      ...form,
+      bill_period_to: e.target.value
+    })
+  }
+/>
+
+<br /><br />
+<label>
+  Taxable Value
+</label>
+<br />
+
+<input
+autoFocus
+  type="number"
         value={form.basic_amount}
         onChange={(e) =>
           setForm({
@@ -283,46 +358,107 @@ export default function InvoiceForm({
       />
 
       <br /><br />
+<label>
+  GST %
+</label>
+<br />
 
-      <input
-        type="number"
-        placeholder="GST Amount"
-        value={form.gst_amount}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            gst_amount:
-              e.target.value
-          })
-        }
+<input
+  type="number"
+  value={form.gst_percent}
+  onChange={(e) =>
+    setForm({
+      ...form,
+      gst_percent:
+        e.target.value
+    })
+  }
+/>
+
+<br /><br />
+
+<label>
+  GST Amount
+</label>
+<br />
+
+<input
+  disabled
+  value={
+    Number(
+      form.gst_amount || 0
+    ).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })
+  }
+
       />
 
       <br /><br />
-
+<label>
+  Gross Invoice Value
+</label>
+<br />
       <input
         disabled
-        value={form.gross_amount}
+        value={
+  Number(
+    form.gross_amount || 0
+  ).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
       />
 
       <br /><br />
+<div
+  style={{
+    background: '#f9fafb',
+    border: '1px solid #e5e7eb',
+    padding: '12px',
+    borderRadius: '8px',
+    marginTop: '10px',
+    marginBottom: '15px'
+  }}
+>
+  <strong>Invoice Summary</strong>
 
-      <select
-        value={form.retention_type}
-        onChange={(e) =>
-          setForm({
-            ...form,
-            retention_type:
-              e.target.value
-          })
-        }
-      >
-        <option>Basic</option>
-        <option>Gross</option>
-        <option>Fixed</option>
-      </select>
+  <div>
+    Taxable:
+    ₹{Number(form.basic_amount || 0)
+      .toLocaleString('en-IN')}
+  </div>
 
-      <br /><br />
+  <div>
+    GST:
+    ₹{Number(form.gst_amount || 0)
+      .toLocaleString('en-IN')}
+  </div>
 
+  <div>
+    Gross:
+    ₹{Number(form.gross_amount || 0)
+      .toLocaleString('en-IN')}
+  </div>
+
+  <div>
+    Retention:
+    ₹{Number(form.retention_amount || 0)
+      .toLocaleString('en-IN')}
+  </div>
+
+  <div>
+    TDS:
+    ₹{Number(form.tds_amount || 0)
+      .toLocaleString('en-IN')}
+  </div>
+</div>
+<label>
+  Retention %
+</label>
+<br />
       <input
         type="number"
         placeholder="Retention %"
@@ -339,16 +475,27 @@ export default function InvoiceForm({
       />
 
       <br /><br />
-
-      <input
-        disabled
-        value={
-          form.retention_amount
-        }
-      />
+<label>
+  Retention Amount
+</label>
+<br />
+  <input
+  disabled
+  value={
+    Number(
+      form.retention_amount || 0
+    ).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })
+  }
+/>
 
       <br /><br />
-
+<label>
+  TDS %
+</label>
+<br />
       <input
         type="number"
         placeholder="TDS %"
@@ -363,16 +510,30 @@ export default function InvoiceForm({
       />
 
       <br /><br />
-
+<label>
+  TDS Amount
+</label>
+<br />
       <input
         disabled
-        value={form.tds_amount}
+        value={
+  Number(
+    form.tds_amount || 0
+  ).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })
+}
       />
 
       <br /><br />
+<label>
+  Retention Release Date
+</label>
+<br />
 
-      <input
-        type="date"
+<input
+  type="date"
         value={
           form.retention_release_date
         }
@@ -386,9 +547,13 @@ export default function InvoiceForm({
       />
 
       <br /><br />
+<label>
+  Submitted To
+</label>
+<br />
 
-      <input
-        placeholder="Submitted To"
+<input
+  placeholder="Submitted To"
         value={form.submitted_to}
         onChange={(e) =>
           setForm({
@@ -401,7 +566,12 @@ export default function InvoiceForm({
 
       <br /><br />
 
-      <textarea
+      <label>
+  Remarks
+</label>
+<br />
+
+<textarea
         rows="4"
         placeholder="Remarks"
         value={form.remarks}
@@ -416,7 +586,17 @@ export default function InvoiceForm({
 
       <br /><br />
 
-      <button onClick={saveInvoice}>
+      <button
+  onClick={saveInvoice}
+  style={{
+    background: '#2563eb',
+    color: '#fff',
+    border: 'none',
+    padding: '10px 20px',
+    borderRadius: '6px',
+    cursor: 'pointer'
+  }}
+>
         {editingInvoice
           ? 'Update Invoice'
           : 'Save Invoice'}
