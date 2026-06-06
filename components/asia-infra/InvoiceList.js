@@ -76,7 +76,9 @@ export default function InvoiceList({
             <th>
               Invoice No
             </th>
-
+<th>
+  WO No
+</th>
             <th>
               Project
             </th>
@@ -126,7 +128,12 @@ export default function InvoiceList({
               <td>
                 {invoice.invoice_number}
               </td>
-
+<td>
+  {
+    invoice.ai_project
+      ?.work_order_number
+  }
+</td>
               <td>
                 {
                   invoice.ai_project
