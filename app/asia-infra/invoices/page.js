@@ -28,9 +28,10 @@ export default function InvoicesPage() {
         .from('ai_invoice')
         .select(`
           *,
-          ai_project(
-            project_name
-          )
+      ai_project(
+  project_name,
+  work_order_number
+)
         `)
         .order(
          'invoice_date',
