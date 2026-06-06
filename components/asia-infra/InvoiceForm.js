@@ -115,52 +115,36 @@ tds_amount:
   form.tds_percent
 ])
 
-  useEffect(() => {
+useEffect(() => {
 
-    if (!editingInvoice) return
+  if (!editingInvoice) return
 
-setForm({
-  project_id: '',
-  running_bill_no: '',
-  invoice_number: '',
-  invoice_date: '',
+  const {
+    ai_project,
+    ...cleanInvoice
+  } = editingInvoice
 
-  basic_amount: '',
+  setForm({
+    gst_percent: 18,
+    retention_percentage: 5,
+    tds_percent: 2,
 
-  gst_percent: 18,
-  gst_amount: '',
+    ...cleanInvoice
+  })
 
-  gross_amount: '',
-
-  retention_percentage: 5,
-  retention_amount: '',
-
-  tds_percent: 2,
-  tds_amount: '',
-
-  bill_period_from: '',
-  bill_period_to: '',
-
-  retention_release_date: '',
-
-  submitted_to: '',
-  remarks: '',
-
-  ...editingInvoice
-})
-  }, [editingInvoice])
-
+}, [editingInvoice])
   async function saveInvoice() {
 
-  const payload = {
-  ...form,
+ const {
+  ai_project,
+  ...payload
+} = form
 
-  invoice_amount:
-    Number(form.gross_amount || 0),
+payload.invoice_amount =
+  Number(form.gross_amount || 0)
 
-  invoice_status:
-    'Pending'
-}
+payload.invoice_status =
+  payload.invoice_status || 'Pending'
 
     let error
 
