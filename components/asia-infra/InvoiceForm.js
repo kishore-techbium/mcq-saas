@@ -83,10 +83,17 @@ setForm(prev => {
 
   const newValues = {
     ...prev,
-    gst_amount: Number(gst.toFixed(2)),
-    gross_amount: Number(gross.toFixed(2)),
-    retention_amount: Number(retention.toFixed(2)),
-    tds_amount: Number(tds.toFixed(2))
+gst_amount:
+  Number(gst || 0).toFixed(2),
+
+gross_amount:
+  Number(gross || 0).toFixed(2),
+
+retention_amount:
+  Number(retention || 0).toFixed(2),
+
+tds_amount:
+  Number(tds || 0).toFixed(2)
   }
 
   if (
@@ -113,9 +120,31 @@ setForm(prev => {
     if (!editingInvoice) return
 
 setForm({
+  project_id: '',
+  running_bill_no: '',
+  invoice_number: '',
+  invoice_date: '',
+
+  basic_amount: '',
+
   gst_percent: 18,
+  gst_amount: '',
+
+  gross_amount: '',
+
   retention_percentage: 5,
+  retention_amount: '',
+
   tds_percent: 2,
+  tds_amount: '',
+
+  bill_period_from: '',
+  bill_period_to: '',
+
+  retention_release_date: '',
+
+  submitted_to: '',
+  remarks: '',
 
   ...editingInvoice
 })
@@ -123,9 +152,15 @@ setForm({
 
   async function saveInvoice() {
 
-    const payload = {
-      ...form
-    }
+  const payload = {
+  ...form,
+
+  invoice_amount:
+    Number(form.gross_amount || 0),
+
+  invoice_status:
+    'Pending'
+}
 
     let error
 
@@ -454,6 +489,19 @@ autoFocus
     ₹{Number(form.tds_amount || 0)
       .toLocaleString('en-IN')}
   </div>
+
+    <div>
+  Net Receivable:
+  ₹{
+    (
+      Number(form.gross_amount || 0)
+      -
+      Number(form.retention_amount || 0)
+      -
+      Number(form.tds_amount || 0)
+    ).toLocaleString('en-IN')
+  }
+</div>
 </div>
 <label>
   Retention %
