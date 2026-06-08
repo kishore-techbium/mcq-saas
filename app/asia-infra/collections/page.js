@@ -24,16 +24,19 @@ export default function CollectionsPage() {
     const { data, error } =
       await supabase
         .from('ai_collection')
-        .select(`
-          *,
-          ai_invoice (
-            invoice_number,
-            gross_amount,
-            ai_project (
-              project_name
-            )
-          )
-        `)
+       .select(`
+  *,
+  ai_invoice (
+    invoice_number,
+    gross_amount,
+    ai_project (
+      project_name
+    )
+  ),
+  ai_project (
+    project_name
+  )
+`)
         .order(
           'received_date',
           {
