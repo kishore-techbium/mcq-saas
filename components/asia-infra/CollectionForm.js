@@ -62,7 +62,8 @@ const [projects, setProjects] =
 
 async function loadProjects() {
 
-  const { data } =
+  const 
+  { data } =
     await supabase
       .from('ai_project')
       .select('*')
