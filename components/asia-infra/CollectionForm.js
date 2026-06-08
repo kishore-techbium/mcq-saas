@@ -8,7 +8,8 @@ export default function CollectionForm({
   setEditingCollection,
   onSaved
 }) {
-
+const [projects, setProjects] =
+  useState([])
   const [invoices, setInvoices] = useState([])
 
   const [selectedInvoice, setSelectedInvoice] =
@@ -17,12 +18,18 @@ export default function CollectionForm({
   const [alreadyCollected,
     setAlreadyCollected] = useState(0)
 
-  const [form, setForm] = useState({
-    invoice_id: '',
-    received_date:
-      new Date()
-        .toISOString()
-        .split('T')[0],
+ const [form, setForm] = useState({
+
+  collection_type: 'Invoice',
+
+  project_id: '',
+
+  invoice_id: '',
+
+  received_date:
+    new Date()
+      .toISOString()
+      .split('T')[0],
 
     payment_component: 'Mixed',
 
@@ -53,6 +60,17 @@ export default function CollectionForm({
     setInvoices(data || [])
   }
 
+async function loadProjects() {
+
+  const { data } =
+    await supabase
+      .from('ai_project')
+      .select('*')
+      .order('project_name')
+
+  setProjects(data || [])
+}
+  
   async function loadInvoiceTotals(
     invoiceId
   ) {
@@ -93,9 +111,13 @@ export default function CollectionForm({
     setAlreadyCollected(total)
   }
 
-  useEffect(() => {
-    loadInvoices()
-  }, [])
+useEffect(() => {
+
+  loadInvoices()
+
+  loadProjects()
+
+}, [])
 
   useEffect(() => {
 
@@ -126,12 +148,27 @@ export default function CollectionForm({
 
   async function saveCollection() {
 
-    if (!form.invoice_id) {
-      alert(
-        'Select Invoice'
-      )
-      return
-    }
+ if (
+  form.collection_type ===
+  'Invoice' &&
+  !form.invoice_id
+) {
+  alert(
+    'Select Invoice'
+  )
+  return
+}
+
+if (
+  form.collection_type ===
+  'On Account' &&
+  !form.project_id
+) {
+  alert(
+    'Select Project'
+  )
+  return
+}
 
     const amountReceived =
       Number(
@@ -143,7 +180,12 @@ export default function CollectionForm({
       amountReceived
 
     const payload = {
+collection_type:
+  form.collection_type,
 
+project_id:
+  form.project_id,
+      
       invoice_id:
         form.invoice_id,
 
@@ -203,9 +245,16 @@ export default function CollectionForm({
       return
     }
 
-    await updateInvoice(
-      form.invoice_id
-    )
+   if (
+  form.collection_type ===
+  'Invoice'
+) {
+
+  await updateInvoice(
+    form.invoice_id
+  )
+
+}
 
     alert(
       'Collection Saved'
@@ -215,24 +264,29 @@ export default function CollectionForm({
       null
     )
 
-    setForm({
-      invoice_id: '',
-      received_date:
-        new Date()
-          .toISOString()
-          .split('T')[0],
+setForm({
 
-      payment_component:
-        'Mixed',
+  collection_type:
+    'Invoice',
 
-      amount_received: '',
+  project_id: '',
 
-    
-      reference_number: '',
+  invoice_id: '',
 
-      remarks: ''
-    })
+  received_date:
+    new Date()
+      .toISOString()
+      .split('T')[0],
 
+  payment_component:
+    'Mixed',
+
+  amount_received: '',
+
+  reference_number: '',
+
+  remarks: ''
+})
     setSelectedInvoice(null)
     setAlreadyCollected(0)
 
@@ -336,6 +390,44 @@ export default function CollectionForm({
             : 'New Collection'
         }
       </h2>
+<label>
+  Collection Type
+</label>
+
+<br />
+
+<select
+  value={
+    form.collection_type
+  }
+onChange={(e) =>
+  setForm({
+    ...form,
+
+    collection_type:
+      e.target.value,
+
+    invoice_id: '',
+
+    project_id: ''
+  })
+}
+>
+  <option value="Invoice">
+    Invoice
+  </option>
+
+  <option value="On Account">
+    On Account
+  </option>
+</select>
+
+<br /><br />
+{
+  form.collection_type ===
+  'Invoice' && (
+
+    <>
 
       <label>
         Invoice
@@ -344,9 +436,7 @@ export default function CollectionForm({
       <br />
 
       <select
-        value={
-          form.invoice_id
-        }
+        value={form.invoice_id}
         onChange={(e) =>
           setForm({
             ...form,
@@ -364,28 +454,16 @@ export default function CollectionForm({
           invoice => (
 
             <option
-              key={
-                invoice.id
-              }
-              value={
-                invoice.id
-              }
+              key={invoice.id}
+              value={invoice.id}
             >
-              {
-                invoice.invoice_number
-              }
+              {invoice.invoice_number}
               {' | '}
-              {
-                invoice
-                  .ai_project
-                  ?.project_name
-              }
+              {invoice.ai_project?.project_name}
               {' | ₹'}
               {Number(
                 invoice.gross_amount || 0
-              ).toLocaleString(
-                'en-IN'
-              )}
+              ).toLocaleString('en-IN')}
             </option>
 
           )
@@ -393,6 +471,68 @@ export default function CollectionForm({
 
       </select>
 
+      <br /><br />
+
+    </>
+
+  )
+}
+{
+  form.collection_type ===
+  'On Account' && (
+
+    <>
+
+      <label>
+        Project
+      </label>
+
+      <br />
+
+      <select
+        value={
+          form.project_id
+        }
+        onChange={(e) =>
+          setForm({
+            ...form,
+            project_id:
+              e.target.value
+          })
+        }
+      >
+
+        <option value="">
+          Select Project
+        </option>
+
+        {projects.map(
+          project => (
+
+            <option
+              key={
+                project.id
+              }
+              value={
+                project.id
+              }
+            >
+              {
+                project.project_name
+              }
+            </option>
+
+          )
+        )}
+
+      </select>
+
+      <br /><br />
+
+    </>
+
+  )
+}
       <br /><br />
 
       {selectedInvoice && (
