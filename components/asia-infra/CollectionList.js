@@ -115,14 +115,22 @@ export default function CollectionList({
                   }
                 </td>
 
-                <td>
-                  {
-                    collection
-                      .ai_invoice
-                      ?.ai_project
-                      ?.project_name
-                  }
-                </td>
+              <td>
+  {
+    collection.ai_invoice
+      ?.ai_project
+      ?.project_name
+
+    ||
+
+    collection.ai_project
+      ?.project_name
+
+    ||
+
+    '-'
+  }
+</td>
 
                 <td>
                   {
