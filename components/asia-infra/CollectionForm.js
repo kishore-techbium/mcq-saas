@@ -180,14 +180,18 @@ if (
       amountReceived
 
     const payload = {
-collection_type:
-  form.collection_type,
 
-project_id:
-  form.project_id,
-      
-      invoice_id:
-        form.invoice_id,
+  collection_type:
+    form.collection_type,
+
+  project_id:
+    form.project_id || null,
+
+  invoice_id:
+    form.collection_type ===
+    'Invoice'
+      ? form.invoice_id
+      : null,
 
       received_date:
         form.received_date,
