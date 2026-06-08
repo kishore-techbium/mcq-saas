@@ -28,7 +28,7 @@ export default function CollectionForm({
 
     amount_received: '',
 
-    tds_amount: '',
+    
 
     reference_number: '',
 
@@ -138,14 +138,9 @@ export default function CollectionForm({
         form.amount_received || 0
       )
 
-    const tdsAmount =
-      Number(
-        form.tds_amount || 0
-      )
-
+ 
     const amountAccounted =
-      amountReceived +
-      tdsAmount
+      amountReceived
 
     const payload = {
 
@@ -161,9 +156,7 @@ export default function CollectionForm({
       amount_received:
         amountReceived,
 
-      tds_amount:
-        tdsAmount,
-
+    
       amount_accounted:
         amountAccounted,
 
@@ -234,8 +227,7 @@ export default function CollectionForm({
 
       amount_received: '',
 
-      tds_amount: '',
-
+    
       reference_number: '',
 
       remarks: ''
@@ -528,27 +520,7 @@ export default function CollectionForm({
 
       <br /><br />
 
-      <label>
-        TDS Amount
-      </label>
-
-      <br />
-
-      <input
-        type="number"
-        value={
-          form.tds_amount
-        }
-        onChange={(e) =>
-          setForm({
-            ...form,
-            tds_amount:
-              e.target.value
-          })
-        }
-      />
-
-      <br /><br />
+     
 
       <label>
         Reference Number
