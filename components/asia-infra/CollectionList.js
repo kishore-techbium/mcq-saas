@@ -67,10 +67,7 @@ export default function CollectionList({
               Amount
             </th>
 
-            <th>
-              TDS
-            </th>
-
+         
             <th>
               Accounted
             </th>
@@ -142,15 +139,7 @@ export default function CollectionList({
                   )}
                 </td>
 
-                <td>
-                  ₹
-                  {Number(
-                    collection.tds_amount || 0
-                  ).toLocaleString(
-                    'en-IN'
-                  )}
-                </td>
-
+            
                 <td>
                   ₹
                   {Number(
