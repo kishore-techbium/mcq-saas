@@ -753,11 +753,21 @@ export default function Dashboard() {
                     )}
                 </td>
 
-                <td>
-                  {project.woUtilization
-                    .toFixed(2)}
-                  %
-                </td>
+              <td
+  style={{
+    color:
+      project.woUtilization >= 80
+        ? 'green'
+        : project.woUtilization >= 50
+        ? '#f59e0b'
+        : '#dc2626',
+    fontWeight: 'bold'
+  }}
+>
+  {project.woUtilization
+    .toFixed(2)}
+  %
+</td>
 
               </tr>
 
@@ -772,7 +782,59 @@ export default function Dashboard() {
       <h2>
         Closed Project Profitability
       </h2>
+<h2>
+  Outstanding Receivables
+</h2>
 
+<table
+  border="1"
+  cellPadding="8"
+  width="100%"
+>
+
+  <thead>
+    <tr>
+      <th>Project</th>
+      <th>Outstanding</th>
+    </tr>
+  </thead>
+
+  <tbody>
+
+    {projectPerformance
+      .filter(
+        p => p.outstanding > 0
+      )
+      .sort(
+        (a, b) =>
+          b.outstanding -
+          a.outstanding
+      )
+      .map(project => (
+
+        <tr key={project.id}>
+
+          <td>
+            {project.project_name}
+          </td>
+
+          <td>
+            ₹
+            {project.outstanding
+              .toLocaleString(
+                'en-IN'
+              )}
+          </td>
+
+        </tr>
+
+      ))}
+
+  </tbody>
+
+</table>
+
+<br /><br />
       <table
         border="1"
         cellPadding="8"
