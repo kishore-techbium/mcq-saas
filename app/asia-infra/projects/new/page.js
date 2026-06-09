@@ -210,7 +210,41 @@ export default function NewProjectPage() {
       </div>
 
       <br />
+<div>
 
+  <label>
+    Project Status
+  </label>
+
+  <br />
+
+  <select
+    value={form.status}
+    onChange={(e) =>
+      setForm({
+        ...form,
+        status: e.target.value
+      })
+    }
+  >
+
+    <option value="active">
+      Active
+    </option>
+
+    <option value="semi_closed">
+      Semi Closed
+    </option>
+
+    <option value="closed">
+      Closed
+    </option>
+
+  </select>
+
+</div>
+
+<br />
       <button
         onClick={saveProject}
         disabled={saving}
