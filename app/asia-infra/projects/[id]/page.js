@@ -11,7 +11,14 @@ export default function ProjectDashboard({
 
   const [expenses, setExpenses] = useState([])
   const [expenseTotal, setExpenseTotal] = useState(0)
+const [invoiceTotal, setInvoiceTotal] =
+  useState(0)
 
+const [collectionTotal, setCollectionTotal] =
+  useState(0)
+
+const [outstandingTotal, setOutstandingTotal] =
+  useState(0)
   const [categorySummary, setCategorySummary] =
     useState([])
 
@@ -76,13 +83,60 @@ export default function ProjectDashboard({
     )
   }
 
-  useEffect(() => {
+  async function loadFinancials() {
 
-    loadProject()
-    loadExpenses()
+  const { data: invoices } =
+    await supabase
+      .from('ai_invoice')
+      .select('*')
+      .eq('project_id', params.id)
 
-  }, [])
+  const { data: collections } =
+    await supabase
+      .from('ai_collection')
+      .select('*')
+      .eq('project_id', params.id)
 
+  const totalInvoices =
+    (invoices || []).reduce(
+      (sum, row) =>
+        sum +
+        Number(
+          row.gross_amount || 0
+        ),
+      0
+    )
+
+  const totalCollections =
+    (collections || []).reduce(
+      (sum, row) =>
+        sum +
+        Number(
+          row.amount_accounted || 0
+        ),
+      0
+    )
+
+  setInvoiceTotal(
+    totalInvoices
+  )
+
+  setCollectionTotal(
+    totalCollections
+  )
+
+  setOutstandingTotal(
+    totalInvoices -
+    totalCollections
+  )
+}
+useEffect(() => {
+
+  loadProject()
+  loadExpenses()
+  loadFinancials()
+
+}, [])
   if (!project) {
     return <div>Loading...</div>
   }
@@ -142,9 +196,13 @@ export default function ProjectDashboard({
             padding:'15px'
           }}
         >
-          <h3>Invoices</h3>
+     <h3>Invoices</h3>
 
-          <h2>₹0</h2>
+<h2>
+  ₹
+  {invoiceTotal
+    .toLocaleString('en-IN')}
+</h2>
         </div>
 
         <div
@@ -153,9 +211,13 @@ export default function ProjectDashboard({
             padding:'15px'
           }}
         >
-          <h3>Collections</h3>
+  <h3>Collections</h3>
 
-          <h2>₹0</h2>
+<h2>
+  ₹
+  {collectionTotal
+    .toLocaleString('en-IN')}
+</h2>
         </div>
 
         <div
@@ -164,9 +226,13 @@ export default function ProjectDashboard({
             padding:'15px'
           }}
         >
-          <h3>Outstanding</h3>
+    <h3>Outstanding</h3>
 
-          <h2>₹0</h2>
+<h2>
+  ₹
+  {outstandingTotal
+    .toLocaleString('en-IN')}
+</h2>
         </div>
 
       </div>
