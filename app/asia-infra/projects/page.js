@@ -46,7 +46,17 @@ export default function ProjectsPage() {
       project =>
         project.status === 'active'
     ).length
+const semiClosedProjects =
+  projects.filter(
+    project =>
+      project.status === 'semi_closed'
+  ).length
 
+const closedProjects =
+  projects.filter(
+    project =>
+      project.status === 'closed'
+  ).length
   return (
 
     <div>
@@ -104,11 +114,23 @@ export default function ProjectsPage() {
           {projects.length}
         </div>
 
-        <div>
-          Active Projects:
-          {' '}
-          {activeProjects}
-        </div>
+   <div>
+  Active Projects:
+  {' '}
+  {activeProjects}
+</div>
+
+<div>
+  Semi Closed:
+  {' '}
+  {semiClosedProjects}
+</div>
+
+<div>
+  Closed Projects:
+  {' '}
+  {closedProjects}
+</div>
 
       </div>
 
