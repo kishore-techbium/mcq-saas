@@ -331,3 +331,580 @@ export default function Dashboard() {
           invoiced - collected
       }
     })
+  const closedProjectData =
+    projectPerformance.filter(
+      project =>
+        project.status?.toLowerCase() ===
+        'closed'
+    )
+
+  return (
+
+    <div
+      style={{
+        padding: '20px'
+      }}
+    >
+
+      <h1>
+        Asia Infra Dashboard
+      </h1>
+
+      <br />
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns:
+            'repeat(4, 1fr)',
+          gap: '15px'
+        }}
+      >
+
+        <KpiCard
+          title="Total WO Value"
+          value={`₹${totalWOValue.toLocaleString('en-IN')}`}
+          color="#2563eb"
+        />
+
+        <KpiCard
+          title="Total Invoiced"
+          value={`₹${totalInvoiced.toLocaleString('en-IN')}`}
+          color="#10b981"
+        />
+
+        <KpiCard
+          title="Total Collections"
+          value={`₹${totalCollections.toLocaleString('en-IN')}`}
+          color="#14b8a6"
+        />
+
+        <KpiCard
+          title="Outstanding"
+          value={`₹${outstanding.toLocaleString('en-IN')}`}
+          color="#ef4444"
+        />
+
+      </div>
+
+      <br />
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns:
+            'repeat(4, 1fr)',
+          gap: '15px'
+        }}
+      >
+
+        <KpiCard
+          title="Total Expenses"
+          value={`₹${totalExpenses.toLocaleString('en-IN')}`}
+          color="#dc2626"
+        />
+
+        <KpiCard
+          title="Net Profit"
+          value={`₹${netProfit.toLocaleString('en-IN')}`}
+          color={
+            netProfit >= 0
+              ? '#16a34a'
+              : '#dc2626'
+          }
+        />
+
+        <KpiCard
+          title="Profit %"
+          value={`${profitPercent.toFixed(2)}%`}
+          color="#7c3aed"
+        />
+
+        <KpiCard
+          title="Retention Held"
+          value={`₹${totalRetention.toLocaleString('en-IN')}`}
+          color="#f59e0b"
+        />
+
+      </div>
+
+      <br />
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns:
+            'repeat(4, 1fr)',
+          gap: '15px'
+        }}
+      >
+
+        <KpiCard
+          title="GST Billed"
+          value={`₹${totalGST.toLocaleString('en-IN')}`}
+          color="#0891b2"
+        />
+
+        <KpiCard
+          title="Collection Efficiency"
+          value={`${collectionEfficiency.toFixed(2)}%`}
+          color="#0f766e"
+        />
+
+        <KpiCard
+          title="Running Projects"
+          value={runningProjects}
+          color="#2563eb"
+        />
+
+        <KpiCard
+          title="Closed Projects"
+          value={closedProjects}
+          color="#6b7280"
+        />
+
+      </div>
+
+      <br /><br />
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns:
+            '400px 1fr',
+          gap: '20px'
+        }}
+      >
+
+        <div
+          style={{
+            background: '#fff',
+            border:
+              '1px solid #e5e7eb',
+            padding: '20px',
+            borderRadius: '10px'
+          }}
+        >
+
+          <h3>
+            Revenue Share by Project
+          </h3>
+
+          <Pie
+            data={pieData}
+          />
+
+        </div>
+
+        <div
+          style={{
+            background: '#fff',
+            border:
+              '1px solid #e5e7eb',
+            padding: '20px',
+            borderRadius: '10px'
+          }}
+        >
+
+          <h3>
+            Executive Summary
+          </h3>
+
+          <table
+            width="100%"
+          >
+
+            <tbody>
+
+              <tr>
+                <td>
+                  Work Orders
+                </td>
+                <td>
+                  ₹
+                  {totalWOValue.toLocaleString(
+                    'en-IN'
+                  )}
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  Invoiced
+                </td>
+                <td>
+                  ₹
+                  {totalInvoiced.toLocaleString(
+                    'en-IN'
+                  )}
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  Collections
+                </td>
+                <td>
+                  ₹
+                  {totalCollections.toLocaleString(
+                    'en-IN'
+                  )}
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  Expenses
+                </td>
+                <td>
+                  ₹
+                  {totalExpenses.toLocaleString(
+                    'en-IN'
+                  )}
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  Net Profit
+                </td>
+                <td
+                  style={{
+                    color:
+                      netProfit >= 0
+                        ? 'green'
+                        : 'red',
+                    fontWeight:
+                      'bold'
+                  }}
+                >
+                  ₹
+                  {netProfit.toLocaleString(
+                    'en-IN'
+                  )}
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  Profit %
+                </td>
+                <td>
+                  {profitPercent.toFixed(
+                    2
+                  )}
+                  %
+                </td>
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+      <br /><br />
+        <h2>
+        Project Performance
+      </h2>
+
+      <table
+        border="1"
+        cellPadding="8"
+        width="100%"
+      >
+
+        <thead>
+
+          <tr>
+
+            <th>
+              Project
+            </th>
+
+            <th>
+              WO Value
+            </th>
+
+            <th>
+              Invoiced
+            </th>
+
+            <th>
+              Collected
+            </th>
+
+            <th>
+              Expenses
+            </th>
+
+            <th>
+              Profit
+            </th>
+
+            <th>
+              Profit %
+            </th>
+
+            <th>
+              Outstanding
+            </th>
+
+            <th>
+              WO Utilization
+            </th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          {projectPerformance
+            .sort(
+              (a, b) =>
+                b.invoiced -
+                a.invoiced
+            )
+            .map(project => (
+
+              <tr
+                key={project.id}
+              >
+
+                <td>
+                  {
+                    project.project_name
+                  }
+                </td>
+
+                <td>
+                  ₹
+                  {Number(
+                    project.work_order_value || 0
+                  ).toLocaleString(
+                    'en-IN'
+                  )}
+                </td>
+
+                <td>
+                  ₹
+                  {project.invoiced
+                    .toLocaleString(
+                      'en-IN'
+                    )}
+                </td>
+
+                <td>
+                  ₹
+                  {project.collected
+                    .toLocaleString(
+                      'en-IN'
+                    )}
+                </td>
+
+                <td>
+                  ₹
+                  {project.expense
+                    .toLocaleString(
+                      'en-IN'
+                    )}
+                </td>
+
+                <td
+                  style={{
+                    color:
+                      project.profit >= 0
+                        ? 'green'
+                        : 'red',
+                    fontWeight:
+                      'bold'
+                  }}
+                >
+                  ₹
+                  {project.profit
+                    .toLocaleString(
+                      'en-IN'
+                    )}
+                </td>
+
+                <td
+                  style={{
+                    color:
+                      project.profitPct >= 15
+                        ? 'green'
+                        : project.profitPct > 0
+                        ? '#f59e0b'
+                        : 'red'
+                  }}
+                >
+                  {project.profitPct
+                    .toFixed(2)}
+                  %
+                </td>
+
+                <td>
+                  ₹
+                  {project.outstanding
+                    .toLocaleString(
+                      'en-IN'
+                    )}
+                </td>
+
+                <td>
+                  {project.woUtilization
+                    .toFixed(2)}
+                  %
+                </td>
+
+              </tr>
+
+            ))}
+
+        </tbody>
+
+      </table>
+
+      <br /><br />
+
+      <h2>
+        Closed Project Profitability
+      </h2>
+
+      <table
+        border="1"
+        cellPadding="8"
+        width="100%"
+      >
+
+        <thead>
+
+          <tr>
+
+            <th>
+              Project
+            </th>
+
+            <th>
+              WO Value
+            </th>
+
+            <th>
+              Invoiced
+            </th>
+
+            <th>
+              Expenses
+            </th>
+
+            <th>
+              Profit
+            </th>
+
+            <th>
+              Profit %
+            </th>
+
+            <th>
+              Variance
+            </th>
+
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          {closedProjectData.map(
+            project => {
+
+              const variance =
+                project.invoiced -
+                Number(
+                  project.work_order_value || 0
+                )
+
+              return (
+
+                <tr
+                  key={project.id}
+                >
+
+                  <td>
+                    {
+                      project.project_name
+                    }
+                  </td>
+
+                  <td>
+                    ₹
+                    {Number(
+                      project.work_order_value || 0
+                    ).toLocaleString(
+                      'en-IN'
+                    )}
+                  </td>
+
+                  <td>
+                    ₹
+                    {project.invoiced
+                      .toLocaleString(
+                        'en-IN'
+                      )}
+                  </td>
+
+                  <td>
+                    ₹
+                    {project.expense
+                      .toLocaleString(
+                        'en-IN'
+                      )}
+                  </td>
+
+                  <td>
+                    ₹
+                    {project.profit
+                      .toLocaleString(
+                        'en-IN'
+                      )}
+                  </td>
+
+                  <td>
+                    {project.profitPct
+                      .toFixed(2)}
+                    %
+                  </td>
+
+                  <td
+                    style={{
+                      color:
+                        variance >= 0
+                          ? 'green'
+                          : 'red',
+                      fontWeight:
+                        'bold'
+                    }}
+                  >
+                    ₹
+                    {variance
+                      .toLocaleString(
+                        'en-IN'
+                      )}
+                  </td>
+
+                </tr>
+
+              )
+            }
+          )}
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  )
+}
