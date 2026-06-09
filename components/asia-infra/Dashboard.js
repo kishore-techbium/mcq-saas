@@ -182,19 +182,20 @@ export default function Dashboard() {
         ) * 100
       : 0
 
-  const runningProjects =
-    projects.filter(
-      p =>
-        p.status?.toLowerCase() !==
-        'closed'
-    ).length
+const activeProjects =
+  projects.filter(
+    p => p.status === 'active'
+  ).length
 
-  const closedProjects =
-    projects.filter(
-      p =>
-        p.status?.toLowerCase() ===
-        'closed'
-    ).length
+const semiClosedProjects =
+  projects.filter(
+    p => p.status === 'semi_closed'
+  ).length
+
+const closedProjects =
+  projects.filter(
+    p => p.status === 'closed'
+  ).length
 
   const revenueByProject =
     projects.map(project => {
@@ -451,18 +452,23 @@ export default function Dashboard() {
           color="#0f766e"
         />
 
-        <KpiCard
-          title="Running Projects"
-          value={runningProjects}
-          color="#2563eb"
-        />
+      <KpiCard
+  title="Active Projects"
+  value={activeProjects}
+  color="#2563eb"
+/>
 
-        <KpiCard
-          title="Closed Projects"
-          value={closedProjects}
-          color="#6b7280"
-        />
+<KpiCard
+  title="Semi Closed"
+  value={semiClosedProjects}
+  color="#f59e0b"
+/>
 
+<KpiCard
+  title="Closed Projects"
+  value={closedProjects}
+  color="#6b7280"
+/>
       </div>
 
       <br /><br />
