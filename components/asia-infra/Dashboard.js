@@ -405,21 +405,26 @@ const closedProjects =
           color="#dc2626"
         />
 
+     {
+  closedProjects > 0 ||
+  semiClosedProjects > 0
+    ? (
+      <>
         <KpiCard
           title="Net Profit"
           value={`₹${netProfit.toLocaleString('en-IN')}`}
-          color={
-            netProfit >= 0
-              ? '#16a34a'
-              : '#dc2626'
-          }
+          color="#16a34a"
         />
 
         <KpiCard
           title="Profit %"
-          value={`${profitPercent.toFixed(2)}%`}
-          color="#7c3aed"
+          value={`${profitPct.toFixed(2)}%`}
+          color="#059669"
         />
+      </>
+    )
+    : null
+}
 
         <KpiCard
           title="Retention Held"
@@ -719,37 +724,24 @@ const closedProjects =
                     )}
                 </td>
 
-                <td
-                  style={{
-                    color:
-                      project.profit >= 0
-                        ? 'green'
-                        : 'red',
-                    fontWeight:
-                      'bold'
-                  }}
-                >
-                  ₹
-                  {project.profit
-                    .toLocaleString(
-                      'en-IN'
-                    )}
-                </td>
+              <td>
 
-                <td
-                  style={{
-                    color:
-                      project.profitPct >= 15
-                        ? 'green'
-                        : project.profitPct > 0
-                        ? '#f59e0b'
-                        : 'red'
-                  }}
-                >
-                  {project.profitPct
-                    .toFixed(2)}
-                  %
-                </td>
+  {
+    project.status === 'active'
+      ? '-'
+      : `₹${project.profit.toLocaleString('en-IN')}`
+  }
+
+</td>
+              <td>
+
+  {
+    project.status === 'active'
+      ? '-'
+      : `${project.profitPct.toFixed(2)}%`
+  }
+
+</td>
 
                 <td>
                   ₹
