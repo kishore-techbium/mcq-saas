@@ -130,6 +130,32 @@ const [outstandingTotal, setOutstandingTotal] =
     totalCollections
   )
 }
+  async function updateStatus(
+  newStatus
+) {
+
+  const { error } =
+    await supabase
+      .from('ai_project')
+      .update({
+        status: newStatus
+      })
+      .eq(
+        'id',
+        project.id
+      )
+
+  if (error) {
+    alert(error.message)
+    return
+  }
+
+  loadProject()
+
+  alert(
+    'Project Status Updated'
+  )
+}
 useEffect(() => {
 
   loadProject()
@@ -154,7 +180,16 @@ useEffect(() => {
         {' '}
         {project.client_name}
       </p>
+<p>
+  Status:
+  {' '}
 
+  {project.status === 'active'
+    ? '🟢 Active'
+    : project.status === 'semi_closed'
+    ? '🟡 Semi Closed'
+    : '⚫ Closed'}
+</p>
       <h2>
         WO Value:
         {' '}
@@ -165,7 +200,49 @@ useEffect(() => {
       </h2>
 
       <br />
+<div
+  style={{
+    marginBottom: '20px'
+  }}
+>
 
+  <button
+    onClick={() =>
+      updateStatus(
+        'active'
+      )
+    }
+    style={{
+      marginRight: '10px'
+    }}
+  >
+    Active
+  </button>
+
+  <button
+    onClick={() =>
+      updateStatus(
+        'semi_closed'
+      )
+    }
+    style={{
+      marginRight: '10px'
+    }}
+  >
+    Semi Closed
+  </button>
+
+  <button
+    onClick={() =>
+      updateStatus(
+        'closed'
+      )
+    }
+  >
+    Closed
+  </button>
+
+</div>
       <div
         style={{
           display: 'grid',
