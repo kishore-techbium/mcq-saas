@@ -203,24 +203,15 @@ export default function ProjectsPage() {
 
               </td>
 
-              <td>
+            <td>
 
-                <span
-                  style={{
-                    background:
-                      project.status === 'active'
-                        ? '#dcfce7'
-                        : '#e5e7eb',
-                    padding:
-                      '4px 8px',
-                    borderRadius:
-                      '6px'
-                  }}
-                >
-                  {project.status}
-                </span>
+  {project.status === 'active'
+    ? '🟢 Active'
+    : project.status === 'semi_closed'
+    ? '🟡 Semi Closed'
+    : '⚫ Closed'}
 
-              </td>
+</td>
 
             </tr>
 
