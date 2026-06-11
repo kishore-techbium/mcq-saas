@@ -73,17 +73,39 @@ function exportProjects() {
       WO_No:
         project.work_order_number,
 
-      WO_Date:
-        project.work_order_date,
+WO_Date:
+  project.work_order_date
+    ? new Date(
+        project.work_order_date
+      ).toLocaleDateString('en-IN')
+    : '',
 
       WO_Value:
         project.work_order_value,
 
-      Status:
-        project.status
+Status:
+  project.status === 'active'
+    ? 'Active'
+    : project.status === 'semi_closed'
+    ? 'Semi Closed'
+    : 'Closed'
 
     }))
+data.push({
 
+  Project: 'TOTAL',
+
+  Client: '',
+
+  WO_No: '',
+
+  WO_Date: '',
+
+  WO_Value: totalWOValue,
+
+  Status: ''
+
+})
   const ws =
     XLSX.utils.json_to_sheet(data)
 
