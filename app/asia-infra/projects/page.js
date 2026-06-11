@@ -9,7 +9,10 @@ export default function ProjectsPage() {
 
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
-
+const [expandedClient,
+  setExpandedClient] =
+  useState(null)
+  
   async function loadProjects() {
 
     const { data, error } = await supabase
@@ -123,6 +126,21 @@ data.push({
     'AsiaInfraProjects.xlsx'
   )
 }
+  const groupedClients = {}
+
+projects.forEach(project => {
+
+  const client =
+    project.client_name ||
+    'Others'
+
+  if (!groupedClients[client]) {
+    groupedClients[client] = []
+  }
+
+  groupedClients[client].push(project)
+
+})
   return (
 
     <div>
@@ -223,116 +241,235 @@ data.push({
 </div>
 
       </div>
+<table
+  border="1"
+  cellPadding="10"
+  width="100%"
+>
 
-      <table
-        border="1"
-        cellPadding="10"
-        width="100%"
-      >
+  <thead>
 
-        <thead>
+    <tr>
 
-          <tr>
+      <th>
+        Project
+      </th>
 
-            <th>
-              Project
-            </th>
+      <th>
+        Client
+      </th>
 
-            <th>
-              Client
-            </th>
+      <th>
+        WO No
+      </th>
 
-            <th>
-              WO No
-            </th>
+      <th>
+        WO Date
+      </th>
 
-            <th>
-              WO Date
-            </th>
+      <th>
+        WO Value
+      </th>
 
-            <th>
-              WO Value
-            </th>
+      <th>
+        Status
+      </th>
 
-            <th>
-              Status
-            </th>
+    </tr>
 
-          </tr>
+  </thead>
 
-        </thead>
+  <tbody>
 
-        <tbody>
+    {
 
-          {projects.map(project => (
+      Object.entries(
+        groupedClients
+      ).map(
 
-            <tr key={project.id}>
+        ([clientName,
+          clientProjects]) => (
 
-              <td>
+          <>
 
-                <Link
-                  href={`/asia-infra/projects/${project.id}`}
-                  style={{
-                    color: '#2563eb',
-                    textDecoration: 'none',
-                    fontWeight: '600'
-                  }}
-                >
-                  {project.project_name}
-                </Link>
+            <tr
+              key={clientName}
+              style={{
+                background:
+                  '#dbeafe',
+                cursor:
+                  'pointer',
+                fontWeight:
+                  'bold'
+              }}
+              onClick={() =>
 
-              </td>
+                setExpandedClient(
 
-              <td>
-                {project.client_name}
-              </td>
+                  expandedClient ===
+                  clientName
 
-              <td>
-                {project.work_order_number || '-'}
-              </td>
+                    ? null
 
-              <td>
+                    : clientName
+
+                )
+
+              }
+            >
+
+              <td
+                colSpan="6"
+              >
+
                 {
-                  project.work_order_date
-                    ? new Date(
-                        project.work_order_date
-                      ).toLocaleDateString(
-                        'en-IN'
-                      )
-                    : '-'
+
+                  expandedClient ===
+                  clientName
+
+                    ? '▼ '
+
+                    : '▶ '
+
                 }
+
+                {clientName}
+
+                {' ('}
+
+                {
+                  clientProjects.length
+                }
+
+                {' Projects)'}
+
               </td>
-
-              <td>
-
-                ₹
-
-                {Number(
-                  project.work_order_value || 0
-                ).toLocaleString(
-                  'en-IN'
-                )}
-
-              </td>
-
-            <td>
-
-  {project.status === 'active'
-    ? '🟢 Active'
-    : project.status === 'semi_closed'
-    ? '🟡 Semi Closed'
-    : '⚫ Closed'}
-
-</td>
 
             </tr>
 
-          ))}
+            {
 
-        </tbody>
+              expandedClient ===
+              clientName &&
 
-      </table>
+              clientProjects.map(
+                project => (
 
+                  <tr
+                    key={project.id}
+                  >
+
+                    <td>
+
+                      <Link
+                        href={`/asia-infra/projects/${project.id}`}
+                        style={{
+                          color:
+                            '#2563eb',
+                          textDecoration:
+                            'none',
+                          fontWeight:
+                            '600',
+                          paddingLeft:
+                            '20px'
+                        }}
+                      >
+
+                        {
+                          project.project_name
+                        }
+
+                      </Link>
+
+                    </td>
+
+                    <td>
+                      {
+                        project.client_name
+                      }
+                    </td>
+
+                    <td>
+                      {
+                        project.work_order_number ||
+                        '-'
+                      }
+                    </td>
+
+                    <td>
+
+                      {
+
+                        project.work_order_date
+
+                          ? new Date(
+                              project.work_order_date
+                            ).toLocaleDateString(
+                              'en-IN'
+                            )
+
+                          : '-'
+
+                      }
+
+                    </td>
+
+                    <td>
+
+                      ₹
+
+                      {
+
+                        Number(
+                          project.work_order_value ||
+                          0
+                        ).toLocaleString(
+                          'en-IN'
+                        )
+
+                      }
+
+                    </td>
+
+                    <td>
+
+                      {
+
+                        project.status ===
+                        'active'
+
+                          ? '🟢 Active'
+
+                          : project.status ===
+                            'semi_closed'
+
+                          ? '🟡 Semi Closed'
+
+                          : '⚫ Closed'
+
+                      }
+
+                    </td>
+
+                  </tr>
+
+                )
+
+              )
+
+            }
+
+          </>
+
+        )
+
+      )
+
+    }
+
+  </tbody>
+
+</table>
     </div>
 
   )
