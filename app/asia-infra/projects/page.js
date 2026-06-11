@@ -130,9 +130,11 @@ data.push({
 
 projects.forEach(project => {
 
-  const client =
-    project.client_name ||
-    'Others'
+const client =
+  project.client_name
+    ?.trim()
+    .toUpperCase()
+  || 'OTHERS'
 
   if (!groupedClients[client]) {
     groupedClients[client] = []
