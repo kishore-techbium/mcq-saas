@@ -1,7 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-
+const navStyle = {
+  color: '#e2e8f0',
+  textDecoration: 'none',
+  padding: '12px 14px',
+  borderRadius: '10px',
+  background: 'rgba(255,255,255,0.03)',
+  transition: '0.2s'
+}
 export default function AsiaInfraLayout({
   children
 }) {
@@ -16,81 +23,126 @@ export default function AsiaInfraLayout({
     >
 
       <aside
-        style={{
-          width: '240px',
-          background: '#111827',
-          color: '#fff',
-          padding: '20px'
-        }}
-      >
+  style={{
+    width: '260px',
+    background:
+      'linear-gradient(180deg,#0f172a,#1e293b)',
+    color: '#fff',
+    padding: '24px',
+    boxShadow:
+      '4px 0 15px rgba(0,0,0,0.15)'
+  }}
+>
 
-        <h2>Asia Infra ERP</h2>
+  <h2
+    style={{
+      margin: 0,
+      fontSize: '24px',
+      fontWeight: '700'
+    }}
+  >
+    🏗️ Asia Infra
+  </h2>
 
-        <hr />
+  <div
+    style={{
+      color: '#94a3b8',
+      fontSize: '13px',
+      marginTop: '4px',
+      marginBottom: '25px'
+    }}
+  >
+    ERP & Project Accounts
+  </div>
 
-        <div style={{ marginTop: '20px' }}>
+  <div
+    style={{
+      borderTop:
+        '1px solid rgba(255,255,255,0.1)',
+      marginBottom: '20px'
+    }}
+  />
 
-          <p>
-            <Link href="/asia-infra">
-              Dashboard
-            </Link>
-          </p>
+  <nav
+    style={{
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px'
+    }}
+  >
 
-          <p>
-            <Link href="/asia-infra/projects">
-              Projects
-            </Link>
-          </p>
+    <Link
+      href="/asia-infra"
+      style={navStyle}
+    >
+       Dashboard
+    </Link>
 
-          <p>
-            <Link href="/asia-infra/expenses">
-              Expenses
-            </Link>
-          </p>
+    <Link
+      href="/asia-infra/projects"
+      style={navStyle}
+    >
+       Projects
+    </Link>
 
-          <p>
-            <Link href="/asia-infra/invoices">
-              Invoices
-            </Link>
-          </p>
+    <Link
+      href="/asia-infra/expenses"
+      style={navStyle}
+    >
+      Expenses
+    </Link>
 
-          <p>
-            <Link href="/asia-infra/collections">
-              Collections
-            </Link>
-          </p>
+    <Link
+      href="/asia-infra/invoices"
+      style={navStyle}
+    >
+       Invoices
+    </Link>
 
-          <p>
-            <Link href="/asia-infra/investors">
-              Investors
-            </Link>
-          </p>
+    <Link
+      href="/asia-infra/collections"
+      style={navStyle}
+    >
+       Collections
+    </Link>
 
-          <p>
-            <Link href="/asia-infra/loans">
-              Loans
-            </Link>
-          </p>
+    <Link
+      href="/asia-infra/parties"
+      style={navStyle}
+    >
+       Parties
+    </Link>
 
-          <p>
-            <Link href="/asia-infra/reports">
-              Reports
-            </Link>
-          </p>
-<p>
-        <Link href="/asia-infra/parties">
-  Parties
-</Link>
-           </p>
+    <Link
+      href="/asia-infra/investors"
+      style={navStyle}
+    >
+       Investors
+    </Link>
 
-        </div>
+    <Link
+      href="/asia-infra/loans"
+      style={navStyle}
+    >
+       Loans
+    </Link>
 
-      </aside>
+    <Link
+      href="/asia-infra/reports"
+      style={navStyle}
+    >
+      Reports
+    </Link>
+
+  </nav>
+
+</aside>
 
       <main
         style={{
           flex: 1,
-          padding: '30px'
+          padding: '30px',
+background: '#f8fafc'
         }}
       >
         {children}
