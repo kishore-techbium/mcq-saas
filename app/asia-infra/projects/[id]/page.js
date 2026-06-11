@@ -2,13 +2,23 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../../lib/supabase'
-
+import * as XLSX from 'xlsx'
 export default function ProjectDashboard({
   params
 }) {
 
   const [project, setProject] = useState(null)
+const [invoiceDetails,
+  setInvoiceDetails] =
+  useState([])
 
+const [invoices,
+  setInvoices] =
+  useState([])
+
+const [collections,
+  setCollections] =
+  useState([])
   const [expenses, setExpenses] = useState([])
   const [expenseTotal, setExpenseTotal] = useState(0)
 const [invoiceTotal, setInvoiceTotal] =
@@ -85,20 +95,28 @@ const [outstandingTotal, setOutstandingTotal] =
 
   async function loadFinancials() {
 
-  const { data: invoices } =
+  const { data: invoicesData } =
     await supabase
       .from('ai_invoice')
       .select('*')
       .eq('project_id', params.id)
 
-  const { data: collections } =
+  const { data: collectionsData } =
     await supabase
       .from('ai_collection')
       .select('*')
       .eq('project_id', params.id)
 
+  setInvoices(
+    invoicesData || []
+  )
+
+  setCollections(
+    collectionsData || []
+  )
+
   const totalInvoices =
-    (invoices || []).reduce(
+    (invoicesData || []).reduce(
       (sum, row) =>
         sum +
         Number(
@@ -108,7 +126,7 @@ const [outstandingTotal, setOutstandingTotal] =
     )
 
   const totalCollections =
-    (collections || []).reduce(
+    (collectionsData || []).reduce(
       (sum, row) =>
         sum +
         Number(
@@ -128,6 +146,55 @@ const [outstandingTotal, setOutstandingTotal] =
   setOutstandingTotal(
     totalInvoices -
     totalCollections
+  )
+
+  const invoiceRows =
+    (invoicesData || []).map(
+      invoice => {
+
+        const collected =
+          (collectionsData || [])
+            .filter(
+              c =>
+                c.invoice_id ===
+                invoice.id
+            )
+            .reduce(
+              (sum, c) =>
+                sum +
+                Number(
+                  c.amount_accounted || 0
+                ),
+              0
+            )
+
+        return {
+
+          invoice_date:
+            invoice.invoice_date,
+
+          invoice_number:
+            invoice.invoice_number,
+
+          invoice_value:
+            Number(
+              invoice.gross_amount || 0
+            ),
+
+          collected,
+
+          pending:
+            Number(
+              invoice.gross_amount || 0
+            ) - collected
+
+        }
+
+      }
+    )
+
+  setInvoiceDetails(
+    invoiceRows
   )
 }
   async function updateStatus(
@@ -163,6 +230,69 @@ useEffect(() => {
   loadFinancials()
 
 }, [])
+function exportExpenses() {
+
+  const data =
+    expenses.map(row => ({
+
+      Date:
+        row.expense_date,
+
+      Category:
+        row.ai_expense_category
+          ?.category_name,
+
+      SubCategory:
+        row.ai_expense_subcategory
+          ?.subcategory_name,
+
+      Amount:
+        row.amount,
+
+      Remarks:
+        row.remarks
+
+    }))
+
+  const ws =
+    XLSX.utils.json_to_sheet(data)
+
+  const wb =
+    XLSX.utils.book_new()
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    ws,
+    'Expenses'
+  )
+
+  XLSX.writeFile(
+    wb,
+    `${project.project_name}_Expenses.xlsx`
+  )
+}
+
+function exportInvoices() {
+
+  const ws =
+    XLSX.utils.json_to_sheet(
+      invoiceDetails
+    )
+
+  const wb =
+    XLSX.utils.book_new()
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    ws,
+    'Invoices'
+  )
+
+  XLSX.writeFile(
+    wb,
+    `${project.project_name}_Invoices.xlsx`
+  )
+}
   if (!project) {
     return <div>Loading...</div>
   }
@@ -174,7 +304,42 @@ useEffect(() => {
       <h1>
         {project.project_name}
       </h1>
+<div
+  style={{
+    marginBottom:'20px'
+  }}
+>
 
+  <button
+    onClick={exportExpenses}
+    style={{
+      marginRight:'10px',
+      background:'#16a34a',
+      color:'#fff',
+      border:'none',
+      padding:'8px 14px',
+      borderRadius:'6px',
+      cursor:'pointer'
+    }}
+  >
+    Download Expenses
+  </button>
+
+  <button
+    onClick={exportInvoices}
+    style={{
+      background:'#2563eb',
+      color:'#fff',
+      border:'none',
+      padding:'8px 14px',
+      borderRadius:'6px',
+      cursor:'pointer'
+    }}
+  >
+    Download Invoice Ledger
+  </button>
+
+</div>
       <p>
         Client:
         {' '}
@@ -315,7 +480,87 @@ useEffect(() => {
       </div>
 
       <br />
+<h2>
+  Invoice Ledger
+</h2>
 
+<table
+  border="1"
+  cellPadding="8"
+  width="100%"
+>
+
+  <thead>
+
+    <tr>
+
+      <th>Date</th>
+
+      <th>Invoice No</th>
+
+      <th>Invoice Value</th>
+
+      <th>Collections</th>
+
+      <th>Pending</th>
+
+    </tr>
+
+  </thead>
+
+  <tbody>
+
+    {invoiceDetails.map(
+      row => (
+
+        <tr
+          key={
+            row.invoice_number
+          }
+        >
+
+          <td>
+            {row.invoice_date}
+          </td>
+
+          <td>
+            {row.invoice_number}
+          </td>
+
+          <td>
+            ₹
+            {row.invoice_value
+              .toLocaleString(
+                'en-IN'
+              )}
+          </td>
+
+          <td>
+            ₹
+            {row.collected
+              .toLocaleString(
+                'en-IN'
+              )}
+          </td>
+
+          <td>
+            ₹
+            {row.pending
+              .toLocaleString(
+                'en-IN'
+              )}
+          </td>
+
+        </tr>
+
+      )
+    )}
+
+  </tbody>
+
+</table>
+
+<br />
       <div
         style={{
           display:'grid',
