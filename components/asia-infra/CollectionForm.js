@@ -180,17 +180,23 @@ if (
     const amountAccounted =
       amountReceived
 
-    const payload = {
+ const invoice =
+  invoices.find(
+    x => x.id === form.invoice_id
+  )
+
+const payload = {
 
   collection_type:
     form.collection_type,
 
   project_id:
-    form.project_id || null,
+    form.collection_type === 'Invoice'
+      ? invoice?.project_id
+      : form.project_id,
 
   invoice_id:
-    form.collection_type ===
-    'Invoice'
+    form.collection_type === 'Invoice'
       ? form.invoice_id
       : null,
 
