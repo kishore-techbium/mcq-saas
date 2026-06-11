@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import * as XLSX from 'xlsx'
 import { supabase } from '../../../lib/supabase'
 
 export default function ProjectsPage() {
@@ -57,27 +58,94 @@ const closedProjects =
     project =>
       project.status === 'closed'
   ).length
+
+function exportProjects() {
+
+  const data =
+    projects.map(project => ({
+
+      Project:
+        project.project_name,
+
+      Client:
+        project.client_name,
+
+      WO_No:
+        project.work_order_number,
+
+      WO_Date:
+        project.work_order_date,
+
+      WO_Value:
+        project.work_order_value,
+
+      Status:
+        project.status
+
+    }))
+
+  const ws =
+    XLSX.utils.json_to_sheet(data)
+
+  const wb =
+    XLSX.utils.book_new()
+
+  XLSX.utils.book_append_sheet(
+    wb,
+    ws,
+    'Projects'
+  )
+
+  XLSX.writeFile(
+    wb,
+    'AsiaInfraProjects.xlsx'
+  )
+}
   return (
 
     <div>
 
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '20px'
-        }}
-      >
-        <h1>Projects</h1>
+    <div
+  style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px'
+  }}
+>
 
-        <Link href="/asia-infra/projects/new">
-          <button>
-            + New Project
-          </button>
-        </Link>
+  <h1>
+    Projects
+  </h1>
 
-      </div>
+  <div>
+
+    <button
+      onClick={exportProjects}
+      style={{
+        marginRight:'10px',
+        background:'#16a34a',
+        color:'#fff',
+        border:'none',
+        padding:'8px 14px',
+        borderRadius:'6px',
+        cursor:'pointer'
+      }}
+    >
+      Download Excel
+    </button>
+
+    <Link href="/asia-infra/projects/new">
+
+      <button>
+        + New Project
+      </button>
+
+    </Link>
+
+  </div>
+
+</div>
 
       <div
         style={{
