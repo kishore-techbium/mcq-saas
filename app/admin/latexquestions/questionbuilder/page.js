@@ -5,7 +5,7 @@ import { useState } from 'react'
 import Header from './components/Header'
 import QuestionEditor from './components/QuestionEditor'
 import Preview from './components/Preview'
-
+import { recognizeImage } from "./services/ocr"
 import styles from './styles'
 
 export default function QuestionBuilderPage(){
@@ -22,13 +22,41 @@ export default function QuestionBuilderPage(){
 
   /* ================= IMAGE SELECT ================= */
 
-  function handleImageSelected(file){
+async function handleImageSelected(file){
 
-    console.log(file)
+    try{
 
-    // OCR will be added in the next phase
+        setOcrLoading(true)
 
-  }
+        setOcrProgress(0)
+
+        const text = await recognizeImage(
+
+            file,
+
+            setOcrProgress
+
+        )
+
+        setQuestion(text)
+
+    }
+
+    catch(err){
+
+        console.error(err)
+
+        alert("OCR Failed")
+
+    }
+
+    finally{
+
+        setOcrLoading(false)
+
+    }
+
+}
 
   return(
 
