@@ -5,7 +5,7 @@ import { getAdminCollege } from '../../../lib/getAdminCollege'
 import * as XLSX from 'xlsx'
 import 'katex/dist/katex.min.css'
 import Tesseract from "tesseract.js"
-import cv from "@techstark/opencv-js"
+
 import renderMathInElement from 'katex/contrib/auto-render'
 
 export default function LatexQuestionsPage() {
@@ -52,15 +52,6 @@ init()
 
 },[])
 
-useEffect(() => {
-
-    cv['onRuntimeInitialized'] = () => {
-
-        console.log("✅ OpenCV Loaded")
-
-    }
-
-}, [])
   
 useEffect(() => {
 
