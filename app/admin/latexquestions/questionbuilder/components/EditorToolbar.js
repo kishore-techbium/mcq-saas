@@ -4,31 +4,40 @@ import styles from '../styles'
 
 const TOOLS = [
 
-    { id:'sup',  label:'x²', tip:'Superscript' },
-    { id:'sub',  label:'x₂', tip:'Subscript' },
+    {
+        id:"convert",
+        label:"⚡ Convert Formula",
+        title:"Select a formula and convert it automatically"
+    },
 
-    { id:'sqrt', label:'√',  tip:'Square Root' },
-    { id:'frac', label:'a⁄b', tip:'Fraction' },
+    {
+        id:"divider"
+    },
 
-    { id:'pi',   label:'π', tip:'Pi' },
-    { id:'alpha',label:'α', tip:'Alpha' },
-    { id:'beta', label:'β', tip:'Beta' },
-    { id:'theta',label:'θ', tip:'Theta' },
-    { id:'delta',label:'Δ', tip:'Delta' },
+    {id:"sup",label:"x²"},
+    {id:"sub",label:"x₂"},
+    {id:"sqrt",label:"√"},
+    {id:"frac",label:"a/b"},
 
-    { id:'sum',  label:'Σ', tip:'Summation' },
-    { id:'int',  label:'∫', tip:'Integral' },
+    {id:"pi",label:"π"},
+    {id:"alpha",label:"α"},
+    {id:"beta",label:"β"},
+    {id:"theta",label:"θ"},
+    {id:"delta",label:"Δ"},
 
-    { id:'le',   label:'≤', tip:'Less Than Equal' },
-    { id:'ge',   label:'≥', tip:'Greater Than Equal' },
-    { id:'neq',  label:'≠', tip:'Not Equal' },
+    {id:"sum",label:"Σ"},
+    {id:"int",label:"∫"},
 
-    { id:'inf',  label:'∞', tip:'Infinity' },
+    {id:"le",label:"≤"},
+    {id:"ge",label:"≥"},
+    {id:"neq",label:"≠"},
 
-    { id:'rightarrow', label:'→', tip:'Arrow' },
-    { id:'equilibrium',label:'⇌', tip:'Equilibrium' },
+    {id:"inf",label:"∞"},
 
-    { id:'degree',label:'°', tip:'Degree' }
+    {id:"rightarrow",label:"→"},
+    {id:"equilibrium",label:"⇌"},
+
+    {id:"degree",label:"°"}
 
 ]
 
@@ -48,49 +57,75 @@ export default function EditorToolbar({
 
             {
 
-                TOOLS.map(tool=>(
+                TOOLS.map((tool,index)=>{
 
-                    <button
+                    if(tool.id==="divider"){
 
-                        key={tool.id}
+                        return(
 
-                        type="button"
+                            <div
 
-                        title={tool.tip}
+                                key={index}
 
-                        style={styles.toolbarButton}
+                                style={styles.toolbarDivider}
 
-                        onClick={()=>{
+                            />
 
-                            if(onToolClick){
+                        )
 
-                                onToolClick(tool.id)
+                    }
 
-                            }
+                    if(tool.id==="convert"){
 
-                        }}
+                        return(
 
-                    >
+                            <button
 
-                        {tool.label}
+                                key={tool.id}
 
-                    </button>
+                                style={styles.convertButton}
 
-                ))
+                                onClick={()=>onToolClick(tool.id)}
+
+                            >
+
+                                {tool.label}
+
+                            </button>
+
+                        )
+
+                    }
+
+                    return(
+
+                        <button
+
+                            key={tool.id}
+
+                            style={styles.toolbarButton}
+
+                            onClick={()=>onToolClick(tool.id)}
+
+                        >
+
+                            {tool.label}
+
+                        </button>
+
+                    )
+
+                })
 
             }
 
-            <div style={styles.toolbarDivider}/>
+            <div style={{flex:1}}/>
 
             <button
-
-                type="button"
 
                 style={styles.toolbarButton}
 
                 onClick={onCopy}
-
-                title="Copy"
 
             >
 
@@ -100,13 +135,9 @@ export default function EditorToolbar({
 
             <button
 
-                type="button"
-
                 style={styles.toolbarButton}
 
                 onClick={onClear}
-
-                title="Clear"
 
             >
 
