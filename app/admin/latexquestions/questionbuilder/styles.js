@@ -1,5 +1,35 @@
 const styles = {
+cardHeader: {
+  padding: '16px 20px',
+  borderBottom: '1px solid #ececec',
+  background: '#fafafa',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center'
+},
 
+cardHeaderLeft: {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 4
+},
+
+cardTitle: {
+  fontSize: 16,
+  fontWeight: 600,
+  color: '#111827'
+},
+
+cardSubtitle: {
+  fontSize: 13,
+  color: '#6b7280'
+},
+
+cardActions: {
+  display: 'flex',
+  gap: 8,
+  alignItems: 'center'
+},
   /* ===========================
      PAGE
   =========================== */
