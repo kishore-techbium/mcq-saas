@@ -347,20 +347,23 @@ async function processImageOCR(fileToRead){
   try{
 
 const { data } = await Tesseract.recognize(
-    file,
-    "eng",
-      {
-        logger:m=>{
+  file,
+  "eng",
+  {
+    logger: m => {
 
-          if(m.status==="recognizing text"){
-        
-            setOcrProgress(Math.round(m.progress * 100))
-        
-          }
-        
-        }
+      if(m.status === "recognizing text"){
+
+        setOcrProgress(Math.round(m.progress * 100))
+
       }
-    )
+
+    },
+
+    tessedit_pageseg_mode: "6"
+
+  }
+)
 let cleanedText = data.text
 
 cleanedText = cleanedText
