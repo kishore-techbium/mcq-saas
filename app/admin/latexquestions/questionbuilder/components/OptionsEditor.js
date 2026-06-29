@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 
 import SectionCard from './SectionCard'
+import { parseOptions } from '../services/optionsParser'
 import styles from '../styles'
 
 export default function OptionsEditor({
@@ -17,45 +18,27 @@ export default function OptionsEditor({
 
     useEffect(()=>{
 
-        if(!rawText) return
+        if(!rawText){
 
-        parseOptions(rawText)
+            setOptions([])
 
-    },[rawText])
-
-    function parseOptions(text){
-
-        let cleaned = text
-
-        cleaned = cleaned.replace(/\r/g,'')
-
-        const parts = cleaned.split(
-
-            /\n\s*(?:A[\.\)]|\(A\)|B[\.\)]|\(B\)|C[\.\)]|\(C\)|D[\.\)]|\(D\)|1[\.\)]|2[\.\)]|3[\.\)]|4[\.\)])/i
-
-        )
-
-        const parsed = parts
-
-            .map(x=>x.trim())
-
-            .filter(x=>x.length)
-
-        if(parsed.length){
-
-            setOptions(parsed)
+            return
 
         }
 
-    }
+        const parsed = parseOptions(rawText)
+
+        setOptions(parsed)
+
+    },[rawText])
 
     function updateOption(index,value){
 
-        const copy=[...options]
+        const updated=[...options]
 
-        copy[index]=value
+        updated[index]=value
 
-        setOptions(copy)
+        setOptions(updated)
 
     }
 
@@ -71,15 +54,37 @@ export default function OptionsEditor({
 
     }
 
+    function removeOption(index){
+
+        const updated=options.filter((_,i)=>i!==index)
+
+        setOptions(updated)
+
+    }
+
     return(
 
         <SectionCard
 
             title="Options Editor"
 
-            subtitle="Review and edit parsed options"
+            subtitle="Review and edit answer choices"
 
         >
+
+            {
+
+                options.length===0 && (
+
+                    <div style={styles.emptyState}>
+
+                        Run Options OCR and click Apply.
+
+                    </div>
+
+                )
+
+            }
 
             {
 
@@ -109,6 +114,8 @@ export default function OptionsEditor({
 
                         <textarea
 
+                            style={styles.optionTextarea}
+
                             value={option}
 
                             onChange={(e)=>{
@@ -123,9 +130,19 @@ export default function OptionsEditor({
 
                             }}
 
-                            style={styles.optionTextarea}
-
                         />
+
+                        <button
+
+                            style={styles.deleteOptionButton}
+
+                            onClick={()=>removeOption(index)}
+
+                        >
+
+                            ✕
+
+                        </button>
 
                     </div>
 
