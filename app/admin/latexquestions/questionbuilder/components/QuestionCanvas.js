@@ -1,34 +1,43 @@
 'use client'
 
-import { useRef, useImperativeHandle, forwardRef } from 'react'
+import {
+    forwardRef,
+    useImperativeHandle,
+    useRef
+} from 'react'
+
+import { convertFormula } from '../services/formulaConverter'
 import styles from '../styles'
 
 const QuestionCanvas = forwardRef(function QuestionCanvas({
 
     value,
 
-    onChange,
+    onChange
 
-    placeholder = "Type your question here..."
-
-}, ref){
+},ref){
 
     const textareaRef = useRef(null)
 
     useImperativeHandle(ref,()=>({
 
+        focus(){
+
+            textareaRef.current.focus()
+
+        },
+
         insertText(text){
 
             const textarea = textareaRef.current
 
-            if(!textarea) return
-
             const start = textarea.selectionStart
             const end = textarea.selectionEnd
 
             const updated =
-                value.substring(0,start) +
-                text +
+
+                value.substring(0,start)+
+                text+
                 value.substring(end)
 
             onChange(updated)
@@ -37,27 +46,37 @@ const QuestionCanvas = forwardRef(function QuestionCanvas({
 
                 textarea.focus()
 
-                const position = start + text.length
-
-                textarea.selectionStart = position
-                textarea.selectionEnd = position
+                textarea.selectionStart =
+                textarea.selectionEnd =
+                start + text.length
 
             })
 
         },
 
-        replaceSelection(text){
+        convertSelectedFormula(){
 
             const textarea = textareaRef.current
 
-            if(!textarea) return
-
             const start = textarea.selectionStart
             const end = textarea.selectionEnd
 
+            if(start===end){
+
+                alert("Select a formula first.")
+
+                return
+
+            }
+
+            const selected = value.substring(start,end)
+
+            const converted = convertFormula(selected)
+
             const updated =
-                value.substring(0,start) +
-                text +
+
+                value.substring(0,start)+
+                converted+
                 value.substring(end)
 
             onChange(updated)
@@ -66,18 +85,11 @@ const QuestionCanvas = forwardRef(function QuestionCanvas({
 
                 textarea.focus()
 
-                const position = start + text.length
+                textarea.selectionStart=start
 
-                textarea.selectionStart = position
-                textarea.selectionEnd = position
+                textarea.selectionEnd=start+converted.length
 
             })
-
-        },
-
-        focus(){
-
-            textareaRef.current?.focus()
 
         }
 
@@ -89,13 +101,15 @@ const QuestionCanvas = forwardRef(function QuestionCanvas({
 
             ref={textareaRef}
 
-            style={styles.editorTextarea}
-
             value={value}
 
-            placeholder={placeholder}
-
             onChange={(e)=>onChange(e.target.value)}
+
+            spellCheck={false}
+
+            placeholder="Question..."
+
+            style={styles.editorTextarea}
 
         />
 
