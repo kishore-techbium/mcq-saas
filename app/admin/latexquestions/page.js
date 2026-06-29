@@ -336,7 +336,13 @@ reader.readAsArrayBuffer(excelFile)
 
 async function processImageOCR(fileToRead){
 
-  const file = fileToRead || imageFile
+const file = fileToRead || imageFile
+
+if(!file){
+    alert("Please select an image")
+    return
+}
+
 const img = await loadImage(file)
 
 const canvas = canvasRef.current
@@ -634,7 +640,7 @@ const TOOLBAR = {
 if(loading) return <p>Loading...</p>
 
 return(
-<>
+
 <div style={styles.page}>
 
 <h1>LaTeX Helper</h1>
@@ -972,17 +978,19 @@ background:'#fff'
 
         </div>
 
+       </div>
+
       </div>
+
+      <canvas
+        ref={canvasRef}
+        style={{display:'none'}}
+      />
 
     </div>
 
-<canvas
-  ref={canvasRef}
-  style={{display:'none'}}
-/>
-
-</>
-)
+  )
+}
 /* ================= STYLES ================= */
 const styles = {
 
