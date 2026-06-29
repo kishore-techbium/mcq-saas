@@ -1,4 +1,43 @@
 const styles = {
+previewContainer:{
+    display:"flex",
+    flexDirection:"column",
+    gap:24
+},
+
+previewQuestion:{
+    fontSize:18,
+    lineHeight:1.8,
+    color:"#111827",
+    whiteSpace:"pre-wrap"
+},
+
+previewOptions:{
+    display:"flex",
+    flexDirection:"column",
+    gap:14
+},
+
+previewOption:{
+    display:"flex",
+    gap:14,
+    alignItems:"flex-start",
+    padding:"10px 0",
+    borderBottom:"1px solid #f1f1f1"
+},
+
+previewOptionLabel:{
+    width:28,
+    fontWeight:600,
+    color:"#2563eb",
+    flexShrink:0
+},
+
+previewOptionText:{
+    flex:1,
+    lineHeight:1.7,
+    whiteSpace:"pre-wrap"
+},
 optionRow:{
     display:"flex",
     gap:12,
