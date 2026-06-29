@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { getAdminCollege } from '../../../lib/getAdminCollege'
 import * as XLSX from 'xlsx'
+import Link from "next/link"
 import 'katex/dist/katex.min.css'
 import Tesseract from "tesseract.js"
 
@@ -631,10 +632,40 @@ return(
 
 <div style={styles.page}>
 
-<h1>LaTeX Helper</h1>
+<div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20
+  }}
+>
 
-<p>Welcome, {adminName}</p>
+  <div>
 
+    <h1 style={{margin:0}}>LaTeX Helper</h1>
+
+    <p style={{marginTop:8}}>
+      Welcome, {adminName}
+    </p>
+
+  </div>
+
+  <Link
+    href="/admin/;atexquestions/questionbuilder"
+    style={{
+      background:"#2563eb",
+      color:"#fff",
+      padding:"12px 20px",
+      borderRadius:8,
+      textDecoration:"none",
+      fontWeight:"bold"
+    }}
+  >
+    🚀 Question Builder V2
+  </Link>
+
+</div>
 <div style={styles.container}>
 
 <div style={styles.left}>
