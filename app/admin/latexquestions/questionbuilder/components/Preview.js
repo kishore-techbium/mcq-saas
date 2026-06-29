@@ -1,89 +1,155 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import renderMathInElement from 'katex/contrib/auto-render'
 import 'katex/dist/katex.min.css'
+import { InlineMath, BlockMath } from 'react-katex'
+
+import SectionCard from './SectionCard'
 import styles from '../styles'
 
 export default function Preview({
 
-  question
+    question,
+
+    options = []
 
 }){
 
-  const previewRef = useRef(null)
+    function renderLatex(text){
 
-  useEffect(()=>{
+        if(!text) return null
 
-    if(!previewRef.current) return
+        const parts = text.split(/(\\\(.*?\\\)|\\\[.*?\\\])/gs)
 
-    previewRef.current.innerHTML = question || ''
+        return parts.map((part,index)=>{
 
-    renderMathInElement(previewRef.current,{
+            if(part.startsWith("\\(") && part.endsWith("\\)")){
 
-      throwOnError:false,
+                return(
 
-      delimiters:[
+                    <InlineMath
 
-        {
-          left:'$$',
-          right:'$$',
-          display:true
-        },
+                        key={index}
 
-        {
-          left:'$',
-          right:'$',
-          display:false
-        }
+                        math={part.slice(2,-2)}
 
-      ]
+                    />
 
-    })
+                )
 
-  },[question])
+            }
 
-  return(
+            if(part.startsWith("\\[") && part.endsWith("\\]")){
 
-    <div style={styles.preview}>
+                return(
 
-      <div style={styles.previewTitle}>
+                    <BlockMath
 
-        👁 Live Preview
+                        key={index}
 
-      </div>
+                        math={part.slice(2,-2)}
 
-      <div
-        style={{
-          marginBottom:20,
-          borderBottom:'1px solid #e5e7eb',
-          paddingBottom:15
-        }}
-      >
+                    />
 
-        <div
-          style={{
-            fontSize:13,
-            color:'#6b7280'
-          }}
+                )
+
+            }
+
+            return(
+
+                <span
+
+                    key={index}
+
+                    style={{whiteSpace:"pre-wrap"}}
+
+                >
+
+                    {part}
+
+                </span>
+
+            )
+
+        })
+
+    }
+
+    return(
+
+        <SectionCard
+
+            title="Live Preview"
+
+            subtitle="Exactly how the question will appear"
+
         >
 
-          Question 1
+            <div style={styles.previewContainer}>
 
-        </div>
+                <div style={styles.previewQuestion}>
 
-      </div>
+                    {renderLatex(question)}
 
-      <div
+                </div>
 
-        ref={previewRef}
+                {
 
-        style={styles.question}
+                    options.length>0 && (
 
-      />
+                        <div style={styles.previewOptions}>
 
-    </div>
+                            {
 
-  )
+                                options.map((option,index)=>(
+
+                                    <div
+
+                                        key={index}
+
+                                        style={styles.previewOption}
+
+                                    >
+
+                                        <div style={styles.previewOptionLabel}>
+
+                                            {
+
+                                                String.fromCharCode(
+
+                                                    65+index
+
+                                                )
+
+                                            }.
+
+                                        </div>
+
+                                        <div style={styles.previewOptionText}>
+
+                                            {
+
+                                                renderLatex(option)
+
+                                            }
+
+                                        </div>
+
+                                    </div>
+
+                                ))
+
+                            }
+
+                        </div>
+
+                    )
+
+                }
+
+            </div>
+
+        </SectionCard>
+
+    )
 
 }
