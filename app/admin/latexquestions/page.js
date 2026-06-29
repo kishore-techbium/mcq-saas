@@ -361,12 +361,22 @@ const { data } = await Tesseract.recognize(
         }
       }
     )
+let cleanedText = data.text
 
-const parsed = parseMCQ(data.text)
+cleanedText = cleanedText
+
+.replace(/©/g,'A.')
+.replace(/®/g,'B.')
+.replace(/0\s*63%/g,'0.63%')
+.replace(/0\s*82%/g,'0.82%')
+.replace(/0\s*72%/g,'0.72%')
+.replace(/0\s*25%/g,'0.25%')
+    
+const parsed = parseMCQ(cleanedText)
 
 setParsedQuestion(parsed)
 
-setInputText(data.text)
+setInputText(cleanedText)
   }
   catch(err){
 
