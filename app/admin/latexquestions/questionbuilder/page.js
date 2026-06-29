@@ -3,62 +3,95 @@
 import { useState } from 'react'
 
 import Header from './components/Header'
-import QuestionOCR from './components/QuestionOCR'
+import OCRPanel from './components/OCRPanel'
 import QuestionEditor from './components/QuestionEditor'
+import OptionsEditor from './components/OptionsEditor'
 import Preview from './components/Preview'
 
 import styles from './styles'
 
-export default function QuestionBuilderPage() {
+export default function QuestionBuilderPage(){
 
-  /* ============================
-     QUESTION STATE
-  ============================ */
+    const [question,setQuestion] = useState("")
 
-  const [question, setQuestion] = useState("")
+    const [optionsRaw,setOptionsRaw] = useState("")
 
-  /* ============================
-     OCR APPLY
-  ============================ */
+    const [options,setOptions] = useState([])
 
-  function handleApplyOCR(text) {
-    setQuestion(text)
-  }
+    return(
 
-  return (
-    <div style={styles.page}>
+        <div style={styles.page}>
 
-      <Header />
+            <Header/>
 
-      <div style={styles.container}>
+            <div style={styles.container}>
 
-        {/* LEFT PANEL */}
+                {/* LEFT */}
 
-        <div style={styles.left}>
+                <div style={styles.left}>
 
-          <QuestionOCR
-            onApply={handleApplyOCR}
-          />
+                    <OCRPanel
 
-          <QuestionEditor
-            question={question}
-            setQuestion={setQuestion}
-          />
+                        title="Question OCR"
+
+                        subtitle="Capture only the question statement"
+
+                        applyLabel="Apply to Question"
+
+                        onApply={setQuestion}
+
+                    />
+
+                    <QuestionEditor
+
+                        question={question}
+
+                        setQuestion={setQuestion}
+
+                    />
+
+                    <OCRPanel
+
+                        title="Options OCR"
+
+                        subtitle="Capture only the answer choices"
+
+                        applyLabel="Apply to Options"
+
+                        onApply={setOptionsRaw}
+
+                    />
+
+                    <OptionsEditor
+
+                        rawText={optionsRaw}
+
+                        options={options}
+
+                        setOptions={setOptions}
+
+                    />
+
+                </div>
+
+                {/* RIGHT */}
+
+                <div style={styles.right}>
+
+                    <Preview
+
+                        question={question}
+
+                        options={options}
+
+                    />
+
+                </div>
+
+            </div>
 
         </div>
 
-        {/* RIGHT PANEL */}
+    )
 
-        <div style={styles.right}>
-
-          <Preview
-            question={question}
-          />
-
-        </div>
-
-      </div>
-
-    </div>
-  )
 }
