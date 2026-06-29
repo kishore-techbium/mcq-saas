@@ -28,7 +28,7 @@ const [parsedQuestion,setParsedQuestion]=useState(null)
 const [activeTab,setActiveTab]=useState('math')
 
 const previewRef=useRef(null)
-
+const canvasRef = useRef(null)
 /* ================= AUTH ================= */
 
 useEffect(()=>{
@@ -337,7 +337,16 @@ reader.readAsArrayBuffer(excelFile)
 async function processImageOCR(fileToRead){
 
   const file = fileToRead || imageFile
+const img = await loadImage(file)
 
+const canvas = canvasRef.current
+
+const ctx = canvas.getContext("2d")
+
+canvas.width = img.width
+canvas.height = img.height
+
+ctx.drawImage(img,0,0)
   if(!file){
     alert("Please select an image")
     return
@@ -444,7 +453,46 @@ if(file.type.startsWith('image/')){
 
 }
 
-  
+async function loadImage(file){
+
+  return new Promise((resolve,reject)=>{
+
+    const img = new Image()
+
+    img.onload = ()=>resolve(img)
+
+    img.onerror = reject
+
+    img.src = URL.createObjectURL(file)
+
+  })
+
+}
+
+
+function cropCanvas(sourceCanvas,x,y,w,h){
+
+  const canvas=document.createElement("canvas")
+
+  canvas.width=w
+
+  canvas.height=h
+
+  const ctx=canvas.getContext("2d")
+
+  ctx.drawImage(
+
+    sourceCanvas,
+
+    x,y,w,h,
+
+    0,0,w,h
+
+  )
+
+  return canvas
+
+}  
 function downloadExcel(){
 
 const sheet=XLSX.utils.json_to_sheet(processedData)
@@ -927,7 +975,13 @@ background:'#fff'
       </div>
 
     </div>
+<canvas
 
+ref={canvasRef}
+
+style={{display:'none'}}
+
+/>
   )
 
 }
