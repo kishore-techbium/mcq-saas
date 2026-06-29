@@ -3,10 +3,10 @@
 import { useState } from 'react'
 
 import Header from './components/Header'
-import OCRPanel from './components/OCRPanel'
-import QuestionEditor from './components/QuestionEditor'
-import OptionsEditor from './components/OptionsEditor'
-import Preview from './components/Preview'
+
+import LeftPanel from './components/layout/LeftPanel'
+import MiddlePanel from './components/layout/MiddlePanel'
+import RightPanel from './components/layout/RightPanel'
 
 import styles from './styles'
 
@@ -30,44 +30,28 @@ export default function QuestionBuilderPage(){
 
                 <div style={styles.left}>
 
-                    <OCRPanel
-
-                        title="Question OCR"
-
-                        subtitle="Capture only the question statement"
-
-                        applyLabel="Apply to Question"
-
-                        onApply={setQuestion}
-
-                    />
-
-                    <QuestionEditor
-
-                        question={question}
+                    <LeftPanel
 
                         setQuestion={setQuestion}
 
-                    />
-
-                    <OCRPanel
-
-                        title="Options OCR"
-
-                        subtitle="Capture only the answer choices"
-
-                        applyLabel="Apply to Options"
-
-                        onApply={setOptionsRaw}
+                        setOptionsRaw={setOptionsRaw}
 
                     />
 
-                    <OptionsEditor
+                </div>
 
-                        rawText={optionsRaw}
+                {/* MIDDLE */}
+
+                <div style={styles.middle}>
+
+                    <MiddlePanel
+
+                        question={question}
+                        setQuestion={setQuestion}
+
+                        optionsRaw={optionsRaw}
 
                         options={options}
-
                         setOptions={setOptions}
 
                     />
@@ -78,7 +62,7 @@ export default function QuestionBuilderPage(){
 
                 <div style={styles.right}>
 
-                    <Preview
+                    <RightPanel
 
                         question={question}
 
