@@ -1,62 +1,56 @@
 const styles = {
 optionRow:{
-
     display:"flex",
-
     gap:12,
-
     alignItems:"flex-start"
-
 },
 
 optionLabel:{
-
-    width:36,
-
-    height:36,
-
-    borderRadius:18,
-
+    width:40,
+    height:40,
+    borderRadius:20,
     background:"#2563eb",
-
     color:"#fff",
-
     display:"flex",
-
     alignItems:"center",
-
     justifyContent:"center",
-
     fontWeight:600,
-
     flexShrink:0,
-
-    marginTop:6
-
+    marginTop:4
 },
 
 optionTextarea:{
-
     flex:1,
-
     minHeight:70,
-
     resize:"vertical",
-
     border:"1px solid #d1d5db",
-
     borderRadius:10,
-
     padding:12,
-
     fontSize:15,
-
     fontFamily:"inherit",
-
     boxSizing:"border-box"
-
 },
-  toolbar: {
+
+deleteOptionButton:{
+    width:36,
+    height:36,
+    border:"1px solid #d1d5db",
+    background:"#fff",
+    borderRadius:8,
+    cursor:"pointer",
+    fontSize:16,
+    flexShrink:0
+},
+
+emptyState:{
+    padding:20,
+    border:"1px dashed #d1d5db",
+    borderRadius:10,
+    textAlign:"center",
+    color:"#6b7280",
+    background:"#fafafa"
+},
+toolbar: {
   display: 'flex',
   alignItems: 'center',
   gap: 8,
