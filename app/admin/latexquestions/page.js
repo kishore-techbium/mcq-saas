@@ -652,7 +652,7 @@ return(
   </div>
 
   <Link
-    href="/admin/;atexquestions/questionbuilder"
+    href="/admin/latexquestions/questionbuilder"
     style={{
       background:"#2563eb",
       color:"#fff",
