@@ -8,454 +8,797 @@ import renderMathInElement from 'katex/contrib/auto-render'
 
 export default function LatexQuestionsPage() {
 
-  const [adminName, setAdminName] = useState('')
-  const [loading, setLoading] = useState(true)
-const [previewRows, setPreviewRows] = useState([])
-const [processedData, setProcessedData] = useState([])
-  const [inputText, setInputText] = useState('')
-  const [outputText, setOutputText] = useState('')
-  const [excelFile, setExcelFile] = useState(null)
-  const [activeTab, setActiveTab] = useState('math')
+const [adminName,setAdminName]=useState('')
+const [loading,setLoading]=useState(true)
 
-  const previewRef = useRef(null)
+const [inputText,setInputText]=useState('')
+const [outputText,setOutputText]=useState('')
 
-  /* ================= AUTH ================= */
+const [excelFile,setExcelFile]=useState(null)
 
-  useEffect(() => {
-    async function init() {
-      const data = await getAdminCollege()
-      if (!data) window.location.href = '/'
-      setAdminName(data.adminName)
-      setLoading(false)
-    }
-    init()
-  }, [])
+const [previewRows,setPreviewRows]=useState([])
+const [processedData,setProcessedData]=useState([])
 
-  /* ================= AUTO WRAP ================= */
+const [activeTab,setActiveTab]=useState('math')
 
- function autoWrap(text){
+const previewRef=useRef(null)
+
+/* ================= AUTH ================= */
+
+useEffect(()=>{
+
+async function init(){
+
+const data=await getAdminCollege()
+
+if(!data){
+window.location.href='/'
+return
+}
+
+setAdminName(data.adminName)
+setLoading(false)
+
+}
+
+init()
+
+},[])
+
+
+/* ================= SMART LATEX ================= */
+
+function autoWrap(text){
 
   if(text === null || text === undefined) return ''
 
-  // 🔥 force string conversion
   let t = String(text)
 
-  // fraction m/V → \frac{m}{V}
-  t = t.replace(/(\w+)\/(\w+)/g, '\\frac{$1}{$2}')
+  /* Preserve line breaks */
+  t = t.replace(/\r\n/g, '\n')
 
-  // power x^2 → x^{2}
-  t = t.replace(/(\w)\^(\w+)/g, '$1^{$2}')
+  /* Replace Greek letters */
+  t = t
+    .replace(/ρ/g,'\\rho')
+    .replace(/λ/g,'\\lambda')
+    .replace(/θ/g,'\\theta')
+    .replace(/π/g,'\\pi')
+    .replace(/Δ/g,'\\Delta')
+    .replace(/ε/g,'\\epsilon')
 
-  // chemical H2O → H_{2}O
-  t = t.replace(/([A-Za-z])(\d+)/g, '$1_{$2}')
+  /* Chemical formulas */
+  t = t.replace(/([A-Z][a-z]?)(\d+)/g,'$1_{$2}')
 
-  // rho
-  t = t.replace(/ρ/g, '\\rho')
+  /* Powers */
+  t = t.replace(/([A-Za-z0-9])\^([A-Za-z0-9+\-]+)/g,'$1^{$2}')
 
-  // wrap only if math exists
-  const hasMath = /[\^\/_=]/.test(t)
+  /* Fractions */
+  t = t.replace(
+    /\b([A-Za-z0-9]+)\s*\/\s*([A-Za-z0-9]+)\b/g,
+    '\\frac{$1}{$2}'
+  )
 
-  return hasMath ? `$${t}$` : t
-}
-  /* ================= LIVE UPDATE ================= */
+  /* Square root */
+  t = t.replace(/√([A-Za-z0-9]+)/g,'\\sqrt{$1}')
 
-  useEffect(() => {
-    setOutputText(autoWrap(inputText))
-  }, [inputText])
+  /* Detect complete equations */
+  t = t.replace(
 
-  /* ================= PREVIEW FIX ================= */
+    /([A-Za-z\\][A-Za-z0-9_{}\\^]*\s*=\s*[^.,;\n]+)/g,
 
-  useEffect(() => {
-    if(previewRef.current){
-      previewRef.current.innerHTML = outputText
+    (eq)=>{
 
-      renderMathInElement(previewRef.current, {
-        delimiters: [
-          { left: '$', right: '$', display: false },
-          { left: '$$', right: '$$', display: true }
-        ]
-      })
+      if(eq.includes('$')) return eq
+
+      return `$$${eq.trim()}$$`
+
     }
-  }, [outputText])
 
-  /* ================= COPY ================= */
+  )
 
-  function copyToClipboard(){
-    navigator.clipboard.writeText(outputText)
-    alert('✅ Copied')
-  }
-    /* ================= EXCEL PROCESSING ================= */
+  return t
+
+}
+
+/* ================= LIVE ================= */
+
+useEffect(()=>{
+
+setOutputText(autoWrap(inputText))
+
+},[inputText])
+
+
+
+/* ================= PREVIEW ================= */
+
+function renderPreview(element,text){
+
+  if(!element) return
+
+element.innerHTML = text
+  renderMathInElement(element,{
+    throwOnError:false,
+    delimiters:[
+      {left:'$$',right:'$$',display:true},
+      {left:'$',right:'$',display:false}
+    ]
+  })
+
+}
+
+
+useEffect(()=>{
+
+renderPreview(previewRef.current,outputText)
+
+},[outputText])
+
+
+/* ================= COPY ================= */
+
+function copyToClipboard(){
+
+navigator.clipboard.writeText(outputText)
+
+alert('Copied')
+
+}
+
+
+/* ================= EXCEL ================= */
+
 function processExcel(){
 
-  if(!excelFile){
-    alert('Please upload file')
-    return
-  }
+if(!excelFile){
 
-  const reader = new FileReader()
+alert('Upload Excel')
 
-  reader.onload = (e) => {
-    const data = new Uint8Array(e.target.result)
-    let json = []
-    
-    if (excelFile.name.endsWith('.csv')) {
-      const text = new TextDecoder().decode(data)
-      const workbook = XLSX.read(text, { type: 'string' })
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
-      json = XLSX.utils.sheet_to_json(sheet)
-    } else {
-      const workbook = XLSX.read(data, { type: 'array' })
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
-      json = XLSX.utils.sheet_to_json(sheet)
-    }
-if(!json.length){
-  alert('File is empty or format incorrect')
-  return
+return
+
 }
-    const updated = json.map((row, index) => {
 
-      const converted = {
-        ...row,
-        question: autoWrap(row.question),
-        option_a: autoWrap(row.option_a || ''),
-        option_b: autoWrap(row.option_b || ''),
-        option_c: autoWrap(row.option_c || ''),
-        option_d: autoWrap(row.option_d || ''),
-        explanation: autoWrap(row.explanation || '')
-      }
+const reader=new FileReader()
 
-      return {
-        original: row,
-        converted,
-        index
-      }
-    })
+reader.onload=(e)=>{
 
-    setPreviewRows(updated.slice(0, 20))   // show first 20
-    setProcessedData(updated.map(r => r.converted))
-  }
+const data=new Uint8Array(e.target.result)
 
-  reader.readAsArrayBuffer(excelFile)
+const workbook=XLSX.read(data,{type:'array'})
+
+const sheet=workbook.Sheets[workbook.SheetNames[0]]
+
+const json=XLSX.utils.sheet_to_json(sheet)
+
+const updated=json.map((row,index)=>{
+
+const converted={
+
+...row,
+
+question:autoWrap(row.question || ''),
+
+option_a:autoWrap(row.option_a || ''),
+option_b:autoWrap(row.option_b || ''),
+option_c:autoWrap(row.option_c || ''),
+option_d:autoWrap(row.option_d || ''),
+explanation:autoWrap(row.explanation || '')
+
 }
+
+return{
+
+index,
+
+original:row,
+
+converted
+
+}
+
+})
+
+setPreviewRows(updated)
+
+setProcessedData(updated.map(r=>r.converted))
+
+}
+
+reader.readAsArrayBuffer(excelFile)
+
+}
+
+
 
 function downloadExcel(){
 
-  const sheet = XLSX.utils.json_to_sheet(processedData)
-  const workbook = XLSX.utils.book_new()
+const sheet=XLSX.utils.json_to_sheet(processedData)
 
-  XLSX.utils.book_append_sheet(workbook, sheet, 'Converted')
+const wb=XLSX.utils.book_new()
 
-  XLSX.writeFile(workbook, 'latex_converted.xlsx')
+XLSX.utils.book_append_sheet(wb,sheet,'Converted')
+
+XLSX.writeFile(wb,'latex_converted.xlsx')
+
 }
-  /* ================= INSERT ================= */
 
-  function insertText(value){
-    const textarea = document.getElementById('inputBox')
 
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
 
-    const newText =
-      inputText.substring(0, start) +
-      value +
-      inputText.substring(end)
+/* ================= INSERT ================= */
 
-    setInputText(newText)
+function insertText(value){
 
-    setTimeout(()=>{
-      textarea.focus()
-      textarea.selectionStart = textarea.selectionEnd = start + value.length
-    },0)
-  }
-  
+const textarea=document.getElementById('inputBox')
 
-  /* ================= TOOLBAR ================= */
+const start=textarea.selectionStart
+
+const end=textarea.selectionEnd
+
+const newText=
+
+inputText.substring(0,start)+
+
+value+
+
+inputText.substring(end)
+
+setInputText(newText)
+
+setTimeout(()=>{
+
+textarea.focus()
+
+textarea.selectionStart=textarea.selectionEnd=start+value.length
+
+},0)
+
+}
+/* ================= TOOLBAR ================= */
+
 const TOOLBAR = {
-  math: [
-    { label: 'x²', latex: 'x^2' },
-    { label: 'xⁿ', latex: 'x^n' },
-    { label: '√', latex: '\\sqrt{x}' },
-    { label: '∛', latex: '\\sqrt[3]{x}' },
-    { label: '½', latex: '\\frac{a}{b}' },
 
-    { label: '∫', latex: '\\int x dx' },
-    { label: '∫ₐᵇ', latex: '\\int_{a}^{b} f(x) dx' },
-    { label: 'Σ', latex: '\\sum_{i=1}^{n} i' },
+  math:[
+    {label:'x²',latex:'x^2'},
+    {label:'xⁿ',latex:'x^n'},
+    {label:'√',latex:'\\sqrt{x}'},
+    {label:'∛',latex:'\\sqrt[3]{x}'},
+    {label:'½',latex:'\\frac{a}{b}'},
 
-    { label: 'd/dx', latex: '\\frac{d}{dx}' },
-    { label: '∂', latex: '\\partial' },
+    {label:'∫',latex:'\\int x\\,dx'},
+    {label:'∫ₐᵇ',latex:'\\int_{a}^{b}f(x)\\,dx'},
+    {label:'Σ',latex:'\\sum_{i=1}^{n}i'},
 
-    { label: 'lim', latex: '\\lim_{x \\to a}' },
+    {label:'d/dx',latex:'\\frac{d}{dx}'},
+    {label:'∂',latex:'\\partial'},
 
-    { label: '∞', latex: '\\infty' },
-    { label: 'π', latex: '\\pi' },
-    { label: 'θ', latex: '\\theta' },
+    {label:'lim',latex:'\\lim_{x\\to a}'},
 
-    { label: '≈', latex: '\\approx' },
-    { label: '≠', latex: '\\neq' },
-    { label: '≤', latex: '\\leq' },
-    { label: '≥', latex: '\\geq' },
+    {label:'∞',latex:'\\infty'},
+    {label:'π',latex:'\\pi'},
+    {label:'θ',latex:'\\theta'},
+    {label:'λ',latex:'\\lambda'},
 
-    { label: '→', latex: '\\rightarrow' },
-    { label: '←', latex: '\\leftarrow' },
-    { label: '↔', latex: '\\leftrightarrow' },
+    {label:'≈',latex:'\\approx'},
+    {label:'≠',latex:'\\neq'},
+    {label:'≤',latex:'\\leq'},
+    {label:'≥',latex:'\\geq'},
 
-    { label: '|x|', latex: '|x|' },
-    { label: '( )', latex: '(x)' }
+    {label:'→',latex:'\\rightarrow'},
+    {label:'←',latex:'\\leftarrow'},
+    {label:'↔',latex:'\\leftrightarrow'},
+
+    {label:'|x|',latex:'|x|'},
+    {label:'( )',latex:'(x)'}
   ],
 
-  chemistry: [
-    { label: 'H₂O', latex: 'H2O' },
-    { label: 'CO₂', latex: 'CO2' },
-    { label: 'NH₃', latex: 'NH3' },
-    { label: 'H₂SO₄', latex: 'H2SO4' },
+  chemistry:[
 
-    { label: 'Na⁺', latex: 'Na^+' },
-    { label: 'Cl⁻', latex: 'Cl^-' },
-    { label: 'e⁻', latex: 'e^-' },
+    {label:'H₂O',latex:'H2O'},
+    {label:'CO₂',latex:'CO2'},
+    {label:'NH₃',latex:'NH3'},
+    {label:'H₂SO₄',latex:'H2SO4'},
 
-    { label: '→', latex: '\\rightarrow' },
-    { label: '⇌', latex: '\\rightleftharpoons' },
+    {label:'Na⁺',latex:'Na^+'},
+    {label:'Cl⁻',latex:'Cl^-'},
+    {label:'e⁻',latex:'e^-'},
 
-    { label: '↑', latex: '\\uparrow' },
-    { label: '↓', latex: '\\downarrow' },
+    {label:'→',latex:'\\rightarrow'},
+    {label:'⇌',latex:'\\rightleftharpoons'},
 
-    { label: 'Δ', latex: '\\Delta' },
-    { label: '°C', latex: '^{\\circ}C' },
+    {label:'↑',latex:'\\uparrow'},
+    {label:'↓',latex:'\\downarrow'},
 
-    { label: '(aq)', latex: '(aq)' },
-    { label: '(l)', latex: '(l)' },
-    { label: '(g)', latex: '(g)' },
-    { label: '(s)', latex: '(s)' },
+    {label:'Δ',latex:'\\Delta'},
+    {label:'°C',latex:'^{\\circ}C'},
 
-    { label: 'mol', latex: '\\text{mol}' }
+    {label:'(aq)',latex:'(aq)'},
+    {label:'(l)',latex:'(l)'},
+    {label:'(g)',latex:'(g)'},
+    {label:'(s)',latex:'(s)'},
+
+    {label:'mol',latex:'\\text{mol}'}
+
   ],
 
-  physics: [
-    { label: 'v=d/t', latex: 'v=d/t' },
-    { label: 'a=(v-u)/t', latex: 'a=(v-u)/t' },
-    { label: 'F=ma', latex: 'F=ma' },
-    { label: 'E=mc²', latex: 'E=mc^2' },
+  physics:[
 
-    { label: 'V=IR', latex: 'V=IR' },
-    { label: 'P=W/t', latex: 'P=W/t' },
-    { label: 'p=mv', latex: 'p=mv' },
+    {label:'v=d/t',latex:'v=d/t'},
+    {label:'a=(v-u)/t',latex:'a=(v-u)/t'},
+    {label:'F=ma',latex:'F=ma'},
+    {label:'E=mc²',latex:'E=mc^2'},
 
-    { label: 'ρ=m/V', latex: '\\rho=m/V' },
-    { label: 'W=Fd', latex: 'W=Fd' },
+    {label:'V=IR',latex:'V=IR'},
+    {label:'P=W/t',latex:'P=W/t'},
+    {label:'p=mv',latex:'p=mv'},
+    {label:'ρ=m/V',latex:'\\rho=m/V'},
+    {label:'W=Fd',latex:'W=Fd'},
 
-    { label: 'KE=½mv²', latex: 'KE=\\frac{1}{2}mv^2' },
-    { label: 'PE=mgh', latex: 'PE=mgh' },
+    {label:'KE=½mv²',latex:'KE=\\frac{1}{2}mv^2'},
+    {label:'PE=mgh',latex:'PE=mgh'},
 
-    { label: 'g=9.8', latex: 'g=9.8\\,m/s^2' },
-    { label: 'λ', latex: '\\lambda' },
+    {label:'g=9.8',latex:'g=9.8\\,m/s^2'},
 
-    { label: 'f=1/T', latex: 'f=1/T' },
-    { label: 'c=3×10⁸', latex: 'c=3\\times10^8' }
+    {label:'λ',latex:'\\lambda'},
+
+    {label:'f=1/T',latex:'f=1/T'},
+
+    {label:'c=3×10⁸',latex:'c=3\\times10^8'}
+
   ]
+
 }
 
-  if (loading) return <p>Loading...</p>
+if(loading) return <p>Loading...</p>
 
-  return (
-    <div style={styles.page}>
+return(
 
-      <h1>LaTeX Helper</h1>
-      <p>Welcome, {adminName}</p>
+<div style={styles.page}>
 
-      <div style={styles.container}>
+<h1>LaTeX Helper</h1>
 
-        {/* LEFT SIDE */}
-        <div style={styles.left}>
+<p>Welcome, {adminName}</p>
 
-          {/* TABS */}
-        <div style={styles.tabs}>
-          {['math','chemistry','physics'].map(tab=>(
-            <button
-              key={tab}
-              onClick={()=>setActiveTab(tab)}
-              style={{
-                ...styles.tab,
-                background: activeTab===tab ? '#2563eb' : '#e5e7eb',
-                color: activeTab===tab ? '#fff' : '#000'
-              }}
-            >
-              {tab.toUpperCase()}
-            </button>
-          ))}
-        </div>         
+<div style={styles.container}>
 
-          {/* TOOLBAR */}
-         <div style={styles.toolbarContainer}>
-  {TOOLBAR[activeTab].map((t,i)=>(
-    <button
-      key={i}
-      onClick={()=>insertText(t.latex)}
-      style={styles.toolBtn}
-      title={t.latex}
-    >
-      {t.label}
-    </button>
-  ))}
-</div>
-<button onClick={processExcel} style={{marginTop:10}}>
-  🚀 Convert Excel
+<div style={styles.left}>
+
+<div style={styles.tabs}>
+
+{['math','chemistry','physics'].map(tab=>(
+
+<button
+
+key={tab}
+
+onClick={()=>setActiveTab(tab)}
+
+style={{
+
+...styles.tab,
+
+background:activeTab===tab ? '#2563eb' : '#e5e7eb',
+
+color:activeTab===tab ? '#fff' : '#000'
+
+}}
+
+>
+
+{tab.toUpperCase()}
+
 </button>
-          <div style={{marginBottom:15}}>
-            <input
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              onChange={(e)=>setExcelFile(e.target.files[0])}
-            />
-            {previewRows.length > 0 && (
-            <div style={{marginTop:20}}>
 
-              <h3>🔍 Preview (Before → After)</h3>
+))}
 
-              <div style={{maxHeight:400, overflow:'auto', border:'1px solid #ddd'}}>
-
-                {previewRows.map((row, i)=>(
-                  <div key={i} style={{padding:10, borderBottom:'1px solid #eee'}}>
-                      <b>Row {row.index + 1}</b>
-
-                      {/* ORIGINAL */}
-                      <div style={{marginTop:5}}>
-                        <b>Original:</b>
-                        <div>{row.original.question}</div>
-                      </div>
-
-                      {/* CONVERTED QUESTION */}
-                      <div style={{marginTop:5}}>
-                        <b>Converted:</b>
-                        <div
-                          ref={(el) => {
-                            if(el){
-                              el.innerHTML = row.converted.question
-                              renderMathInElement(el, {
-                                delimiters: [
-                                  { left: '$', right: '$', display: false },
-                                  { left: '$$', right: '$$', display: true }
-                                ]
-                              })
-                            }
-                          }}
-                          style={{color:'green'}}
-                        />
-                      </div>
-
-                      {/* OPTIONS */}
-                      <div style={{marginTop:8}}>
-                        <b>Options:</b>
-
-                        {['option_a','option_b','option_c','option_d'].map((op, idx)=>(
-                          <div key={op} style={{marginLeft:10}}>
-                            <b>{String.fromCharCode(65+idx)}:</b>
-
-                            <span
-                              ref={(el) => {
-                                if(el){
-                                  el.innerHTML = row.converted[op] || ''
-                                  renderMathInElement(el, {
-                                    delimiters: [
-                                      { left: '$', right: '$', display: false },
-                                      { left: '$$', right: '$$', display: true }
-                                    ]
-                                  })
-                                }
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* EXPLANATION */}
-                      <div style={{marginTop:8}}>
-                        <b>Explanation:</b>
-
-                        <div
-                          ref={(el) => {
-                            if(el){
-                              el.innerHTML = row.converted.explanation || ''
-                              renderMathInElement(el, {
-                                delimiters: [
-                                  { left: '$', right: '$', display: false },
-                                  { left: '$$', right: '$$', display: true }
-                                ]
-                              })
-                            }
-                          }}
-                        />
-                      </div>
-                    
-                  </div>
-                ))}
-
-              </div>
-
-            </div>
-          )}
-  {processedData.length > 0 && (
-  <button onClick={downloadExcel} style={{marginTop:15}}>
-    📥 Download Converted Excel
-  </button>
-)}
 </div>
 
-          {/* INPUT */}
+<div style={styles.toolbarContainer}>
+
+{TOOLBAR[activeTab].map((btn,index)=>(
+
+<button
+
+key={index}
+
+style={styles.toolBtn}
+
+title={btn.latex}
+
+onClick={()=>insertText(btn.latex)}
+
+>
+
+{btn.label}
+
+</button>
+
+))}
+
+</div>
+
+<button
+
+style={styles.btn}
+
+onClick={processExcel}
+
+>
+
+🚀 Convert Excel
+
+</button>
+
+<div style={{marginTop:15}}>
+
+<input
+
+type="file"
+
+accept=".xlsx,.xls,.csv"
+
+onChange={(e)=>setExcelFile(e.target.files[0])}
+
+/>
+
+</div>
+
+{previewRows.length>0 && (
+
+<div style={{marginTop:25}}>
+
+<h3>🔍 Preview (Before → After)</h3>
+
+<div
+
+style={{
+
+border:'1px solid #ddd',
+
+borderRadius:8,
+
+maxHeight:500,
+
+overflowY:'auto',
+
+background:'#fff'
+
+}}
+
+>
+
+{previewRows.slice(0,20).map((row)=>(
+
+<div
+
+key={row.index}
+
+style={styles.previewCard}
+
+>
+
+<h4 style={{marginBottom:10}}>
+
+Row {row.index+1}
+
+</h4>
+
+<b>Original</b>
+
+<div style={styles.originalText}>
+
+{row.original.question}
+
+</div>
+
+<b>Converted</b>
+
+<div
+
+style={styles.convertedText}
+
+ref={(el)=>renderPreview(el,row.converted.question)}
+
+/>
+
+<div style={{marginTop:15}}>
+
+<b>Options</b>
+
+{['option_a','option_b','option_c','option_d'].map((op,index)=>(
+
+<div
+
+key={op}
+
+style={styles.optionRow}
+
+>
+
+<b>
+
+{String.fromCharCode(65+index)}.
+
+</b>
+
+<span
+
+style={{marginLeft:8}}
+
+ref={(el)=>renderPreview(el,row.converted[op] || '')}
+
+/>
+
+</div>
+
+))}
+
+</div>
+
+<div style={styles.explanation}>
+
+<b>Explanation</b>
+
+<div
+
+style={{marginTop:5}}
+
+ref={(el)=>renderPreview(el,row.converted.explanation || '')}
+
+/>
+
+</div>
+
+</div>
+
+))}
+
+</div>
+
+</div>
+
+)}
+
+{processedData.length>0 && (
+
+<button
+
+style={styles.btn}
+
+onClick={downloadExcel}
+
+>
+
+📥 Download Converted Excel
+
+</button>
+
+)}
+          {/* ================= INPUT ================= */}
+
+          <h3>Input</h3>
+
           <textarea
             id="inputBox"
             value={inputText}
-            onChange={(e)=>setInputText(e.target.value)}
+            onChange={(e) => setInputText(e.target.value)}
+            spellCheck={false}
+            placeholder="Type or paste your question here..."
             style={styles.textarea}
           />
 
-          {/* OUTPUT */}
-          <h4>Copy to Excel</h4>
-          <button onClick={copyToClipboard} style={styles.copyBtn}>Copy</button>
+          {/* ================= OUTPUT ================= */}
 
-          <textarea value={outputText} readOnly style={styles.output}/>
+          <div
+            style={{
+              display:'flex',
+              justifyContent:'space-between',
+              alignItems:'center',
+              marginTop:20
+            }}
+          >
+            <h3 style={{margin:0}}>Copy to Excel</h3>
+
+            <button
+              onClick={copyToClipboard}
+              style={styles.copyBtn}
+            >
+              📋 Copy
+            </button>
+          </div>
+
+          <textarea
+            value={outputText}
+            readOnly
+            spellCheck={false}
+            style={styles.output}
+          />
 
         </div>
 
-        {/* RIGHT SIDE */}
+        {/* ================= RIGHT SIDE ================= */}
+
         <div style={styles.right}>
-          <h3>Preview</h3>
-          <div ref={previewRef} style={styles.preview}></div>
+
+          <h3>Live Preview</h3>
+
+          <div
+            ref={previewRef}
+            style={styles.preview}
+          />
+
         </div>
 
       </div>
 
     </div>
+
   )
+
 }
 
 /* ================= STYLES ================= */
-
 const styles = {
-  page:{padding:30},
-  container:{display:'flex',gap:20},
-  left:{flex:1},
-  right:{flex:1},
-  textarea:{width:'100%',height:120,marginTop:10},
-  output:{width:'100%',height:120,marginTop:10},
-  preview:{background:'#fff',padding:20,border:'1px solid #ddd'},
-  btn:{margin:5},
-  copyBtn:{background:'green',color:'#fff',padding:6,marginTop:5},
-  toolbarContainer:{
-  display:'flex',
-  flexWrap:'wrap',
-  gap:6,
-  marginBottom:10
-},
 
-toolBtn:{
-  padding:'6px 10px',
-  fontSize:13,
-  border:'1px solid #ddd',
-  borderRadius:6,
-  background:'#fff',
-  cursor:'pointer',
-  minWidth:55,
-  textAlign:'center'
-}
+  page:{
+    padding:30,
+    background:'#f8fafc',
+    minHeight:'100vh',
+    fontFamily:'Arial, Helvetica, sans-serif'
+  },
+
+  container:{
+    display:'flex',
+    gap:25,
+    alignItems:'flex-start'
+  },
+
+  left:{
+    flex:1
+  },
+
+  right:{
+    flex:1,
+    position:'sticky',
+    top:20
+  },
+
+  tabs:{
+    display:'flex',
+    gap:8,
+    marginBottom:15
+  },
+
+  tab:{
+    padding:'8px 16px',
+    border:'none',
+    borderRadius:6,
+    cursor:'pointer',
+    fontWeight:'bold'
+  },
+
+  toolbarContainer:{
+    display:'flex',
+    flexWrap:'wrap',
+    gap:8,
+    marginBottom:15,
+    padding:10,
+    border:'1px solid #ddd',
+    borderRadius:8,
+    background:'#fff'
+  },
+
+  toolBtn:{
+    padding:'7px 12px',
+    border:'1px solid #d1d5db',
+    borderRadius:6,
+    background:'#fff',
+    cursor:'pointer',
+    fontSize:13,
+    minWidth:55
+  },
+
+  textarea:{
+    width:'100%',
+    minHeight:180,
+    padding:12,
+    marginTop:10,
+    fontSize:15,
+    fontFamily:'Consolas, monospace',
+    border:'1px solid #ccc',
+    borderRadius:8,
+    resize:'vertical',
+    whiteSpace:'pre-wrap',
+    lineHeight:1.8,
+    boxSizing:'border-box'
+  },
+
+  output:{
+    width:'100%',
+    minHeight:180,
+    padding:12,
+    marginTop:10,
+    fontSize:15,
+    fontFamily:'Consolas, monospace',
+    border:'1px solid #ccc',
+    borderRadius:8,
+    resize:'vertical',
+    whiteSpace:'pre-wrap',
+    lineHeight:1.8,
+    boxSizing:'border-box',
+    background:'#f9fafb'
+  },
+
+  preview:{
+    background:'#fff',
+    border:'1px solid #ddd',
+    borderRadius:8,
+    padding:20,
+    minHeight:300,
+    whiteSpace:'pre-wrap',
+    lineHeight:1.9,
+    fontSize:16,
+    overflowWrap:'break-word',
+    wordBreak:'break-word'
+  },
+
+  previewCard:{
+    background:'#fff',
+    border:'1px solid #e5e7eb',
+    borderRadius:8,
+    padding:15,
+    marginBottom:15
+  },
+
+  previewTitle:{
+    fontWeight:'bold',
+    marginBottom:10
+  },
+
+  originalText:{
+    marginTop:6,
+    marginBottom:10,
+    whiteSpace:'pre-wrap',
+    lineHeight:1.8
+  },
+
+  convertedText:{
+    marginTop:6,
+    color:'#15803d',
+    whiteSpace:'pre-wrap',
+    lineHeight:1.8
+  },
+
+  optionRow:{
+    marginLeft:15,
+    marginTop:6,
+    whiteSpace:'pre-wrap',
+    lineHeight:1.8
+  },
+
+  explanation:{
+    marginTop:10,
+    whiteSpace:'pre-wrap',
+    lineHeight:1.8
+  },
+
+  btn:{
+    padding:'8px 16px',
+    border:'none',
+    borderRadius:6,
+    cursor:'pointer',
+    background:'#2563eb',
+    color:'#fff',
+    marginTop:10
+  },
+
+  copyBtn:{
+    background:'green',
+    color:'#fff',
+    border:'none',
+    borderRadius:6,
+    padding:'8px 16px',
+    cursor:'pointer',
+    marginTop:8
+  }
+
 }
