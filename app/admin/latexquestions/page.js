@@ -23,6 +23,7 @@ const [dragActive,setDragActive]=useState(false)
 const [pastedImage,setPastedImage]=useState(null)
 const [previewRows,setPreviewRows]=useState([])
 const [processedData,setProcessedData]=useState([])
+const [parsedQuestion,setParsedQuestion]=useState(null)
 
 const [activeTab,setActiveTab]=useState('math')
 
@@ -152,7 +153,79 @@ function autoWrap(text){
   return t
 
 }
+function parseMCQ(text){
 
+  const result = {
+    question:'',
+    option_a:'',
+    option_b:'',
+    option_c:'',
+    option_d:'',
+    explanation:''
+  }
+
+  if(!text) return result
+
+  const lines = text
+    .replace(/\r/g,'')
+    .split('\n')
+    .map(x=>x.trim())
+    .filter(Boolean)
+
+  let current="question"
+
+  const optionPatterns={
+
+    option_a:/^(A|a|\(A\)|A\)|①|1\.)\s*/,
+
+    option_b:/^(B|b|\(B\)|B\)|②|2\.)\s*/,
+
+    option_c:/^(C|c|\(C\)|C\)|③|3\.)\s*/,
+
+    option_d:/^(D|d|\(D\)|D\)|④|4\.)\s*/
+
+  }
+
+  for(let line of lines){
+
+    if(optionPatterns.option_a.test(line)){
+      current="option_a"
+      result.option_a=line.replace(optionPatterns.option_a,'').trim()
+      continue
+    }
+
+    if(optionPatterns.option_b.test(line)){
+      current="option_b"
+      result.option_b=line.replace(optionPatterns.option_b,'').trim()
+      continue
+    }
+
+    if(optionPatterns.option_c.test(line)){
+      current="option_c"
+      result.option_c=line.replace(optionPatterns.option_c,'').trim()
+      continue
+    }
+
+    if(optionPatterns.option_d.test(line)){
+      current="option_d"
+      result.option_d=line.replace(optionPatterns.option_d,'').trim()
+      continue
+    }
+
+    if(/^Explanation/i.test(line)){
+      current="explanation"
+      continue
+    }
+
+    result[current]+= (result[current] ? " " : "") + line
+
+  }
+
+  result.question=result.question.replace(/^\d+[\.\)]\s*/,'')
+
+  return result
+
+}
 /* ================= LIVE ================= */
 
 useEffect(()=>{
@@ -273,9 +346,9 @@ async function processImageOCR(fileToRead){
   setOcrProgress(0)
   try{
 
-    const { data } = await Tesseract.recognize(
-      imageFile,
-      "eng",
+const { data } = await Tesseract.recognize(
+    file,
+    "eng",
       {
         logger:m=>{
 
@@ -289,8 +362,11 @@ async function processImageOCR(fileToRead){
       }
     )
 
-    setInputText(data.text)
+const parsed = parseMCQ(data.text)
 
+setParsedQuestion(parsed)
+
+setInputText(data.text)
   }
   catch(err){
 
@@ -300,8 +376,13 @@ async function processImageOCR(fileToRead){
 
   }
   setOcrProgress(100)
-  setOcrLoading(false)
 
+setTimeout(()=>{
+
+  setOcrLoading(false)
+  setOcrProgress(0)
+
+},500)
 }
 function handleDrag(e){
   e.preventDefault()
@@ -331,16 +412,21 @@ function handleDrop(e){
 
     const file=e.dataTransfer.files[0]
 
-    if(file.type.startsWith('image/')){
+if(file.type.startsWith('image/')){
 
-      setImageFile(file)
+    setImageFile(file)
 
-    }else{
+    setPastedImage(URL.createObjectURL(file))
 
-      alert("Please drop an image.")
+    setTimeout(()=>{
+        processImageOCR(file)
+    },100)
 
-    }
+}else{
 
+    alert("Please drop an image.")
+
+}
   }
 
 }
@@ -582,9 +668,16 @@ tabIndex={0}
 
 onClick={(e)=>e.currentTarget.focus()}
 
+onDragEnter={handleDragEnter}
+onDragOver={handleDrag}
+onDragLeave={handleDragLeave}
+onDrop={handleDrop}
+
 style={{
 
-border:'2px dashed #2563eb',
+border: dragActive
+  ? '3px dashed #2563eb'
+  : '2px dashed #2563eb',
 
 borderRadius:10,
 
@@ -592,14 +685,17 @@ padding:35,
 
 textAlign:'center',
 
-background:'#f8fbff',
+background: dragActive
+  ? '#eef6ff'
+  : '#f8fbff',
 
 outline:'none',
 
-cursor:'pointer'
+cursor:'pointer',
+
+transition:'0.2s'
 
 }}
-
 >
 
 <h3>📋 Press Ctrl + V</h3>
@@ -626,8 +722,15 @@ onChange={(e)=>{
 
 if(e.target.files[0]){
 
-setImageFile(e.target.files[0])
-setPastedImage(URL.createObjectURL(e.target.files[0]))
+const file = e.target.files[0]
+
+setImageFile(file)
+
+setPastedImage(URL.createObjectURL(file))
+
+setTimeout(()=>{
+    processImageOCR(file)
+},100)
 
 }
 
@@ -698,7 +801,62 @@ Reading Image... {ocrProgress}%
 
 )}
 </div>
-          {/* ================= INPUT ================= */}
+{parsedQuestion && (
+
+<div
+style={{
+marginTop:25,
+padding:20,
+border:'1px solid #ddd',
+borderRadius:8,
+background:'#fff'
+}}
+>
+
+<h3>Detected Question</h3>
+
+<p>
+
+<b>Question</b>
+
+<br/>
+
+{parsedQuestion.question}
+
+</p>
+
+<hr/>
+
+<p>
+
+<b>A.</b> {parsedQuestion.option_a}
+
+</p>
+
+<p>
+
+<b>B.</b> {parsedQuestion.option_b}
+
+</p>
+
+<p>
+
+<b>C.</b> {parsedQuestion.option_c}
+
+</p>
+
+<p>
+
+<b>D.</b> {parsedQuestion.option_d}
+
+</p>
+
+</div>
+
+)}
+
+
+{/* ================= INPUT ================= */}
 
           <h3>Input</h3>
 
