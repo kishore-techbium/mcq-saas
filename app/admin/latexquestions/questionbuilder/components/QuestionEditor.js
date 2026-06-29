@@ -1,147 +1,61 @@
 'use client'
 
+import SectionCard from './SectionCard'
 import styles from '../styles'
 
 export default function QuestionEditor({
 
   question,
-  setQuestion,
 
-  questionImage,
+  setQuestion
 
-  setQuestionImage,
+}) {
 
-  ocrLoading,
+  const characterCount = question.length
 
-  ocrProgress,
+  const lineCount = question
+    ? question.split('\n').length
+    : 0
 
-  onImageSelected
+  return (
 
-}){
+    <SectionCard
 
-  return(
+      title="Question Editor"
 
-    <div style={styles.card}>
+      subtitle="Edit the final question after reviewing OCR"
 
-      <h2 style={styles.cardTitle}>
-        📷 Question OCR
-      </h2>
+    >
 
-      {/* ================= DROP ZONE ================= */}
+      <textarea
 
-      <div style={styles.dropZone}>
+        value={question}
 
-        <div style={styles.uploadIcon}>
-          📄
-        </div>
+        onChange={(e) => setQuestion(e.target.value)}
 
-        <div style={styles.uploadTitle}>
-          Paste or Upload Question Screenshot
-        </div>
+        placeholder="Start typing your question here..."
 
-        <div style={styles.uploadText}>
+        style={styles.editorTextarea}
 
-          Press
+      />
 
-          <b> Ctrl + V </b>
+      <div style={styles.editorFooter}>
 
-          after taking a screenshot
+        <div>
 
-          <br/>
-
-          or choose an image below.
+          <strong>Characters:</strong> {characterCount}
 
         </div>
 
-        <input
+        <div>
 
-          type="file"
+          <strong>Lines:</strong> {lineCount}
 
-          accept="image/*"
-
-          onChange={(e)=>{
-
-            if(!e.target.files[0]) return
-
-            const file = e.target.files[0]
-
-            setQuestionImage(file)
-
-            if(onImageSelected){
-
-              onImageSelected(file)
-
-            }
-
-          }}
-
-          style={{
-
-            marginTop:20
-
-          }}
-
-        />
+        </div>
 
       </div>
 
-      {/* ================= IMAGE ================= */}
-
-      {questionImage && (
-
-        <img
-
-          src={URL.createObjectURL(questionImage)}
-
-          alt="Question"
-
-          style={styles.imagePreview}
-
-        />
-
-      )}
-
-      {/* ================= OCR ================= */}
-
-      {ocrLoading && (
-
-        <div style={styles.progress}>
-
-          Reading Question...
-
-          {ocrProgress}%
-
-        </div>
-
-      )}
-
-      {/* ================= EDITOR ================= */}
-
-      <div style={{marginTop:25}}>
-
-        <h3>
-
-          Question
-
-        </h3>
-
-        <textarea
-
-          value={question}
-
-          onChange={(e)=>setQuestion(e.target.value)}
-
-          placeholder="OCR result will appear here..."
-
-          spellCheck={false}
-
-          style={styles.textarea}
-
-        />
-
-      </div>
-
-    </div>
+    </SectionCard>
 
   )
 
