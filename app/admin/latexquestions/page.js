@@ -972,8 +972,10 @@ background:'#fff'
        </div>
 
     </div>
-    </div>
+    
+  )
 
+}
 /* ================= STYLES ================= */
 const styles = {
 
