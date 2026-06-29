@@ -1,62 +1,101 @@
 'use client'
 
+import { useRef } from 'react'
+
 import SectionCard from './SectionCard'
+import EditorToolbar from './EditorToolbar'
+import QuestionCanvas from './QuestionCanvas'
+
 import styles from '../styles'
 
 export default function QuestionEditor({
 
-  question,
+    question,
 
-  setQuestion
+    setQuestion
 
-}) {
+}){
 
-  const characterCount = question.length
+    const canvasRef = useRef(null)
 
-  const lineCount = question
-    ? question.split('\n').length
-    : 0
+    function insertText(text){
 
-  return (
+        canvasRef.current?.insertText(text)
 
-    <SectionCard
+    }
 
-      title="Question Editor"
+    function copyQuestion(){
 
-      subtitle="Edit the final question after reviewing OCR"
+        navigator.clipboard.writeText(question)
 
-    >
+    }
 
-      <textarea
+    function clearQuestion(){
 
-        value={question}
+        if(confirm("Clear question?")){
 
-        onChange={(e) => setQuestion(e.target.value)}
+            setQuestion("")
 
-        placeholder="Start typing your question here..."
+            canvasRef.current?.focus()
 
-        style={styles.editorTextarea}
+        }
 
-      />
+    }
 
-      <div style={styles.editorFooter}>
+    return(
 
-        <div>
+        <SectionCard
 
-          <strong>Characters:</strong> {characterCount}
+            title="Question Editor"
 
-        </div>
+            subtitle="Final editable question"
 
-        <div>
+        >
 
-          <strong>Lines:</strong> {lineCount}
+            <EditorToolbar
 
-        </div>
+                onInsert={insertText}
 
-      </div>
+                onCopy={copyQuestion}
 
-    </SectionCard>
+                onClear={clearQuestion}
 
-  )
+            />
+
+            <QuestionCanvas
+
+                ref={canvasRef}
+
+                value={question}
+
+                onChange={setQuestion}
+
+            />
+
+            <div style={styles.editorFooter}>
+
+                <div>
+
+                    Characters : {question.length}
+
+                </div>
+
+                <div>
+
+                    Lines : {
+
+                        question
+                        ? question.split("\n").length
+                        : 0
+
+                    }
+
+                </div>
+
+            </div>
+
+        </SectionCard>
+
+    )
 
 }
