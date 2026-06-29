@@ -1,4 +1,33 @@
 const styles = {
+toolbar: {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  padding: '10px 12px',
+  border: '1px solid #e5e7eb',
+  borderRadius: 10,
+  background: '#fafafa',
+  flexWrap: 'wrap'
+},
+
+toolbarButton: {
+  border: '1px solid #d1d5db',
+  background: '#ffffff',
+  borderRadius: 8,
+  padding: '8px 12px',
+  cursor: 'pointer',
+  fontSize: 14,
+  fontWeight: 500,
+  minWidth: 42,
+  transition: 'all 0.2s ease'
+},
+
+toolbarDivider: {
+  width: 1,
+  alignSelf: 'stretch',
+  background: '#d1d5db',
+  margin: '0 6px'
+},
 editorFooter: {
   display: 'flex',
   justifyContent: 'space-between',
