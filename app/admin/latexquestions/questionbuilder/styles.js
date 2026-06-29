@@ -1,5 +1,62 @@
 const styles = {
-toolbar: {
+optionRow:{
+
+    display:"flex",
+
+    gap:12,
+
+    alignItems:"flex-start"
+
+},
+
+optionLabel:{
+
+    width:36,
+
+    height:36,
+
+    borderRadius:18,
+
+    background:"#2563eb",
+
+    color:"#fff",
+
+    display:"flex",
+
+    alignItems:"center",
+
+    justifyContent:"center",
+
+    fontWeight:600,
+
+    flexShrink:0,
+
+    marginTop:6
+
+},
+
+optionTextarea:{
+
+    flex:1,
+
+    minHeight:70,
+
+    resize:"vertical",
+
+    border:"1px solid #d1d5db",
+
+    borderRadius:10,
+
+    padding:12,
+
+    fontSize:15,
+
+    fontFamily:"inherit",
+
+    boxSizing:"border-box"
+
+},
+  toolbar: {
   display: 'flex',
   alignItems: 'center',
   gap: 8,
