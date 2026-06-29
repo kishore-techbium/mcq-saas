@@ -344,16 +344,14 @@ if(!file){
 }
 
 
-  if(!file){
-    alert("Please select an image")
-    return
-  }
   setOcrLoading(true)
   setOcrProgress(0)
   try{
 
+const processedCanvas = await preprocessImage(file)
+document.body.appendChild(processedCanvas)
 const { data } = await Tesseract.recognize(
-  file,
+    processedCanvas,
   "eng",
   {
     logger: m => {
@@ -465,7 +463,55 @@ async function loadImage(file){
   })
 
 }
+async function preprocessImage(file){
 
+  const img = await loadImage(file)
+
+  const canvas = document.createElement("canvas")
+  const ctx = canvas.getContext("2d")
+
+  // Scale 2x
+  canvas.width = img.width * 2
+  canvas.height = img.height * 2
+
+  ctx.drawImage(
+    img,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  )
+
+  const imageData = ctx.getImageData(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  )
+
+  const data = imageData.data
+
+  for(let i=0;i<data.length;i+=4){
+
+      const gray =
+      0.299*data[i]+
+      0.587*data[i+1]+
+      0.114*data[i+2]
+
+      // increase contrast
+      const c = gray > 150 ? 255 : 0
+
+      data[i]=c
+      data[i+1]=c
+      data[i+2]=c
+
+  }
+
+  ctx.putImageData(imageData,0,0)
+
+  return canvas
+
+}
 
 function cropCanvas(sourceCanvas,x,y,w,h){
 
