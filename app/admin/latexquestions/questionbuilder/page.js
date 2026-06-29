@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 
+import { useState, useEffect } from 'react'
 import Header from './components/Header'
 import QuestionEditor from './components/QuestionEditor'
 import Preview from './components/Preview'
@@ -57,7 +57,39 @@ async function handleImageSelected(file){
     }
 
 }
+useEffect(()=>{
 
+  function handlePaste(e){
+
+    const items = e.clipboardData?.items
+
+    if(!items) return
+
+    for(const item of items){
+
+      if(item.type.startsWith("image/")){
+
+        const file = item.getAsFile()
+
+        setQuestionImage(file)
+
+        handleImageSelected(file)
+
+        e.preventDefault()
+
+        break
+
+      }
+
+    }
+
+  }
+
+  window.addEventListener("paste",handlePaste)
+
+  return ()=>window.removeEventListener("paste",handlePaste)
+
+},[])
   return(
 
     <div style={styles.page}>
