@@ -980,7 +980,7 @@ background:'#fff'
 
        </div>
 
-      </div>
+      
 
       <canvas
         ref={canvasRef}
