@@ -18,9 +18,105 @@ export default function QuestionEditor({
 
     const canvasRef = useRef(null)
 
-    function insertText(text){
+    function handleTool(tool){
 
-        canvasRef.current?.insertText(text)
+        switch(tool){
+
+            case "pi":
+
+                canvasRef.current?.insertText("\\(\\pi\\)")
+                break
+
+            case "alpha":
+
+                canvasRef.current?.insertText("α")
+                break
+
+            case "beta":
+
+                canvasRef.current?.insertText("β")
+                break
+
+            case "theta":
+
+                canvasRef.current?.insertText("θ")
+                break
+
+            case "delta":
+
+                canvasRef.current?.insertText("Δ")
+                break
+
+            case "sum":
+
+                canvasRef.current?.insertText("\\(\\sum\\)")
+                break
+
+            case "int":
+
+                canvasRef.current?.insertText("\\(\\int\\)")
+                break
+
+            case "sqrt":
+
+                canvasRef.current?.insertText("\\(\\sqrt{}\\)")
+                break
+
+            case "frac":
+
+                canvasRef.current?.insertText("\\(\\frac{}{}\\)")
+                break
+
+            case "sup":
+
+                canvasRef.current?.insertText("^{ }")
+                break
+
+            case "sub":
+
+                canvasRef.current?.insertText("_{ }")
+                break
+
+            case "le":
+
+                canvasRef.current?.insertText("≤")
+                break
+
+            case "ge":
+
+                canvasRef.current?.insertText("≥")
+                break
+
+            case "neq":
+
+                canvasRef.current?.insertText("≠")
+                break
+
+            case "inf":
+
+                canvasRef.current?.insertText("\\(\\infty\\)")
+                break
+
+            case "rightarrow":
+
+                canvasRef.current?.insertText("→")
+                break
+
+            case "equilibrium":
+
+                canvasRef.current?.insertText("⇌")
+                break
+
+            case "degree":
+
+                canvasRef.current?.insertText("°")
+                break
+
+            default:
+
+                break
+
+        }
 
     }
 
@@ -48,13 +144,13 @@ export default function QuestionEditor({
 
             title="Question Editor"
 
-            subtitle="Final editable question"
+            subtitle="Edit the OCR result"
 
         >
 
             <EditorToolbar
 
-                onInsert={insertText}
+                onToolClick={handleTool}
 
                 onCopy={copyQuestion}
 
@@ -82,11 +178,19 @@ export default function QuestionEditor({
 
                 <div>
 
-                    Lines : {
+                    Lines :
+
+                    {
 
                         question
-                        ? question.split("\n").length
-                        : 0
+
+                        ?
+
+                        question.split("\n").length
+
+                        :
+
+                        0
 
                     }
 
