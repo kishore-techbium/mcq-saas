@@ -28,7 +28,7 @@ const [parsedQuestion,setParsedQuestion]=useState(null)
 const [activeTab,setActiveTab]=useState('math')
 
 const previewRef=useRef(null)
-const canvasRef = useRef(null)
+
 /* ================= AUTH ================= */
 
 useEffect(()=>{
@@ -343,16 +343,7 @@ if(!file){
     return
 }
 
-const img = await loadImage(file)
 
-const canvas = canvasRef.current
-
-const ctx = canvas.getContext("2d")
-
-canvas.width = img.width
-canvas.height = img.height
-
-ctx.drawImage(img,0,0)
   if(!file){
     alert("Please select an image")
     return
@@ -980,17 +971,8 @@ background:'#fff'
 
        </div>
 
-      
-
-      <canvas
-        ref={canvasRef}
-        style={{display:'none'}}
-      />
-
     </div>
 
-  )
-}
 /* ================= STYLES ================= */
 const styles = {
 
