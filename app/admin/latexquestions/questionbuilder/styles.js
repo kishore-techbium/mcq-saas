@@ -1,4 +1,13 @@
 const styles = {
+editorFooter: {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  fontSize: 13,
+  color: '#6b7280',
+  borderTop: '1px solid #ececec',
+  paddingTop: 12
+},
 cardHeader: {
   padding: '16px 20px',
   borderBottom: '1px solid #ececec',
