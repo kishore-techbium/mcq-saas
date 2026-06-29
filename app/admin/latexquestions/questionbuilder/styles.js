@@ -1,4 +1,69 @@
 const styles = {
+searchInput:{
+
+    width:"100%",
+
+    padding:"12px",
+
+    border:"1px solid #d1d5db",
+
+    borderRadius:10,
+
+    fontSize:15,
+
+    boxSizing:"border-box",
+
+    outline:"none"
+
+},
+
+insertGrid:{
+
+    display:"grid",
+
+    gridTemplateColumns:"repeat(auto-fill,minmax(170px,1fr))",
+
+    gap:12
+
+},
+
+insertItem:{
+
+    border:"1px solid #e5e7eb",
+
+    background:"#fff",
+
+    borderRadius:10,
+
+    padding:12,
+
+    cursor:"pointer",
+
+    textAlign:"left",
+
+    transition:"0.2s"
+
+},
+
+insertItemLabel:{
+
+    fontWeight:600,
+
+    marginBottom:8,
+
+    color:"#111827"
+
+},
+
+insertItemValue:{
+
+    color:"#2563eb",
+
+    fontSize:14,
+
+    wordBreak:"break-word"
+
+},
 previewContainer:{
     display:"flex",
     flexDirection:"column",
