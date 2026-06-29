@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { getAdminCollege } from '../../../lib/getAdminCollege'
 import * as XLSX from 'xlsx'
 import 'katex/dist/katex.min.css'
+import Tesseract from "tesseract.js"
 import renderMathInElement from 'katex/contrib/auto-render'
 
 export default function LatexQuestionsPage() {
@@ -15,7 +16,11 @@ const [inputText,setInputText]=useState('')
 const [outputText,setOutputText]=useState('')
 
 const [excelFile,setExcelFile]=useState(null)
-
+const [imageFile,setImageFile]=useState(null)
+const [ocrLoading,setOcrLoading]=useState(false)
+const [ocrProgress,setOcrProgress]=useState(0)
+const [dragActive,setDragActive]=useState(false)
+const [pastedImage,setPastedImage]=useState(null)
 const [previewRows,setPreviewRows]=useState([])
 const [processedData,setProcessedData]=useState([])
 
@@ -45,7 +50,55 @@ init()
 
 },[])
 
+useEffect(() => {
 
+  function handlePaste(e){
+
+    const items = e.clipboardData?.items
+
+    if(!items) return
+
+    for(const item of items){
+
+      if(item.type.startsWith("image/")){
+
+        const file = item.getAsFile()
+
+setImageFile(file)
+setPastedImage(URL.createObjectURL(file))
+
+setTimeout(()=>{
+  processImageOCR(file)
+},100)
+        e.preventDefault()
+
+        break
+      }
+
+    }
+
+  }
+
+  window.addEventListener("paste", handlePaste)
+
+  return ()=>window.removeEventListener("paste", handlePaste)
+
+},[])
+
+useEffect(()=>{
+
+  return ()=>{
+
+    if(pastedImage){
+
+      URL.revokeObjectURL(pastedImage)
+
+    }
+
+  }
+
+},[pastedImage])
+  
 /* ================= SMART LATEX ================= */
 
 function autoWrap(text){
@@ -208,8 +261,91 @@ reader.readAsArrayBuffer(excelFile)
 
 }
 
+async function processImageOCR(fileToRead){
 
+  const file = fileToRead || imageFile
 
+  if(!file){
+    alert("Please select an image")
+    return
+  }
+  setOcrLoading(true)
+  setOcrProgress(0)
+  try{
+
+    const { data } = await Tesseract.recognize(
+      imageFile,
+      "eng",
+      {
+        logger:m=>{
+
+          if(m.status==="recognizing text"){
+        
+            setOcrProgress(Math.round(m.progress * 100))
+        
+          }
+        
+        }
+      }
+    )
+
+    setInputText(data.text)
+
+  }
+  catch(err){
+
+    console.error(err)
+
+    alert("OCR failed")
+
+  }
+  setOcrProgress(100)
+  setOcrLoading(false)
+
+}
+function handleDrag(e){
+  e.preventDefault()
+  e.stopPropagation()
+}
+
+function handleDragEnter(e){
+  e.preventDefault()
+  e.stopPropagation()
+  setDragActive(true)
+}
+
+function handleDragLeave(e){
+  e.preventDefault()
+  e.stopPropagation()
+  setDragActive(false)
+}
+
+function handleDrop(e){
+
+  e.preventDefault()
+  e.stopPropagation()
+
+  setDragActive(false)
+
+  if(e.dataTransfer.files && e.dataTransfer.files[0]){
+
+    const file=e.dataTransfer.files[0]
+
+    if(file.type.startsWith('image/')){
+
+      setImageFile(file)
+
+    }else{
+
+      alert("Please drop an image.")
+
+    }
+
+  }
+
+}
+
+  
 function downloadExcel(){
 
 const sheet=XLSX.utils.json_to_sheet(processedData)
@@ -415,13 +551,9 @@ onClick={()=>insertText(btn.latex)}
 ))}
 
 </div>
-
 <button
-
 style={styles.btn}
-
 onClick={processExcel}
-
 >
 
 🚀 Convert Excel
@@ -431,148 +563,141 @@ onClick={processExcel}
 <div style={{marginTop:15}}>
 
 <input
-
 type="file"
-
 accept=".xlsx,.xls,.csv"
-
 onChange={(e)=>setExcelFile(e.target.files[0])}
-
 />
 
 </div>
 
-{previewRows.length>0 && (
+{/* ================= OCR ================= */}
 
-<div style={{marginTop:25}}>
+<div style={{marginTop:30}}>
 
-<h3>🔍 Preview (Before → After)</h3>
+<h3>📷 OCR Upload</h3>
 
 <div
 
+tabIndex={0}
+
+onClick={(e)=>e.currentTarget.focus()}
+
 style={{
 
-border:'1px solid #ddd',
+border:'2px dashed #2563eb',
 
-borderRadius:8,
+borderRadius:10,
 
-maxHeight:500,
+padding:35,
 
-overflowY:'auto',
+textAlign:'center',
 
-background:'#fff'
+background:'#f8fbff',
+
+outline:'none',
+
+cursor:'pointer'
 
 }}
 
 >
 
-{previewRows.slice(0,20).map((row)=>(
+<h3>📋 Press Ctrl + V</h3>
 
-<div
+<p>
 
-key={row.index}
+Copy a screenshot using
 
-style={styles.previewCard}
+<b> Win + Shift + S </b>
 
->
+then click here and press
 
-<h4 style={{marginBottom:10}}>
+<b> Ctrl + V </b>
 
-Row {row.index+1}
+</p>
 
-</h4>
+<input
 
-<b>Original</b>
+type="file"
 
-<div style={styles.originalText}>
+accept="image/*"
 
-{row.original.question}
+onChange={(e)=>{
+
+if(e.target.files[0]){
+
+setImageFile(e.target.files[0])
+setPastedImage(URL.createObjectURL(e.target.files[0]))
+
+}
+
+}}
+
+style={{marginTop:15}}
+
+ />
 
 </div>
 
-<b>Converted</b>
+{pastedImage && (
 
-<div
+<div style={{marginTop:20}}>
 
-style={styles.convertedText}
+<img
 
-ref={(el)=>renderPreview(el,row.converted.question)}
+src={pastedImage}
+
+style={{
+
+maxWidth:'100%',
+
+maxHeight:250,
+
+border:'1px solid #ddd',
+
+borderRadius:8
+
+}}
 
 />
-
-<div style={{marginTop:15}}>
-
-<b>Options</b>
-
-{['option_a','option_b','option_c','option_d'].map((op,index)=>(
-
-<div
-
-key={op}
-
-style={styles.optionRow}
-
->
-
-<b>
-
-{String.fromCharCode(65+index)}.
-
-</b>
-
-<span
-
-style={{marginLeft:8}}
-
-ref={(el)=>renderPreview(el,row.converted[op] || '')}
-
-/>
-
-</div>
-
-))}
-
-</div>
-
-<div style={styles.explanation}>
-
-<b>Explanation</b>
-
-<div
-
-style={{marginTop:5}}
-
-ref={(el)=>renderPreview(el,row.converted.explanation || '')}
-
-/>
-
-</div>
-
-</div>
-
-))}
-
-</div>
 
 </div>
 
 )}
-
-{processedData.length>0 && (
 
 <button
 
-style={styles.btn}
+style={{
 
-onClick={downloadExcel}
+...styles.btn,
+
+marginTop:20
+
+}}
+
+disabled={ocrLoading}
+
+onClick={processImageOCR}
 
 >
 
-📥 Download Converted Excel
+{ocrLoading
+
+? "Reading Image..."
+
+: "Extract Text"}
 
 </button>
+{ocrLoading && (
+
+<div style={{marginTop:10}}>
+
+Reading Image... {ocrProgress}%
+
+</div>
 
 )}
+</div>
           {/* ================= INPUT ================= */}
 
           <h3>Input</h3>
