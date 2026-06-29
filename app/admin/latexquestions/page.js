@@ -634,7 +634,7 @@ const TOOLBAR = {
 if(loading) return <p>Loading...</p>
 
 return(
-
+<>
 <div style={styles.page}>
 
 <h1>LaTeX Helper</h1>
@@ -975,17 +975,14 @@ background:'#fff'
       </div>
 
     </div>
+
 <canvas
-
-ref={canvasRef}
-
-style={{display:'none'}}
-
+  ref={canvasRef}
+  style={{display:'none'}}
 />
-  )
 
-}
-
+</>
+)
 /* ================= STYLES ================= */
 const styles = {
 
