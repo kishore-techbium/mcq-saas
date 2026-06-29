@@ -57,24 +57,24 @@ export default function QuestionEditor({
                 canvasRef.current?.insertText("\\(\\int\\)")
                 break
 
-            case "sqrt":
+case "sqrt":
 
-                canvasRef.current?.insertText("\\(\\sqrt{}\\)")
-                break
+    canvasRef.current?.convertSelectedFormula()
+
+    break
 
             case "frac":
-
-                canvasRef.current?.insertText("\\(\\frac{}{}\\)")
+canvasRef.current?.convertSelectedFormula()
                 break
 
             case "sup":
 
-                canvasRef.current?.insertText("^{ }")
+                canvasRef.current?.convertSelectedFormula()
                 break
 
             case "sub":
 
-                canvasRef.current?.insertText("_{ }")
+                canvasRef.current?.convertSelectedFormula()
                 break
 
             case "le":
