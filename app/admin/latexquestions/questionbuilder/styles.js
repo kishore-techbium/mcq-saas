@@ -1,4 +1,19 @@
 const styles = {
+middle:{
+
+    flex:1.2,
+
+    display:"flex",
+
+    flexDirection:"column",
+
+    gap:20,
+
+    overflowY:"auto",
+
+    paddingRight:6
+
+},
 searchInput:{
 
     width:"100%",
