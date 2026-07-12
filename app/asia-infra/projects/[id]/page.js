@@ -29,6 +29,9 @@ const [collectionTotal, setCollectionTotal] =
 
 const [outstandingTotal, setOutstandingTotal] =
   useState(0)
+const [basicRevenue,
+  setBasicRevenue] =
+  useState(0)
   const [categorySummary, setCategorySummary] =
     useState([])
 
@@ -124,7 +127,15 @@ const [outstandingTotal, setOutstandingTotal] =
         ),
       0
     )
-
+const totalBasicRevenue =
+  (invoicesData || []).reduce(
+    (sum, row) =>
+      sum +
+      Number(
+        row.basic_amount || 0
+      ),
+    0
+  )
   const totalCollections =
     (collectionsData || []).reduce(
       (sum, row) =>
@@ -138,7 +149,9 @@ const [outstandingTotal, setOutstandingTotal] =
   setInvoiceTotal(
     totalInvoices
   )
-
+setBasicRevenue(
+  totalBasicRevenue
+)
   setCollectionTotal(
     totalCollections
   )
@@ -412,7 +425,7 @@ function exportInvoices() {
         style={{
           display: 'grid',
           gridTemplateColumns:
-            'repeat(4,1fr)',
+            'repeat(5,1fr)',
           gap: '15px'
         }}
       >
@@ -446,7 +459,30 @@ function exportInvoices() {
     .toLocaleString('en-IN')}
 </h2>
         </div>
+<div
+  style={{
+    border:'1px solid #ddd',
+    padding:'15px',
+    background:'#f0fdf4'
+  }}
+>
+  <h3>Basic Revenue</h3>
 
+  <h2>
+    ₹
+    {basicRevenue.toLocaleString('en-IN')}
+  </h2>
+
+  <div
+    style={{
+      fontSize:'12px',
+      color:'#666'
+    }}
+  >
+    Excluding GST
+  </div>
+
+</div>
         <div
           style={{
             border:'1px solid #ddd',
