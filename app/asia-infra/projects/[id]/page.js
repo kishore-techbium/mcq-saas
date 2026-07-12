@@ -16,9 +16,6 @@ const [invoices,
   setInvoices] =
   useState([])
 
-const [collections,
-  setCollections] =
-  useState([])
   const [expenses, setExpenses] = useState([])
   const [collections, setCollections] = useState([])
   const [expenseTotal, setExpenseTotal] = useState(0)
