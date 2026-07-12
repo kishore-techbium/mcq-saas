@@ -697,7 +697,7 @@ console.log(
 
   <h2>
     ₹
-    {peakCapital.toLocaleString('en-IN')}
+    {peakCapitalBlocked.toLocaleString('en-IN')}
   </h2>
 
   <div
