@@ -163,13 +163,6 @@ setBasicRevenue(
     totalInvoices -
     totalCollections
   )
-setCapitalBlocked(
-  Math.max(
-    expenseTotal -
-    totalCollections,
-    0
-  )
-)
   const invoiceRows =
     (invoicesData || []).map(
       invoice => {
