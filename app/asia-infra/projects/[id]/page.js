@@ -20,6 +20,7 @@ const [collections,
   setCollections] =
   useState([])
   const [expenses, setExpenses] = useState([])
+  const [collections, setCollections] = useState([])
   const [expenseTotal, setExpenseTotal] = useState(0)
 const [invoiceTotal, setInvoiceTotal] =
   useState(0)
@@ -35,8 +36,8 @@ const [basicRevenue,
 const [capitalBlocked,
   setCapitalBlocked] =
   useState(0)
-const [peakCapital,
-  setPeakCapital] =
+const [peakCapitalBlocked,
+  setPeakCapitalBlocked] =
   useState(0)
   const [categorySummary, setCategorySummary] =
     useState([])
@@ -115,7 +116,9 @@ const [peakCapital,
       .from('ai_collection')
       .select('*')
       .eq('project_id', params.id)
-
+setCollections(
+  collectionsData || []
+)
   setInvoices(
     invoicesData || []
   )
@@ -222,8 +225,7 @@ setCapitalBlocked(
     invoiceRows
   )
 }
-
-function calculatePeakCapital() {
+function calculatePeakCapitalBlocked() {
 
   const events = []
 
@@ -255,15 +257,31 @@ function calculatePeakCapital() {
 
   })
 
-  events.sort(
+  events.sort((a, b) => {
 
-    (a,b)=>
+    if (a.date === b.date) {
 
-      new Date(a.date) -
+      if (
+        a.type === 'expense' &&
+        b.type === 'collection'
+      ) {
+        return -1
+      }
 
-      new Date(b.date)
+      if (
+        a.type === 'collection' &&
+        b.type === 'expense'
+      ) {
+        return 1
+      }
 
-  )
+      return 0
+
+    }
+
+    return new Date(a.date) - new Date(b.date)
+
+  })
 
   let running = 0
 
@@ -271,19 +289,17 @@ function calculatePeakCapital() {
 
   events.forEach(event => {
 
-    if(event.type==='expense'){
+    if (event.type === 'expense') {
 
       running += event.amount
 
-    }
-
-    else{
+    } else {
 
       running -= event.amount
 
     }
 
-    if(running>peak){
+    if (running > peak) {
 
       peak = running
 
@@ -291,9 +307,10 @@ function calculatePeakCapital() {
 
   })
 
-  setPeakCapital(peak)
+  setPeakCapitalBlocked(peak)
 
 }
+
   async function updateStatus(
   newStatus
 ) {
@@ -414,6 +431,17 @@ function exportInvoices() {
 ])
 useEffect(() => {
 
+  calculatePeakCapitalBlocked()
+
+}, [
+
+  expenses,
+
+  collections
+
+])
+useEffect(() => {
+
   calculatePeakCapital()
 
 }, [
@@ -426,7 +454,10 @@ useEffect(() => {
   if (!project) {
     return <div>Loading...</div>
   }
-
+console.log(
+  'Peak Capital Blocked',
+  peakCapitalBlocked
+)
   return (
 
     <div>
@@ -568,7 +599,7 @@ useEffect(() => {
             padding:'15px'
           }}
         >
-     <h3>Invoices</h3>
+     <h3>Gross Invoiced</h3>
 
 <h2>
   ₹
@@ -637,7 +668,7 @@ useEffect(() => {
   }}
 >
   <h3>
-    Capital Blocked
+    Current Capital Blocked
   </h3>
 
   <h2>
