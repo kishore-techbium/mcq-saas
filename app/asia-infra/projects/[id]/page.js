@@ -32,6 +32,12 @@ const [outstandingTotal, setOutstandingTotal] =
 const [basicRevenue,
   setBasicRevenue] =
   useState(0)
+const [capitalBlocked,
+  setCapitalBlocked] =
+  useState(0)
+const [peakCapital,
+  setPeakCapital] =
+  useState(0)
   const [categorySummary, setCategorySummary] =
     useState([])
 
@@ -160,7 +166,13 @@ setBasicRevenue(
     totalInvoices -
     totalCollections
   )
-
+setCapitalBlocked(
+  Math.max(
+    expenseTotal -
+    totalCollections,
+    0
+  )
+)
   const invoiceRows =
     (invoicesData || []).map(
       invoice => {
@@ -209,6 +221,78 @@ setBasicRevenue(
   setInvoiceDetails(
     invoiceRows
   )
+}
+
+function calculatePeakCapital() {
+
+  const events = []
+
+  expenses.forEach(exp => {
+
+    events.push({
+
+      date: exp.expense_date,
+
+      type: 'expense',
+
+      amount: Number(exp.amount || 0)
+
+    })
+
+  })
+
+  collections.forEach(col => {
+
+    events.push({
+
+      date: col.received_date,
+
+      type: 'collection',
+
+      amount: Number(col.amount_accounted || 0)
+
+    })
+
+  })
+
+  events.sort(
+
+    (a,b)=>
+
+      new Date(a.date) -
+
+      new Date(b.date)
+
+  )
+
+  let running = 0
+
+  let peak = 0
+
+  events.forEach(event => {
+
+    if(event.type==='expense'){
+
+      running += event.amount
+
+    }
+
+    else{
+
+      running -= event.amount
+
+    }
+
+    if(running>peak){
+
+      peak = running
+
+    }
+
+  })
+
+  setPeakCapital(peak)
+
 }
   async function updateStatus(
   newStatus
@@ -306,6 +390,39 @@ function exportInvoices() {
     `${project.project_name}_Invoices.xlsx`
   )
 }
+  useEffect(() => {
+
+  setCapitalBlocked(
+
+    Math.max(
+
+      expenseTotal -
+      collectionTotal,
+
+      0
+
+    )
+
+  )
+
+}, [
+
+  expenseTotal,
+
+  collectionTotal
+
+])
+useEffect(() => {
+
+  calculatePeakCapital()
+
+}, [
+
+  expenses,
+
+  collections
+
+])
   if (!project) {
     return <div>Loading...</div>
   }
@@ -425,7 +542,7 @@ function exportInvoices() {
         style={{
           display: 'grid',
           gridTemplateColumns:
-            'repeat(5,1fr)',
+            'repeat(7,1fr)',
           gap: '15px'
         }}
       >
@@ -512,10 +629,63 @@ function exportInvoices() {
     .toLocaleString('en-IN')}
 </h2>
         </div>
+<div
+  style={{
+    border:'1px solid #ddd',
+    padding:'15px',
+    background:'#dcfce7'
+  }}
+>
+  <h3>
+    Capital Blocked
+  </h3>
 
+  <h2>
+    ₹
+    {capitalBlocked.toLocaleString('en-IN')}
+  </h2>
+
+  <div
+    style={{
+      fontSize:'12px',
+      color:'#666'
+    }}
+  >
+    Expenses - Collections
+  </div>
+
+</div>
+
+<div
+  style={{
+    border:'1px solid #ddd',
+    padding:'15px',
+    background:'#dbeafe'
+  }}
+>
+  <h3>
+    Peak Capital
+  </h3>
+
+  <h2>
+    ₹
+    {peakCapital.toLocaleString('en-IN')}
+  </h2>
+
+  <div
+    style={{
+      fontSize:'12px',
+      color:'#666'
+    }}
+  >
+    Maximum Capital Used
+  </div>
+
+</div>
       </div>
 
       <br />
+
 <h2>
   Invoice Ledger
 </h2>
