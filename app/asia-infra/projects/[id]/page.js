@@ -120,9 +120,6 @@ setCollections(
     invoicesData || []
   )
 
-  setCollections(
-    collectionsData || []
-  )
 
   const totalInvoices =
     (invoicesData || []).reduce(
