@@ -437,17 +437,7 @@ useEffect(() => {
   collections
 
 ])
-useEffect(() => {
 
-  calculatePeakCapital()
-
-}, [
-
-  expenses,
-
-  collections
-
-])
   if (!project) {
     return <div>Loading...</div>
   }
