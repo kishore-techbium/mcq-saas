@@ -227,7 +227,7 @@ row.expense-row.collection,
       )
 
     )].sort()
-
+const totalClients=clients.length
 const periods=[
 ...new Set(
 transactions.map(
@@ -509,58 +509,108 @@ period==='overall'
 
       </div>
 
-      <div
+  
+<h2
+style={{
+marginTop:'20px',
+marginBottom:'15px'
+}}
+>
+Company Snapshot
+</h2>
+  
+ <div
+style={{
+display:'grid',
+gridTemplateColumns:'repeat(3,1fr)',
+gap:'15px',
+marginBottom:'25px'
+}}
+>
 
-        style={{
-
-          display:'grid',
-
-gridTemplateColumns:
-'repeat(auto-fit,minmax(240px,1fr))',
-
-          gap:'15px'
-
-        }}
-
-      >
-
-    <Card
-title="Projects"
-value={totalProjects}
+<Card
+title="Total Projects"
+value={projects.length}
 color="#2563eb"
 />
+
 <Card
-title="WO Value"
+title="Clients"
+value={totalClients}
+color="#0f766e"
+/>
+
+<Card
+title="Total WO Value"
 value={'₹'+totalWO.toLocaleString('en-IN')}
 color="#7c3aed"
 />
-  <Card
+
+</div>
+<h2
+style={{
+marginBottom:'15px'
+}}
+>
+
+Performance
+
+{
+
+periodFilter==='overall'
+
+?
+
+' (Overall)'
+
+:
+
+` (FY ${periodFilter})`
+
+}
+
+</h2>
+
+<div
+style={{
+display:'grid',
+gridTemplateColumns:'repeat(5,1fr)',
+gap:'15px',
+marginBottom:'30px'
+}}
+>
+
+<Card
 title="Invoice Value"
 value={'₹'+totalInvoices.toLocaleString('en-IN')}
 color="#0891b2"
 />
+
 <Card
 title="Collections"
 value={'₹'+totalCollections.toLocaleString('en-IN')}
 color="#16a34a"
 />
-  <Card
+
+<Card
 title="Expenses"
 value={'₹'+totalExpenses.toLocaleString('en-IN')}
 color="#dc2626"
 />
-  <Card
+
+<Card
 title="Outstanding"
 value={'₹'+totalOutstanding.toLocaleString('en-IN')}
 color="#ea580c"
 />
+
 <Card
 title="Capital Blocked"
 value={'₹'+currentCapitalBlocked.toLocaleString('en-IN')}
 color="#7c2d12"
 />
 
-      </div>
+</div>
 <br />
 
 <h2>
@@ -651,6 +701,7 @@ index % 2 === 0
 
 <Link
 href={`/asia-infra/projects/${project.id}`}
+target="_blank"
 style={{
 textDecoration:'none',
 color:'#2563eb',
@@ -966,9 +1017,9 @@ index % 2 === 0
 }}
 >
 <td>
-
 <Link
 href={`/asia-infra/projects/${project.id}`}
+target="_blank"
 style={{
 textDecoration:'none',
 color:'#2563eb',
@@ -982,52 +1033,7 @@ fontWeight:'600'
 
 </td>
 <td>
-
-<div>
-
-<div>
-
 {project.client_name}
-
-</div>
-
-<div
-style={{
-marginTop:'4px'
-}}
->
-
-<span
-style={{
-padding:'3px 8px',
-borderRadius:'20px',
-fontSize:'12px',
-fontWeight:'600',
-background:
-project.status==='active'
-?'#dcfce7'
-:
-project.status==='semi_closed'
-?'#fef3c7'
-:'#fee2e2',
-color:
-project.status==='active'
-?'#166534'
-:
-project.status==='semi_closed'
-?'#92400e'
-:'#991b1b'
-}}
->
-
-{project.status.replace('_',' ')}
-
-</span>
-
-</div>
-
-</div>
-
 </td>
 <td style={{textAlign:'right'}}>
 
