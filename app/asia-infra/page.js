@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-
+import { getCurrentCapitalBlocked, getPeakCapital, getCapitalRecycling } from '../../lib/ai_cashflow'
 export default function AsiaInfraDashboard() {
 
   const [projects, setProjects] = useState([])
@@ -201,63 +201,8 @@ setCashflow(cashflowData || [])
 
     )
 
-function getPeakCapital(projectId){
 
-    const rows =
-        cashflow
-        .filter(
-            row =>
-            row.project_id === projectId
-        )
 
-    let running = 0
-
-    let peak = 0
-
-    rows.forEach(row=>{
-
-        if(
-            row.transaction_type === 'Expense'
-        ){
-
-            running += Number(row.amount)
-
-        }else{
-
-            running -= Number(row.amount)
-
-        }
-
-        if(running > peak){
-
-            peak = running
-
-        }
-
-    })
-
-    return Math.max(peak,0)
-
-}
-function getCurrentCapitalBlocked(project){
-
-  return Math.max(
-
-    Number(
-      project.expenses || 0
-    )
-
-    -
-
-    Number(
-      project.collections || 0
-    ),
-
-    0
-
-  )
-
-}
   const clients =
 
     [...new Set(
