@@ -2,7 +2,14 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import { getCurrentCapitalBlocked, getPeakCapital, getCapitalRecycling } from '../../lib/ai_cashflow'
+import {
+getCurrentCapitalBlocked,
+getPeakCapital,
+getCapitalRecycling,
+getInvoiceTotal,
+getCollectionTotal,
+getExpenseTotal
+} from '../../lib/ai_cashflow'
 export default function AsiaInfraDashboard() {
 
   const [projects, setProjects] = useState([])
@@ -57,7 +64,19 @@ setTransactions(transactionData || [])
 
   }, [])
 
+function getFinancialYear(date){
 
+const d=new Date(date)
+
+const y=d.getFullYear()
+
+const m=d.getMonth()+1
+
+return m>=4
+?`${y}-${String(y+1).slice(-2)}`
+:`${y-1}-${String(y).slice(-2)}`
+
+}
   const filteredProjects =
     useMemo(() => {
 
@@ -125,6 +144,31 @@ t.transaction_date
 )===periodFilter
 
 })
+
+const transactionSummary={}
+
+filteredTransactions.forEach(t=>{
+
+if(!transactionSummary[t.project_id]){
+
+transactionSummary[t.project_id]={
+invoice:0,
+collection:0,
+expense:0
+}
+
+}
+
+if(t.transaction_type==='Invoice')
+transactionSummary[t.project_id].invoice+=Number(t.amount||0)
+
+if(t.transaction_type==='Collection')
+transactionSummary[t.project_id].collection+=Number(t.amount||0)
+
+if(t.transaction_type==='Expense')
+transactionSummary[t.project_id].expense+=Number(t.amount||0)
+
+})
   const totalProjects =
     filteredProjects.length
 
@@ -143,56 +187,31 @@ t.transaction_date
 
     )
 
-  const totalInvoices =
-    filteredProjects.reduce(
+  const totalInvoices=
+  getInvoiceTotal(filteredTransactions)
+  const totalCollections=
+  getCollectionTotal(filteredTransactions)
+  const totalExpenses=
+  getExpenseTotal(filteredTransactions)
+  const totalOutstanding=
+  Object.values(transactionSummary).reduce(
+  (sum,row)=>
+  sum+
+  Math.max(
+  row.invoice-row.collection,
+  0
+  ),
+  0
+  )
 
-      (sum, row) =>
-
-        sum +
-
-        Number(
-          row.gross_invoiced || 0
-        ),
-
-      0
-
-    )
-
-  const totalCollections =
-    filteredProjects.reduce(
-
-      (sum, row) =>
-
-        sum +
-
-        Number(
-          row.collections || 0
-        ),
-
-      0
-
-    )
-
-  const totalOutstanding =
-    filteredProjects.reduce(
-
-      (sum, row) =>
-
-        sum +
-
-        Number(
-          row.outstanding || 0
-        ),
-
-      0
-
-    )
-
-  const currentCapitalBlocked =
-filteredProjects.reduce(
+  const currentCapitalBlocked=
+Object.values(transactionSummary).reduce(
 (sum,row)=>
 sum+
-getCurrentCapitalBlocked(row),
+Math.max(
+row.expense-row.collection,
+0
+),
 0
 )
 
@@ -209,7 +228,15 @@ getCurrentCapitalBlocked(row),
 
     )].sort()
 
+const periods=[
+...new Set(
+transactions.map(
+t=>getFinancialYear(t.transaction_date)
+)
+)
+].sort().reverse()
 
+periods.unshift('overall')
   
   if (loading) {
 
@@ -220,19 +247,7 @@ getCurrentCapitalBlocked(row),
     </div>
 
   }
-function getFinancialYear(date){
 
-const d=new Date(date)
-
-const y=d.getFullYear()
-
-const m=d.getMonth()+1
-
-return m>=4
-?`${y}-${String(y+1).slice(-2)}`
-:`${y-1}-${String(y).slice(-2)}`
-
-}
 return (
 
   <div
@@ -467,13 +482,26 @@ value={periodFilter}
 onChange={e=>setPeriodFilter(e.target.value)}
 >
 
-<option value="overall">Overall</option>
+{
+periods.map(period=>(
 
-<option value="2024-25">FY 2024-25</option>
+<option
+key={period}
+value={period}
+>
 
-<option value="2025-26">FY 2025-26</option>
+{
+period==='overall'
+?
+'Overall'
+:
+`FY ${period}`
+}
 
-<option value="2026-27">FY 2026-27</option>
+</option>
+
+))
+}
 
 </select>
 
@@ -488,7 +516,7 @@ onChange={e=>setPeriodFilter(e.target.value)}
           display:'grid',
 
 gridTemplateColumns:
-'repeat(auto-fit,minmax(220px,1fr))',
+'repeat(auto-fit,minmax(240px,1fr))',
 
           gap:'15px'
 
@@ -496,107 +524,41 @@ gridTemplateColumns:
 
       >
 
-        <Card
-
-          title="Projects"
-
-          value={
-
-            totalProjects
-
-          }
-
-        />
-
-        <Card
-
-          title="WO Value"
-
-          value={
-
-            '₹'+
-
-            totalWO.toLocaleString(
-
-              'en-IN'
-
-            )
-
-          }
-
-        />
-
-        <Card
-
-          title="Gross Invoiced"
-
-          value={
-
-            '₹'+
-
-            totalInvoices.toLocaleString(
-
-              'en-IN'
-
-            )
-
-          }
-
-        />
-
-        <Card
-
-          title="Collections"
-
-          value={
-
-            '₹'+
-
-            totalCollections.toLocaleString(
-
-              'en-IN'
-
-            )
-
-          }
-
-        />
-
-        <Card
-
-          title="Outstanding"
-
-          value={
-
-            '₹'+
-
-            totalOutstanding.toLocaleString(
-
-              'en-IN'
-
-            )
-
-          }
-
-        />
-
-        <Card
-
-          title="Capital Currently Blocked"
-
-          value={
-
-            '₹'+
-
-            currentCapitalBlocked.toLocaleString(
-
-              'en-IN'
-
-            )
-
-          }
-
-        />
+    <Card
+title="Projects"
+value={totalProjects}
+color="#2563eb"
+/>
+<Card
+title="WO Value"
+value={'₹'+totalWO.toLocaleString('en-IN')}
+color="#7c3aed"
+/>
+  <Card
+title="Invoice Value"
+value={'₹'+totalInvoices.toLocaleString('en-IN')}
+color="#0891b2"
+/>
+<Card
+title="Collections"
+value={'₹'+totalCollections.toLocaleString('en-IN')}
+color="#16a34a"
+/>
+  <Card
+title="Expenses"
+value={'₹'+totalExpenses.toLocaleString('en-IN')}
+color="#dc2626"
+/>
+  <Card
+title="Outstanding"
+value={'₹'+totalOutstanding.toLocaleString('en-IN')}
+color="#ea580c"
+/>
+<Card
+title="Capital Blocked"
+value={'₹'+currentCapitalBlocked.toLocaleString('en-IN')}
+color="#7c2d12"
+/>
 
       </div>
 <br />
@@ -630,7 +592,8 @@ project.status !== 'closed'
 style={{
 position:'sticky',
 top:0,
-background:'#f8fafc'
+background:'#1e293b',
+color:'#fff'
 }}
 >
 
@@ -703,7 +666,50 @@ fontWeight:'600'
 
 <td>
 
+<div>
+
+<div>
+
 {project.client_name}
+
+</div>
+
+<div
+style={{
+marginTop:'4px'
+}}
+>
+
+<span
+style={{
+padding:'3px 8px',
+borderRadius:'20px',
+fontSize:'12px',
+fontWeight:'600',
+background:
+project.status==='active'
+?'#dcfce7'
+:
+project.status==='semi_closed'
+?'#fef3c7'
+:'#fee2e2',
+color:
+project.status==='active'
+?'#166534'
+:
+project.status==='semi_closed'
+?'#92400e'
+:'#991b1b'
+}}
+>
+
+{project.status.replace('_',' ')}
+
+</span>
+
+</div>
+
+</div>
 
 </td>
 
@@ -727,7 +733,7 @@ project.work_order_value||0
 
 Number(
 
-project.gross_invoiced||0
+transactionSummary[project.id]?.invoice||0
 
 ).toLocaleString('en-IN')
 
@@ -741,7 +747,7 @@ project.gross_invoiced||0
 
 Number(
 
-project.collections||0
+transactionSummary[project.id]?.collection||0
 
 ).toLocaleString('en-IN')
 
@@ -755,7 +761,12 @@ project.collections||0
 
 Number(
 
-project.outstanding||0
+Math.max(
+(transactionSummary[project.id]?.invoice||0)
+-
+(transactionSummary[project.id]?.collection||0),
+0
+)
 
 ).toLocaleString('en-IN')
 
@@ -768,7 +779,12 @@ style={{
 textAlign:'right',
 fontWeight:'bold',
 color:
-getCurrentCapitalBlocked(project)>0
+Math.max(
+(transactionSummary[project.id]?.expense||0)
+-
+(transactionSummary[project.id]?.collection||0),
+0
+)>0
 ?
 '#ea580c'
 :
@@ -776,11 +792,11 @@ getCurrentCapitalBlocked(project)>0
 }}
 >
 ₹{
-
-getCurrentCapitalBlocked(
-
-project
-
+Math.max(
+(transactionSummary[project.id]?.expense||0)
+-
+(transactionSummary[project.id]?.collection||0),
+0
 ).toLocaleString('en-IN')
 
 }
@@ -794,9 +810,9 @@ fontWeight:'bold'
 }}
 >
 {
-getPeakCapital(project.id,transactions)>0
+getPeakCapital(project.id,filteredTransactions)>0
 ?
-'₹'+getPeakCapital(project.id,transactions).toLocaleString('en-IN')
+'₹'+getPeakCapital(project.id,filteredTransactions).toLocaleString('en-IN')
 :
 '-'
 }
@@ -808,9 +824,9 @@ fontWeight:'bold'
 }}
 >
 {
-getPeakCapital(project.id,transactions)>0
+getPeakCapital(project.id,filteredTransactions)>0
 ?
-getCapitalRecycling(project,transactions).toFixed(2)+'x'
+getCapitalRecycling(project,filteredTransactions).toFixed(2)+'x'
 :
 '-'
 }
@@ -859,7 +875,8 @@ width="100%"
 style={{
 position:'sticky',
 top:0,
-background:'#f8fafc'
+background:'#1e293b',
+color:'#fff'
 }}
 >
 
@@ -966,10 +983,52 @@ fontWeight:'600'
 </td>
 <td>
 
+<div>
+
+<div>
+
 {project.client_name}
 
-</td>
+</div>
 
+<div
+style={{
+marginTop:'4px'
+}}
+>
+
+<span
+style={{
+padding:'3px 8px',
+borderRadius:'20px',
+fontSize:'12px',
+fontWeight:'600',
+background:
+project.status==='active'
+?'#dcfce7'
+:
+project.status==='semi_closed'
+?'#fef3c7'
+:'#fee2e2',
+color:
+project.status==='active'
+?'#166534'
+:
+project.status==='semi_closed'
+?'#92400e'
+:'#991b1b'
+}}
+>
+
+{project.status.replace('_',' ')}
+
+</span>
+
+</div>
+
+</div>
+
+</td>
 <td style={{textAlign:'right'}}>
 
 ₹{
@@ -1062,55 +1121,49 @@ getCapitalRecycling(project,transactions).toFixed(2)+'x'
 }
 
 function Card({
+title,
+value,
+color='#2563eb'
+}){
 
-  title,
+return(
 
-  value
+<div
+style={{
+background:'#fff',
+borderLeft:`6px solid ${color}`,
+borderRadius:'10px',
+padding:'18px',
+boxShadow:'0 2px 8px rgba(0,0,0,0.08)'
+}}
+>
 
-}) {
+<div
+style={{
+fontSize:'14px',
+color:'#666',
+marginBottom:'8px'
+}}
+>
 
-  return (
+{title}
 
-    <div
+</div>
 
-      style={{
+<div
+style={{
+fontSize:'28px',
+fontWeight:'700',
+color
+}}
+>
 
-        border:'1px solid #ddd',
+{value}
 
-        borderRadius:'8px',
+</div>
 
-        padding:'15px',
+</div>
 
-        background:'#fff'
-
-      }}
-
-    >
-
-      <div
-
-        style={{
-
-          color:'#666',
-
-          fontSize:'14px'
-
-        }}
-
-      >
-
-        {title}
-
-      </div>
-
-      <h2>
-
-        {value}
-
-      </h2>
-
-    </div>
-
-  )
+)
 
 }
