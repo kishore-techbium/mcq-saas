@@ -6,7 +6,7 @@ import { getCurrentCapitalBlocked, getPeakCapital, getCapitalRecycling } from '.
 export default function AsiaInfraDashboard() {
 
   const [projects, setProjects] = useState([])
-  const [cashflow, setCashflow] = useState([])
+  const [transactions,setTransactions]=useState([])
   const [loading, setLoading] =
     useState(true)
 
@@ -21,6 +21,7 @@ export default function AsiaInfraDashboard() {
   const [projectFilter,
     setProjectFilter] =
     useState('all')
+  const [periodFilter,setPeriodFilter]=useState('overall')
 
   async function loadDashboard() {
 
@@ -33,13 +34,13 @@ export default function AsiaInfraDashboard() {
         .order(
           'project_name'
         )
-const { data: cashflowData } =
+const { data: transactionData } =
 await supabase
-.from('ai_project_cashflow')
+.from('ai_dashboard_transactions')
 .select('*')
 .order('transaction_date')
 
-setCashflow(cashflowData || [])
+setTransactions(transactionData || [])
     if (!error) {
 
       setProjects(data || [])
@@ -55,6 +56,7 @@ setCashflow(cashflowData || [])
     loadDashboard()
 
   }, [])
+
 
   const filteredProjects =
     useMemo(() => {
@@ -112,7 +114,17 @@ setCashflow(cashflowData || [])
       projectFilter
 
     ])
+const filteredTransactions=
+transactions.filter(t=>{
 
+if(periodFilter==='overall')
+return true
+
+return getFinancialYear(
+t.transaction_date
+)===periodFilter
+
+})
   const totalProjects =
     filteredProjects.length
 
@@ -197,6 +209,8 @@ getCurrentCapitalBlocked(row),
 
     )].sort()
 
+
+  
   if (loading) {
 
     return <div>
@@ -206,7 +220,19 @@ getCurrentCapitalBlocked(row),
     </div>
 
   }
+function getFinancialYear(date){
 
+const d=new Date(date)
+
+const y=d.getFullYear()
+
+const m=d.getMonth()+1
+
+return m>=4
+?`${y}-${String(y+1).slice(-2)}`
+:`${y-1}-${String(y).slice(-2)}`
+
+}
 return (
 
   <div
@@ -429,23 +455,27 @@ return (
 
         <div>
 
-          <label>
+         <label>
 
-            Financial Year
+Period
 
-          </label>
+</label>
 
-          <br />
+<br />
+<select
+value={periodFilter}
+onChange={e=>setPeriodFilter(e.target.value)}
+>
 
-          <select>
+<option value="overall">Overall</option>
 
-            <option>
+<option value="2024-25">FY 2024-25</option>
 
-              All
+<option value="2025-26">FY 2025-26</option>
 
-            </option>
+<option value="2026-27">FY 2026-27</option>
 
-          </select>
+</select>
 
         </div>
 
@@ -552,7 +582,7 @@ gridTemplateColumns:
 
         <Card
 
-          title="Current Capital Blocked"
+          title="Capital Currently Blocked"
 
           value={
 
@@ -763,12 +793,13 @@ textAlign:'right',
 fontWeight:'bold'
 }}
 >
-
-₹{
-getPeakCapital(project.id,cashflow).toLocaleString('en-IN')
-
+{
+getPeakCapital(project.id,transactions)>0
+?
+'₹'+getPeakCapital(project.id,transactions).toLocaleString('en-IN')
+:
+'-'
 }
-
 </td>
 <td
 style={{
@@ -776,10 +807,13 @@ textAlign:'center',
 fontWeight:'bold'
 }}
 >
-
 {
-getCapitalRecycling(project,cashflow).toFixed(2)
-}x
+getPeakCapital(project.id,transactions)>0
+?
+getCapitalRecycling(project,transactions).toFixed(2)+'x'
+:
+'-'
+}
 
 </td>
 
@@ -969,9 +1003,9 @@ style={{
 color:
 profit>=0
 ?
-'green'
+'#15803d'
 :
-'red',
+'#dc2626',
 fontWeight:'bold',
 textAlign:'right'
 }}
@@ -1001,7 +1035,13 @@ textAlign:'center',
 fontWeight:'bold'
 }}
 >
-{getCapitalRecycling(project,cashflow).toFixed(2)}x
+{
+getPeakCapital(project.id,transactions)>0
+?
+getCapitalRecycling(project,transactions).toFixed(2)+'x'
+:
+'-'
+}
 </td>
 
 </tr>
