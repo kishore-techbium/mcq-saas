@@ -177,30 +177,12 @@ setCashflow(cashflowData || [])
     )
 
   const currentCapitalBlocked =
-    filteredProjects.reduce(
-
-      (sum, row) =>
-
-        sum +
-
-        Math.max(
-
-          Number(
-            row.expenses || 0
-          ) -
-
-          Number(
-            row.collections || 0
-          ),
-
-          0
-
-        ),
-
-      0
-
-    )
-
+filteredProjects.reduce(
+(sum,row)=>
+sum+
+getCurrentCapitalBlocked(row),
+0
+)
 
 
   const clients =
@@ -783,10 +765,7 @@ fontWeight:'bold'
 >
 
 ₹{
-
-getPeakCapital(
-project.id
-).toLocaleString('en-IN')
+getPeakCapital(project.id,cashflow).toLocaleString('en-IN')
 
 }
 
@@ -799,23 +778,7 @@ fontWeight:'bold'
 >
 
 {
-
-getPeakCapital(project.id)>0
-
-?
-
-(
-
-Number(project.collections||0)
-
-/
-
-getPeakCapital(project.id)
-
-).toFixed(2)
-
-:1
-
+getCapitalRecycling(project,cashflow).toFixed(2)
 }x
 
 </td>
@@ -1034,19 +997,11 @@ margin.toFixed(2)
 
 <td
 style={{
-textAlign:'right',
+textAlign:'center',
 fontWeight:'bold'
 }}
 >
-
-₹{
-
-getPeakCapital(
-project.id
-).toLocaleString('en-IN')
-
-}
-
+{getCapitalRecycling(project,cashflow).toFixed(2)}x
 </td>
 
 </tr>
