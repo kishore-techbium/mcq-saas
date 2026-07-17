@@ -145,13 +145,15 @@ t.transaction_date
 
 })
 
-const transactionSummary={}
+const transactionSummary = useMemo(() => {
 
-filteredTransactions.forEach(t=>{
+const summary = {}
 
-if(!transactionSummary[t.project_id]){
+filteredTransactions.forEach(t => {
 
-transactionSummary[t.project_id]={
+if(!summary[t.project_id]){
+
+summary[t.project_id]={
 invoice:0,
 collection:0,
 expense:0
@@ -160,15 +162,50 @@ expense:0
 }
 
 if(t.transaction_type==='Invoice')
-transactionSummary[t.project_id].invoice+=Number(t.amount||0)
+summary[t.project_id].invoice+=Number(t.amount||0)
 
 if(t.transaction_type==='Collection')
-transactionSummary[t.project_id].collection+=Number(t.amount||0)
+summary[t.project_id].collection+=Number(t.amount||0)
 
 if(t.transaction_type==='Expense')
-transactionSummary[t.project_id].expense+=Number(t.amount||0)
+summary[t.project_id].expense+=Number(t.amount||0)
 
 })
+
+return summary
+
+},[filteredTransactions])
+
+console.log("Summary", transactionSummary)
+
+console.log(
+"KTIPL Summary",
+transactionSummary['a744a2ba-bf16-4cf5-8f77-829ba9cf82f9']
+)
+
+console.log(
+"Running Project",
+runningProjects.find(
+p=>p.id==='a744a2ba-bf16-4cf5-8f77-829ba9cf82f9'
+)
+)
+
+  
+const activeProjectIds = new Set(
+filteredTransactions.map(t=>t.project_id)
+)
+
+const runningProjects =
+filteredProjects.filter(project=>
+project.status!=='closed' &&
+activeProjectIds.has(project.id)
+)
+
+const closedProjects =
+filteredProjects.filter(project=>
+project.status==='closed' &&
+activeProjectIds.has(project.id)
+)
   const totalProjects =
     filteredProjects.length
 
@@ -619,13 +656,7 @@ Running Projects (
 
 {
 
-filteredProjects.filter(
-
-project =>
-
-project.status !== 'closed'
-
-).length
+runningProjects.length
 
 }
 
@@ -675,17 +706,7 @@ color:'#fff'
 
 {
 
-filteredProjects
-
-.filter(
-
-project=>
-
-project.status!=='closed'
-
-)
-
-.map((project,index) => (
+runningProjects.map((project,index) => (
 
 <tr
 key={project.id}
@@ -902,13 +923,7 @@ Closed Projects (
 
 {
 
-filteredProjects.filter(
-
-project =>
-
-project.status === 'closed'
-
-).length
+closedProjects.length
 
 }
 
@@ -955,17 +970,7 @@ color:'#fff'
 
 {
 
-filteredProjects
-
-.filter(
-
-project=>
-
-project.status==='closed'
-
-)
-
-.map((project,index)=>{
+closedProjects.map((project,index)=>{
 
 const profit=
 
