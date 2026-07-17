@@ -51,11 +51,6 @@ const {
   .select("*", { count: "exact" })
   .order("transaction_date")
   .range(0, 9999)
-console.log("******** RANGE TEST ********")
-console.log("Transaction Count:", transactionData?.length)
-console.log("Error:", error)
-console.log("Count:", count)
-console.log("Returned:", transactionData?.length)
 
 setTransactions(transactionData || [])
     if (!error) {
@@ -192,43 +187,11 @@ const activeProjectIds = new Set(
 filteredTransactions.map(t=>t.project_id)
 )
 
-console.log("Period:", periodFilter)
-
-console.log(
-"KTIPL in activeProjectIds:",
-activeProjectIds.has("a744a2ba-bf16-4cf5-8f77-829ba9cf82f9")
-)
-
-console.log(
-filteredTransactions.filter(
-t=>t.project_id==="a744a2ba-bf16-4cf5-8f77-829ba9cf82f9"
-)
-)
-
 const runningProjects =
 filteredProjects.filter(project=>
 project.status!=='closed' &&
 activeProjectIds.has(project.id)
 )
-console.log(
-"KTIPL Project",
-filteredProjects.find(
-p => p.project_name === "KTIPL FOB painting"
-)
-)
-
-console.log(
-"KTIPL Running",
-runningProjects.find(
-p => p.project_name === "KTIPL FOB painting"
-)
-)
-
-console.log(
-"Active IDs",
-Array.from(activeProjectIds)
-)
-
 const closedProjects =
 filteredProjects.filter(project=>
 project.status==='closed' &&
