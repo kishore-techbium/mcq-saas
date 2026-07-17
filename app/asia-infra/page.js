@@ -182,10 +182,41 @@ const activeProjectIds = new Set(
 filteredTransactions.map(t=>t.project_id)
 )
 
+console.log("Period:", periodFilter)
+
+console.log(
+"KTIPL in activeProjectIds:",
+activeProjectIds.has("a744a2ba-bf16-4cf5-8f77-829ba9cf82f9")
+)
+
+console.log(
+filteredTransactions.filter(
+t=>t.project_id==="a744a2ba-bf16-4cf5-8f77-829ba9cf82f9"
+)
+)
+
 const runningProjects =
 filteredProjects.filter(project=>
 project.status!=='closed' &&
 activeProjectIds.has(project.id)
+)
+console.log(
+"KTIPL Project",
+filteredProjects.find(
+p => p.project_name === "KTIPL FOB painting"
+)
+)
+
+console.log(
+"KTIPL Running",
+runningProjects.find(
+p => p.project_name === "KTIPL FOB painting"
+)
+)
+
+console.log(
+"Active IDs",
+Array.from(activeProjectIds)
 )
 
 const closedProjects =
