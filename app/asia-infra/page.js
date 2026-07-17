@@ -50,7 +50,8 @@ const {
   .select("*", { count: "exact" })
   .order("transaction_date")
   .range(0, 9999)
-
+console.log("******** RANGE TEST ********")
+console.log("Transaction Count:", transactionData?.length)
 console.log("Error:", error)
 console.log("Count:", count)
 console.log("Returned:", transactionData?.length)
