@@ -41,10 +41,11 @@ export default function AsiaInfraDashboard() {
         .order(
           'project_name'
         )
+
 const {
   data: transactionData,
   count,
-  error
+    error: transactionError
 } = await supabase
   .from("ai_dashboard_transactions")
   .select("*", { count: "exact" })
