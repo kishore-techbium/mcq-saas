@@ -46,7 +46,7 @@ await supabase
 .from('ai_dashboard_transactions')
 .select('*')
 .order('transaction_date')
-
+.range(0, 9999)
 console.log("Transaction Count:", transactionData?.length)
 
 console.log(
