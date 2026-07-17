@@ -41,20 +41,19 @@ export default function AsiaInfraDashboard() {
         .order(
           'project_name'
         )
-const { data: transactionData } =
-await supabase
-.from('ai_dashboard_transactions')
-.select('*')
-.order('transaction_date')
-.range(0, 9999)
-console.log("Transaction Count:", transactionData?.length)
+const {
+  data: transactionData,
+  count,
+  error
+} = await supabase
+  .from("ai_dashboard_transactions")
+  .select("*", { count: "exact" })
+  .order("transaction_date")
+  .range(0, 9999)
 
-console.log(
-"KTIPL Transactions:",
-transactionData?.filter(
-t => t.project_id === "a744a2ba-bf16-4cf5-8f77-829ba9cf82f9"
-)
-)
+console.log("Error:", error)
+console.log("Count:", count)
+console.log("Returned:", transactionData?.length)
 
 setTransactions(transactionData || [])
     if (!error) {
