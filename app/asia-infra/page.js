@@ -176,17 +176,6 @@ return summary
 
 },[filteredTransactions])
 
-console.log("Summary", transactionSummary)
-
-console.log(transactionSummary['a744a2ba-bf16-4cf5-8f77-829ba9cf82f9']
-)
-
-console.log(
-"Running Project",
-runningProjects.find(
-p=>p.id==='a744a2ba-bf16-4cf5-8f77-829ba9cf82f9'
-)
-)
 
   
 const activeProjectIds = new Set(
