@@ -47,6 +47,15 @@ await supabase
 .select('*')
 .order('transaction_date')
 
+console.log("Transaction Count:", transactionData?.length)
+
+console.log(
+"KTIPL Transactions:",
+transactionData?.filter(
+t => t.project_id === "a744a2ba-bf16-4cf5-8f77-829ba9cf82f9"
+)
+)
+
 setTransactions(transactionData || [])
     if (!error) {
 
