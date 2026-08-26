@@ -2,61 +2,121 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { getAdminCollege } from '../../../lib/getAdminCollege'
+
 import * as XLSX from 'xlsx'
+
 import 'katex/dist/katex.min.css'
+
 import Tesseract from 'tesseract.js'
+
 import renderMathInElement from 'katex/contrib/auto-render'
+
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun
+} from 'docx'
+
+import {
+  mathJaxReady,
+  convertLatex2Math
+} from '@hungknguyen/docx-math-converter'
+
 
 export default function QuestionStudioPage() {
 
   /* =========================================================
-     BASIC STATE
+     AUTH
   ========================================================= */
 
   const [adminName, setAdminName] = useState('')
   const [loading, setLoading] = useState(true)
 
-  const [subject, setSubject] = useState('Physics')
-  const [difficulty, setDifficulty] = useState('Easy')
+
+  /* =========================================================
+     QUESTION DATA
+  ========================================================= */
 
   const [question, setQuestion] = useState('')
+
   const [optionA, setOptionA] = useState('')
   const [optionB, setOptionB] = useState('')
   const [optionC, setOptionC] = useState('')
   const [optionD, setOptionD] = useState('')
+
   const [correctAnswer, setCorrectAnswer] = useState('A')
+
   const [explanation, setExplanation] = useState('')
 
+
+  /* =========================================================
+     ACTIVE FIELD
+  ========================================================= */
+
   const [activeField, setActiveField] = useState('question')
-  const [activeFormulaTab, setActiveFormulaTab] = useState('physics')
+
+
+  /* =========================================================
+     FORMULA TAB
+  ========================================================= */
+
+  const [activeFormulaTab, setActiveFormulaTab] =
+    useState('physics')
+
 
   /* =========================================================
      OCR
   ========================================================= */
 
   const [imageFile, setImageFile] = useState(null)
-  const [imagePreview, setImagePreview] = useState(null)
-  const [ocrLoading, setOcrLoading] = useState(false)
-  const [ocrProgress, setOcrProgress] = useState(0)
-  const [dragActive, setDragActive] = useState(false)
+
+  const [imagePreview, setImagePreview] =
+    useState(null)
+
+  const [ocrLoading, setOcrLoading] =
+    useState(false)
+
+  const [ocrProgress, setOcrProgress] =
+    useState(0)
+
+  const [dragActive, setDragActive] =
+    useState(false)
+
 
   /* =========================================================
      EXCEL
   ========================================================= */
 
-  const [excelFile, setExcelFile] = useState(null)
-  const [excelPreview, setExcelPreview] = useState([])
-  const [processedData, setProcessedData] = useState([])
+  const [excelFile, setExcelFile] =
+    useState(null)
+
+  const [excelPreview, setExcelPreview] =
+    useState([])
+
+  const [processedData, setProcessedData] =
+    useState([])
+
+
+  /* =========================================================
+     WORD
+  ========================================================= */
+
+  const [wordLoading, setWordLoading] =
+    useState(false)
+
 
   /* =========================================================
      REFS
   ========================================================= */
 
   const previewRef = useRef(null)
+
   const inputRefs = useRef({})
 
+
   /* =========================================================
-     AUTH
+     AUTH INIT
   ========================================================= */
 
   useEffect(() => {
@@ -65,19 +125,27 @@ export default function QuestionStudioPage() {
 
       try {
 
-        const data = await getAdminCollege()
+        const data =
+          await getAdminCollege()
 
         if (!data) {
+
           window.location.href = '/'
+
           return
+
         }
 
-        setAdminName(data.adminName || '')
+        setAdminName(
+          data.adminName || ''
+        )
+
         setLoading(false)
 
       } catch (error) {
 
         console.error(error)
+
         window.location.href = '/'
 
       }
@@ -88,6 +156,7 @@ export default function QuestionStudioPage() {
 
   }, [])
 
+
   /* =========================================================
      CLIPBOARD IMAGE PASTE
   ========================================================= */
@@ -96,33 +165,25 @@ export default function QuestionStudioPage() {
 
     function handlePaste(event) {
 
-      const items = event.clipboardData?.items
+      const items =
+        event.clipboardData?.items
 
       if (!items) return
 
       for (const item of items) {
 
-        if (item.type.startsWith('image/')) {
+        if (
+          item.type.startsWith('image/')
+        ) {
 
-          const file = item.getAsFile()
+          const file =
+            item.getAsFile()
 
           if (!file) return
 
           event.preventDefault()
 
-          setImageFile(file)
-
-          if (imagePreview) {
-            URL.revokeObjectURL(imagePreview)
-          }
-
-          const url = URL.createObjectURL(file)
-
-          setImagePreview(url)
-
-          setTimeout(() => {
-            processImageOCR(file)
-          }, 100)
+          handleImageFile(file)
 
           return
 
@@ -132,13 +193,22 @@ export default function QuestionStudioPage() {
 
     }
 
-    window.addEventListener('paste', handlePaste)
+    window.addEventListener(
+      'paste',
+      handlePaste
+    )
 
     return () => {
-      window.removeEventListener('paste', handlePaste)
+
+      window.removeEventListener(
+        'paste',
+        handlePaste
+      )
+
     }
 
-  }, [imagePreview])
+  }, [])
+
 
   /* =========================================================
      CLEAN IMAGE URL
@@ -149,44 +219,57 @@ export default function QuestionStudioPage() {
     return () => {
 
       if (imagePreview) {
-        URL.revokeObjectURL(imagePreview)
+
+        URL.revokeObjectURL(
+          imagePreview
+        )
+
       }
 
     }
 
   }, [imagePreview])
 
+
   /* =========================================================
      GREEK SYMBOLS
   ========================================================= */
 
   const GREEK = {
+
     'α': '\\alpha',
     'β': '\\beta',
     'γ': '\\gamma',
     'δ': '\\delta',
     'ε': '\\epsilon',
     'ϵ': '\\varepsilon',
+
     'ζ': '\\zeta',
     'η': '\\eta',
+
     'θ': '\\theta',
     'ϑ': '\\vartheta',
+
     'ι': '\\iota',
     'κ': '\\kappa',
     'λ': '\\lambda',
     'μ': '\\mu',
     'ν': '\\nu',
     'ξ': '\\xi',
+
     'π': '\\pi',
     'ρ': '\\rho',
     'σ': '\\sigma',
     'τ': '\\tau',
     'υ': '\\upsilon',
+
     'φ': '\\phi',
     'ϕ': '\\varphi',
+
     'χ': '\\chi',
     'ψ': '\\psi',
     'ω': '\\omega',
+
     'Γ': '\\Gamma',
     'Δ': '\\Delta',
     'Θ': '\\Theta',
@@ -198,9 +281,16 @@ export default function QuestionStudioPage() {
     'Φ': '\\Phi',
     'Ψ': '\\Psi',
     'Ω': '\\Omega'
+
   }
 
+
+  /* =========================================================
+     SUPER SCRIPTS
+  ========================================================= */
+
   const SUPER = {
+
     '⁰': '0',
     '¹': '1',
     '²': '2',
@@ -211,16 +301,26 @@ export default function QuestionStudioPage() {
     '⁷': '7',
     '⁸': '8',
     '⁹': '9',
+
     '⁺': '+',
     '⁻': '-',
+
     '⁽': '(',
     '⁾': ')',
+
     'ⁿ': 'n',
     'ᵐ': 'm',
     'ˣ': 'x'
+
   }
 
+
+  /* =========================================================
+     SUB SCRIPTS
+  ========================================================= */
+
   const SUB = {
+
     '₀': '0',
     '₁': '1',
     '₂': '2',
@@ -231,21 +331,30 @@ export default function QuestionStudioPage() {
     '₇': '7',
     '₈': '8',
     '₉': '9',
+
     '₊': '+',
     '₋': '-'
+
   }
+
+
+  /* =========================================================
+     REPLACE GREEK
+  ========================================================= */
 
   function replaceGreek(text) {
 
     return text.replace(
-      /[α-ωΑ-Ωϵϑϖϱςφϕ]/g,
-      char => GREEK[char] || char
+      /[α-ωΑ-Ωϵϑφϕ]/g,
+      char =>
+        GREEK[char] || char
     )
 
   }
 
+
   /* =========================================================
-     SUPER / SUBSCRIPT
+     CONVERT UNICODE SUPERSCRIPTS
   ========================================================= */
 
   function convertSuperscripts(text) {
@@ -254,9 +363,13 @@ export default function QuestionStudioPage() {
       /([A-Za-z0-9)])([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁽⁾ⁿᵐˣ]+)/g,
       (_, base, powers) => {
 
-        const value = [...powers]
-          .map(char => SUPER[char] || char)
-          .join('')
+        const value =
+          [...powers]
+            .map(
+              char =>
+                SUPER[char] || char
+            )
+            .join('')
 
         return `${base}^{${value}}`
 
@@ -265,15 +378,24 @@ export default function QuestionStudioPage() {
 
   }
 
+
+  /* =========================================================
+     CONVERT UNICODE SUBSCRIPTS
+  ========================================================= */
+
   function convertSubscripts(text) {
 
     return text.replace(
       /([A-Za-z][A-Za-z0-9]*)([₀₁₂₃₄₅₆₇₈₉₊₋]+)/g,
       (_, base, subs) => {
 
-        const value = [...subs]
-          .map(char => SUB[char] || char)
-          .join('')
+        const value =
+          [...subs]
+            .map(
+              char =>
+                SUB[char] || char
+            )
+            .join('')
 
         return `${base}_{${value}}`
 
@@ -281,6 +403,7 @@ export default function QuestionStudioPage() {
     )
 
   }
+
 
   /* =========================================================
      PROTECT EXISTING LATEX
@@ -292,7 +415,8 @@ export default function QuestionStudioPage() {
 
     function save(value) {
 
-      const token = `@@LATEX_${saved.length}@@`
+      const token =
+        `@@LATEX_${saved.length}@@`
 
       saved.push(value)
 
@@ -302,25 +426,40 @@ export default function QuestionStudioPage() {
 
     let result = text
 
-    result = result.replace(
-      /\$\$[\s\S]*?\$\$/g,
-      value => save(value)
-    )
 
-    result = result.replace(
-      /\$[^$\n]+?\$/g,
-      value => save(value)
-    )
+    result =
+      result.replace(
+        /\$\$[\s\S]*?\$\$/g,
+        value => save(value)
+      )
 
-    result = result.replace(
-      /\\\[[\s\S]*?\\\]/g,
-      value => save(`$$${value.slice(2, -2)}$$`)
-    )
 
-    result = result.replace(
-      /\\\([\s\S]*?\\\)/g,
-      value => save(`$${value.slice(2, -2)}$`)
-    )
+    result =
+      result.replace(
+        /\$[^$\n]+?\$/g,
+        value => save(value)
+      )
+
+
+    result =
+      result.replace(
+        /\\\[[\s\S]*?\\\]/g,
+        value =>
+          save(
+            `$$${value.slice(2, -2)}$$`
+          )
+      )
+
+
+    result =
+      result.replace(
+        /\\\([\s\S]*?\\\)/g,
+        value =>
+          save(
+            `$${value.slice(2, -2)}$`
+          )
+      )
+
 
     return {
       result,
@@ -329,182 +468,83 @@ export default function QuestionStudioPage() {
 
   }
 
-  function restoreLatex(text, saved) {
+
+  /* =========================================================
+     RESTORE LATEX
+  ========================================================= */
+
+  function restoreLatex(
+    text,
+    saved
+  ) {
 
     return text.replace(
       /@@LATEX_(\d+)@@/g,
-      (_, index) => saved[Number(index)] || ''
+      (_, index) =>
+        saved[Number(index)] || ''
     )
 
   }
 
+
   /* =========================================================
-     SYMBOL NORMALIZATION
+     NORMALIZE SYMBOLS
   ========================================================= */
 
   function normalizeSymbols(text) {
 
     return text
+
       .replace(/≤/g, '\\leq')
+
       .replace(/≥/g, '\\geq')
+
       .replace(/≠/g, '\\neq')
+
       .replace(/≈/g, '\\approx')
+
       .replace(/∞/g, '\\infty')
+
       .replace(/×/g, '\\times')
+
       .replace(/÷/g, '\\div')
+
       .replace(/±/g, '\\pm')
+
       .replace(/∓/g, '\\mp')
-      .replace(/→/g, '\\rightarrow')
-      .replace(/←/g, '\\leftarrow')
-      .replace(/↔/g, '\\leftrightarrow')
-      .replace(/⇌/g, '\\rightleftharpoons')
-      .replace(/↑/g, '\\uparrow')
-      .replace(/↓/g, '\\downarrow')
+
+      .replace(
+        /→/g,
+        '\\rightarrow'
+      )
+
+      .replace(
+        /←/g,
+        '\\leftarrow'
+      )
+
+      .replace(
+        /↔/g,
+        '\\leftrightarrow'
+      )
+
+      .replace(
+        /⇌/g,
+        '\\rightleftharpoons'
+      )
+
+      .replace(
+        /↑/g,
+        '\\uparrow'
+      )
+
+      .replace(
+        /↓/g,
+        '\\downarrow'
+      )
 
   }
 
-  /* =========================================================
-     CHEMISTRY
-  ========================================================= */
-
-  function chemistryFormula(formula) {
-
-    let value = formula
-
-    /*
-      Examples:
-      H2O
-      H2SO4
-      CaCO3
-      Na+
-      Ca2+
-      SO4^2-
-    */
-
-    value = value.replace(
-      /([A-Z][a-z]?)(\d+)/g,
-      '$1_{$2}'
-    )
-
-    value = value.replace(
-      /\^(\d*[+-])/g,
-      '^{$1}'
-    )
-
-    value = value.replace(
-      /([A-Za-z])([+-])$/g,
-      '$1^{$2}'
-    )
-
-    return `\\mathrm{${value}}`
-
-  }
-
-  function isChemicalFormula(value) {
-
-    const clean = value.replace(/\s/g, '')
-
-    if (!clean) return false
-
-    const known = [
-      'H2O',
-      'CO2',
-      'NH3',
-      'CH4',
-      'O2',
-      'H2',
-      'N2',
-      'HCl',
-      'NaCl',
-      'KCl',
-      'NaOH',
-      'KOH',
-      'CaCO3',
-      'CaO',
-      'Ca(OH)2',
-      'H2SO4',
-      'HNO3',
-      'H3PO4',
-      'Na2CO3',
-      'NaHCO3',
-      'KMnO4',
-      'K2Cr2O7',
-      'C6H12O6',
-      'C2H5OH',
-      'CH3COOH',
-      'Fe2O3',
-      'Fe3O4',
-      'CuSO4',
-      'MgO',
-      'MgCl2',
-      'Al2O3',
-      'SO2',
-      'SO3',
-      'SO4',
-      'NO2',
-      'NO3',
-      'PO4',
-      'Cl2',
-      'Br2',
-      'I2',
-      'F2',
-      'CaCl2',
-      'NH4Cl'
-    ]
-
-    if (known.includes(clean)) return true
-
-    if (/\d/.test(clean)) return true
-
-    if (/[+-]$/.test(clean)) return true
-
-    if (/\^\d*[+-]/.test(clean)) return true
-
-    return false
-
-  }
-
-  function convertChemistry(text) {
-
-    let value = text
-
-    /*
-      Chemical formulas containing multiple elements.
-    */
-
-    value = value.replace(
-      /\b[A-Z][A-Za-z0-9()]*\d*(?:\^\d*[+-])?\b/g,
-      match => {
-
-        if (!isChemicalFormula(match)) {
-          return match
-        }
-
-        return `$${chemistryFormula(match)}$`
-
-      }
-    )
-
-    /*
-      Ionic charges.
-    */
-
-    value = value.replace(
-      /\b([A-Z][a-z]?)(\d*[+-])\b/g,
-      match => `$${chemistryFormula(match)}$`
-    )
-
-    /*
-      Reaction arrows.
-    */
-
-    value = value
-      .replace(/\s*->\s*/g, ' $\\rightarrow$ ')
-      .replace(/\s*=>\s*/g, ' $\\Rightarrow$ ')
-
-    return value
-
-  }
 
   /* =========================================================
      MATH FRAGMENT
@@ -514,289 +554,639 @@ export default function QuestionStudioPage() {
 
     let value = text
 
-    value = convertSuperscripts(value)
-    value = convertSubscripts(value)
-    value = replaceGreek(value)
 
-    /*
-      1/2
-      3/4
-      a/b
-    */
+    value =
+      convertSuperscripts(value)
 
-    value = value.replace(
-      /\b(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\b/g,
-      '\\frac{$1}{$2}'
-    )
 
-    value = value.replace(
-      /\b([A-Za-z]+)\s*\/\s*([A-Za-z]+)\b/g,
-      '\\frac{$1}{$2}'
-    )
+    value =
+      convertSubscripts(value)
 
-    /*
-      x^2
-      x^(n+1)
-    */
 
-    value = value.replace(
-      /([A-Za-z0-9]+)\s*\^\s*\(([^)]+)\)/g,
-      '$1^{$2}'
-    )
+    value =
+      replaceGreek(value)
 
-    value = value.replace(
-      /([A-Za-z0-9]+)\s*\^\s*([A-Za-z0-9+\-]+)/g,
-      '$1^{$2}'
-    )
 
-    /*
-      Square root.
-    */
+    /* -----------------------------------------
+       Fractions
+    ----------------------------------------- */
 
-    value = value.replace(
-      /√\s*\(([^)]+)\)/g,
-      '\\sqrt{$1}'
-    )
+    value =
+      value.replace(
+        /\b(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\b/g,
+        '\\frac{$1}{$2}'
+      )
 
-    value = value.replace(
-      /√\s*([A-Za-z0-9]+)/g,
-      '\\sqrt{$1}'
-    )
 
-    /*
-      Scientific notation:
-      3 × 10^8
-      3x10^8
-    */
+    value =
+      value.replace(
+        /\b([A-Za-z]+)\s*\/\s*([A-Za-z]+)\b/g,
+        '\\frac{$1}{$2}'
+      )
 
-    value = value.replace(
-      /\b(\d+(?:\.\d+)?)\s*(?:\\times|x)\s*10\s*\^?\s*([+-]?\d+)\b/gi,
-      '$1\\times10^{$2}'
-    )
+
+    /* -----------------------------------------
+       Powers
+    ----------------------------------------- */
+
+    value =
+      value.replace(
+        /([A-Za-z0-9]+)\s*\^\s*\(([^)]+)\)/g,
+        '$1^{$2}'
+      )
+
+
+    value =
+      value.replace(
+        /([A-Za-z0-9]+)\s*\^\s*([A-Za-z0-9+\-]+)/g,
+        '$1^{$2}'
+      )
+
+
+    /* -----------------------------------------
+       Square root
+    ----------------------------------------- */
+
+    value =
+      value.replace(
+        /√\s*\(([^)]+)\)/g,
+        '\\sqrt{$1}'
+      )
+
+
+    value =
+      value.replace(
+        /√\s*([A-Za-z0-9]+)/g,
+        '\\sqrt{$1}'
+      )
+
+
+    /* -----------------------------------------
+       Scientific notation
+    ----------------------------------------- */
+
+    value =
+      value.replace(
+        /\b(\d+(?:\.\d+)?)\s*(?:\\times|x)\s*10\s*\^?\s*([+-]?\d+)\b/gi,
+        '$1\\times10^{$2}'
+      )
+
 
     return value
 
   }
 
+
   /* =========================================================
-     EQUATIONS
+     EQUATION DETECTION
   ========================================================= */
 
   function convertEquations(text) {
 
-    /*
-      Examples:
-      F = ma
-      v = u + at
-      KE = 1/2 mv^2
-      V = IR
-      x = 10
-    */
-
     const pattern =
       /(?<![A-Za-z0-9])([A-Za-zρλθπΔμσΩ][A-Za-z0-9ρλθπΔμσΩ_{}^().+\-*/\s]*?(?:=|≈|≠|≤|≥)[A-Za-z0-9ρλθπΔμσΩ_{}^().+\-*/\s]+)(?=[,.;:\n]|$)/g
 
-    return text.replace(pattern, match => {
 
-      const clean = match.trim()
+    return text.replace(
+      pattern,
+      match => {
 
-      if (clean.length > 100) {
-        return match
+        const clean =
+          match.trim()
+
+
+        if (
+          clean.length > 100
+        ) {
+
+          return match
+
+        }
+
+
+        if (
+          !/[=≈≠≤≥]/.test(clean)
+        ) {
+
+          return match
+
+        }
+
+
+        /*
+          Don't turn normal English
+          sentences into equations.
+        */
+
+        if (
+          /\b(is|are|was|were|means|equals)\b/i
+            .test(clean) &&
+          !/[A-Za-z]\s*=\s*/.test(clean)
+        ) {
+
+          return match
+
+        }
+
+
+        return `$${convertMathFragment(clean)}$`
+
       }
-
-      if (!/[=≈≠≤≥]/.test(clean)) {
-        return match
-      }
-
-      /*
-        Avoid converting ordinary English sentences.
-      */
-
-      if (
-        /\b(is|are|was|were|means|equals)\b/i.test(clean) &&
-        !/[A-Za-z]\s*=\s*/.test(clean)
-      ) {
-        return match
-      }
-
-      return `$${convertMathFragment(clean)}$`
-
-    })
+    )
 
   }
 
+
   /* =========================================================
-     STANDALONE FRACTIONS / POWERS
+     SIMPLE MATH
   ========================================================= */
 
   function convertStandaloneMath(text) {
 
     let value = text
 
-    /*
-      Simple fraction:
-      1/2
-      3/4
-      a/b
-    */
 
-    value = value.replace(
-      /(?<![\w$])(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)(?![\w$])/g,
-      match => `$${convertMathFragment(match)}$`
-    )
+    /* -----------------------------------------
+       Fractions
+    ----------------------------------------- */
 
-    /*
-      x^2
-      v^2
-      r^(2)
-    */
+    value =
+      value.replace(
+        /(?<![\w$])(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)(?![\w$])/g,
+        match =>
+          `$${convertMathFragment(match)}$`
+      )
 
-    value = value.replace(
-      /(?<![\w$])([A-Za-z])\s*\^\s*(\([^)]+\)|[A-Za-z0-9+\-]+)(?![\w$])/g,
-      (_, base, power) => {
 
-        return `$${convertMathFragment(`${base}^${power}`)}$`
+    /* -----------------------------------------
+       Powers
+    ----------------------------------------- */
 
-      }
-    )
+    value =
+      value.replace(
+        /(?<![\w$])([A-Za-z])\s*\^\s*(\([^)]+\)|[A-Za-z0-9+\-]+)(?![\w$])/g,
+        (_, base, power) =>
+          `$${convertMathFragment(
+            `${base}^${power}`
+          )}$`
+      )
 
-    /*
-      √x
-      √(x+1)
-    */
 
-    value = value.replace(
-      /√\s*\(([^)]+)\)/g,
-      (_, inside) => `$\\sqrt{${inside}}$`
-    )
+    /* -----------------------------------------
+       Square roots
+    ----------------------------------------- */
 
-    value = value.replace(
-      /√\s*([A-Za-z0-9]+)/g,
-      (_, inside) => `$\\sqrt{${inside}}$`
-    )
+    value =
+      value.replace(
+        /√\s*\(([^)]+)\)/g,
+        (_, inside) =>
+          `$\\sqrt{${inside}}$`
+      )
+
+
+    value =
+      value.replace(
+        /√\s*([A-Za-z0-9]+)/g,
+        (_, inside) =>
+          `$\\sqrt{${inside}}$`
+      )
+
 
     return value
 
   }
+
+
+  /* =========================================================
+     CHEMISTRY
+  ========================================================= */
+
+  function chemistryFormula(
+    formula
+  ) {
+
+    let value = formula
+
+
+    /*
+      H2O
+      H2SO4
+      CaCO3
+      etc.
+    */
+
+    value =
+      value.replace(
+        /([A-Z][a-z]?)(\d+)/g,
+        '$1_{$2}'
+      )
+
+
+    /*
+      Ionic charge:
+      SO4^2-
+      Ca^2+
+    */
+
+    value =
+      value.replace(
+        /\^(\d*[+-])/g,
+        '^{$1}'
+      )
+
+
+    value =
+      value.replace(
+        /([A-Za-z])([+-])$/g,
+        '$1^{$2}'
+      )
+
+
+    return `\\mathrm{${value}}`
+
+  }
+
+
+  function isChemicalFormula(
+    value
+  ) {
+
+    const clean =
+      value.replace(
+        /\s/g,
+        ''
+      )
+
+
+    if (!clean) return false
+
+
+    const known = [
+
+      'H2O',
+      'CO2',
+      'NH3',
+      'CH4',
+
+      'O2',
+      'H2',
+      'N2',
+
+      'HCl',
+      'NaCl',
+      'KCl',
+
+      'NaOH',
+      'KOH',
+
+      'CaCO3',
+      'CaO',
+      'Ca(OH)2',
+
+      'H2SO4',
+      'HNO3',
+      'H3PO4',
+
+      'Na2CO3',
+      'NaHCO3',
+
+      'KMnO4',
+      'K2Cr2O7',
+
+      'C6H12O6',
+      'C2H5OH',
+      'CH3COOH',
+
+      'Fe2O3',
+      'Fe3O4',
+
+      'CuSO4',
+
+      'MgO',
+      'MgCl2',
+
+      'Al2O3',
+
+      'SO2',
+      'SO3',
+      'SO4',
+
+      'NO2',
+      'NO3',
+      'PO4',
+
+      'Cl2',
+      'Br2',
+      'I2',
+      'F2',
+
+      'CaCl2',
+      'NH4Cl'
+
+    ]
+
+
+    if (
+      known.includes(clean)
+    ) {
+
+      return true
+
+    }
+
+
+    if (
+      /\d/.test(clean)
+    ) {
+
+      return true
+
+    }
+
+
+    if (
+      /[+-]$/.test(clean)
+    ) {
+
+      return true
+
+    }
+
+
+    if (
+      /\^\d*[+-]/.test(clean)
+    ) {
+
+      return true
+
+    }
+
+
+    return false
+
+  }
+
+
+  function convertChemistry(
+    text
+  ) {
+
+    let value = text
+
+
+    /*
+      Chemical formula detection.
+    */
+
+    value =
+      value.replace(
+        /\b[A-Z][A-Za-z0-9()]*\d*(?:\^\d*[+-])?\b/g,
+        match => {
+
+          if (
+            !isChemicalFormula(match)
+          ) {
+
+            return match
+
+          }
+
+
+          return `$${chemistryFormula(
+            match
+          )}$`
+
+        }
+      )
+
+
+    /*
+      Ionic charges.
+    */
+
+    value =
+      value.replace(
+        /\b([A-Z][a-z]?)(\d*[+-])\b/g,
+        match =>
+          `$${chemistryFormula(
+            match
+          )}$`
+      )
+
+
+    /*
+      Chemical arrows.
+    */
+
+    value =
+      value.replace(
+        /\s*->\s*/g,
+        ' $\\rightarrow$ '
+      )
+
+
+    value =
+      value.replace(
+        /\s*=>\s*/g,
+        ' $\\Rightarrow$ '
+      )
+
+
+    return value
+
+  }
+
 
   /* =========================================================
      MAIN LATEX CONVERTER
   ========================================================= */
 
-  function autoWrap(text, mode = subject) {
+  function autoWrap(text) {
 
-    if (text === null || text === undefined) {
+    if (
+      text === null ||
+      text === undefined
+    ) {
+
       return ''
+
     }
 
-    let value = String(text)
-      .replace(/\r\n/g, '\n')
+
+    let value =
+      String(text)
+        .replace(
+          /\r\n/g,
+          '\n'
+        )
+
 
     /*
-      Protect existing LaTeX first.
+      Protect formulas already entered
+      by the user.
     */
 
-    const protectedData = protectLatex(value)
+    const protectedData =
+      protectLatex(value)
 
-    value = protectedData.result
+
+    value =
+      protectedData.result
+
 
     /*
-      Unicode superscripts/subscripts.
+      Unicode notation.
     */
 
-    value = convertSuperscripts(value)
-    value = convertSubscripts(value)
+    value =
+      convertSuperscripts(value)
+
+
+    value =
+      convertSubscripts(value)
+
 
     /*
-      Chemistry gets special treatment.
+      Normalize symbols.
     */
 
-    if (mode === 'Chemistry') {
-      value = convertChemistry(value)
-    }
+    value =
+      normalizeSymbols(value)
+
 
     /*
-      Common mathematical symbols.
+      Chemistry.
+
+      We intentionally apply this generally
+      because chemical formulas can occur
+      inside normal question text.
     */
 
-    value = normalizeSymbols(value)
+    value =
+      convertChemistry(value)
+
 
     /*
-      Convert equations.
+      Equations.
     */
 
-    value = convertEquations(value)
+    value =
+      convertEquations(value)
+
 
     /*
-      Convert simple fractions/powers.
+      Simple math.
     */
 
-    value = convertStandaloneMath(value)
+    value =
+      convertStandaloneMath(value)
+
 
     /*
-      Greek symbols.
+      Greek letters.
     */
 
-    value = replaceGreek(value)
+    value =
+      replaceGreek(value)
+
 
     /*
       Restore existing LaTeX.
     */
 
-    value = restoreLatex(
-      value,
-      protectedData.saved
-    )
+    value =
+      restoreLatex(
+        value,
+        protectedData.saved
+      )
+
 
     return value
 
   }
 
+
   /* =========================================================
-     FIELD HELPERS
+     GET FIELD VALUE
   ========================================================= */
 
-  function getFieldValue(field) {
+  function getFieldValue(
+    field
+  ) {
 
     const values = {
+
       question,
+
       optionA,
+
       optionB,
       optionC,
       optionD,
+
       explanation
+
     }
+
 
     return values[field] || ''
 
   }
 
-  function setFieldValue(field, value) {
+
+  /* =========================================================
+     SET FIELD
+  ========================================================= */
+
+  function setFieldValue(
+    field,
+    value
+  ) {
 
     const setters = {
+
       question: setQuestion,
+
       optionA: setOptionA,
       optionB: setOptionB,
       optionC: setOptionC,
       optionD: setOptionD,
+
       explanation: setExplanation
+
     }
 
-    if (setters[field]) {
+
+    if (
+      setters[field]
+    ) {
+
       setters[field](value)
+
     }
 
   }
 
+
   /* =========================================================
-     INSERT LATEX INTO CURRENT FIELD
+     INSERT FORMULA
   ========================================================= */
 
-  function insertFormula(latex) {
+  function insertFormula(
+    latex
+  ) {
 
-    const textarea = inputRefs.current[activeField]
+    const textarea =
+      inputRefs.current[
+        activeField
+      ]
 
-    const current = getFieldValue(activeField)
+
+    const current =
+      getFieldValue(
+        activeField
+      )
+
 
     if (!textarea) {
 
@@ -809,93 +1199,178 @@ export default function QuestionStudioPage() {
 
     }
 
+
     const start =
       textarea.selectionStart ??
       current.length
+
 
     const end =
       textarea.selectionEnd ??
       start
 
+
     const newText =
-      current.substring(0, start) +
+      current.substring(
+        0,
+        start
+      ) +
+
       latex +
-      current.substring(end)
+
+      current.substring(
+        end
+      )
+
 
     setFieldValue(
       activeField,
       newText
     )
 
+
     setTimeout(() => {
 
       textarea.focus()
 
+
       const cursor =
         start + latex.length
 
-      textarea.selectionStart = cursor
-      textarea.selectionEnd = cursor
+
+      textarea.selectionStart =
+        cursor
+
+      textarea.selectionEnd =
+        cursor
 
     }, 0)
 
   }
 
+
   /* =========================================================
-     FORMULA TOOLBAR
+     TOOLBAR
   ========================================================= */
 
   const TOOLBAR = {
 
     math: [
 
-      { label: 'x²', latex: 'x^2' },
-      { label: 'xⁿ', latex: 'x^n' },
+      {
+        label: 'x²',
+        latex: 'x^2'
+      },
 
-      { label: '√', latex: '\\sqrt{x}' },
-      { label: '∛', latex: '\\sqrt[3]{x}' },
+      {
+        label: 'xⁿ',
+        latex: 'x^n'
+      },
 
-      { label: '½', latex: '\\frac{1}{2}' },
-      { label: 'a/b', latex: '\\frac{a}{b}' },
+      {
+        label: '√',
+        latex: '\\sqrt{x}'
+      },
 
-      { label: '∫', latex: '\\int x\\,dx' },
+      {
+        label: '∛',
+        latex: '\\sqrt[3]{x}'
+      },
+
+      {
+        label: '½',
+        latex: '\\frac{1}{2}'
+      },
+
+      {
+        label: 'a/b',
+        latex: '\\frac{a}{b}'
+      },
+
+      {
+        label: '∫',
+        latex: '\\int x\\,dx'
+      },
+
       {
         label: '∫ₐᵇ',
-        latex: '\\int_{a}^{b}f(x)\\,dx'
+        latex:
+          '\\int_{a}^{b}f(x)\\,dx'
       },
 
       {
         label: 'Σ',
-        latex: '\\sum_{i=1}^{n}i'
+        latex:
+          '\\sum_{i=1}^{n}i'
       },
 
       {
         label: 'd/dx',
-        latex: '\\frac{d}{dx}'
+        latex:
+          '\\frac{d}{dx}'
       },
 
       {
         label: '∂',
-        latex: '\\partial'
+        latex:
+          '\\partial'
       },
 
       {
         label: 'lim',
-        latex: '\\lim_{x\\to a}'
+        latex:
+          '\\lim_{x\\to a}'
       },
 
-      { label: 'π', latex: '\\pi' },
-      { label: 'θ', latex: '\\theta' },
-      { label: 'λ', latex: '\\lambda' },
-      { label: 'μ', latex: '\\mu' },
-      { label: 'ρ', latex: '\\rho' },
+      {
+        label: 'π',
+        latex: '\\pi'
+      },
 
-      { label: '∞', latex: '\\infty' },
+      {
+        label: 'θ',
+        latex: '\\theta'
+      },
 
-      { label: '≈', latex: '\\approx' },
-      { label: '≠', latex: '\\neq' },
-      { label: '≤', latex: '\\leq' },
-      { label: '≥', latex: '\\geq' },
+      {
+        label: 'λ',
+        latex: '\\lambda'
+      },
+
+      {
+        label: 'μ',
+        latex: '\\mu'
+      },
+
+      {
+        label: 'ρ',
+        latex: '\\rho'
+      },
+
+      {
+        label: '∞',
+        latex: '\\infty'
+      },
+
+      {
+        label: '≈',
+        latex: '\\approx'
+      },
+
+      {
+        label: '≠',
+        latex: '\\neq'
+      },
+
+      {
+        label: '≤',
+        latex: '\\leq'
+      },
+
+      {
+        label: '≥',
+        latex: '\\geq'
+      },
 
       {
         label: '→',
@@ -914,16 +1389,19 @@ export default function QuestionStudioPage() {
 
     ],
 
+
     physics: [
 
       {
         label: 'v=d/t',
-        latex: 'v=\\frac{d}{t}'
+        latex:
+          'v=\\frac{d}{t}'
       },
 
       {
         label: 'a=(v-u)/t',
-        latex: 'a=\\frac{v-u}{t}'
+        latex:
+          'a=\\frac{v-u}{t}'
       },
 
       {
@@ -943,7 +1421,8 @@ export default function QuestionStudioPage() {
 
       {
         label: 'P=W/t',
-        latex: 'P=\\frac{W}{t}'
+        latex:
+          'P=\\frac{W}{t}'
       },
 
       {
@@ -953,7 +1432,8 @@ export default function QuestionStudioPage() {
 
       {
         label: 'ρ=m/V',
-        latex: '\\rho=\\frac{m}{V}'
+        latex:
+          '\\rho=\\frac{m}{V}'
       },
 
       {
@@ -963,7 +1443,8 @@ export default function QuestionStudioPage() {
 
       {
         label: 'KE',
-        latex: 'KE=\\frac{1}{2}mv^2'
+        latex:
+          'KE=\\frac{1}{2}mv^2'
       },
 
       {
@@ -973,17 +1454,20 @@ export default function QuestionStudioPage() {
 
       {
         label: 'g=9.8',
-        latex: 'g=9.8\\,m/s^2'
+        latex:
+          'g=9.8\\,m/s^2'
       },
 
       {
         label: 'f=1/T',
-        latex: 'f=\\frac{1}{T}'
+        latex:
+          'f=\\frac{1}{T}'
       },
 
       {
         label: 'c=3×10⁸',
-        latex: 'c=3\\times10^8\\,m/s'
+        latex:
+          'c=3\\times10^8\\,m/s'
       },
 
       {
@@ -1012,6 +1496,7 @@ export default function QuestionStudioPage() {
       }
 
     ],
+
 
     chemistry: [
 
@@ -1067,7 +1552,8 @@ export default function QuestionStudioPage() {
 
       {
         label: '⇌',
-        latex: '\\rightleftharpoons'
+        latex:
+          '\\rightleftharpoons'
       },
 
       {
@@ -1087,233 +1573,264 @@ export default function QuestionStudioPage() {
 
       {
         label: '°C',
-        latex: '^{\\circ}C'
+        latex:
+          '^{\\circ}C'
       },
 
       {
         label: '(aq)',
-        latex: '\\mathrm{(aq)}'
+        latex:
+          '\\mathrm{(aq)}'
       },
 
       {
         label: '(l)',
-        latex: '\\mathrm{(l)}'
+        latex:
+          '\\mathrm{(l)}'
       },
 
       {
         label: '(g)',
-        latex: '\\mathrm{(g)}'
+        latex:
+          '\\mathrm{(g)}'
       },
 
       {
         label: '(s)',
-        latex: '\\mathrm{(s)}'
+        latex:
+          '\\mathrm{(s)}'
       },
 
       {
         label: 'mol',
-        latex: '\\mathrm{mol}'
+        latex:
+          '\\mathrm{mol}'
       }
 
     ]
 
   }
 
-  /* =========================================================
-     SUBJECT → TOOLBAR
-  ========================================================= */
-
-  function subjectToToolbar(value) {
-
-    if (value === 'Mathematics') {
-      return 'math'
-    }
-
-    if (value === 'Chemistry') {
-      return 'chemistry'
-    }
-
-    return 'physics'
-
-  }
 
   /* =========================================================
-     PREVIEW HTML ESCAPE
+     HTML ESCAPE
   ========================================================= */
 
-  function escapeHtml(value) {
+  function escapeHtml(
+    value
+  ) {
 
     return String(value)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;')
+
+      .replace(
+        /&/g,
+        '&amp;'
+      )
+
+      .replace(
+        /</g,
+        '&lt;'
+      )
+
+      .replace(
+        />/g,
+        '&gt;'
+      )
+
+      .replace(
+        /"/g,
+        '&quot;'
+      )
+
+      .replace(
+        /'/g,
+        '&#039;'
+      )
 
   }
 
+
   /* =========================================================
-     RENDER LIVE PREVIEW
+     PREVIEW
   ========================================================= */
 
   function renderPreview() {
 
-    if (!previewRef.current) return
+    if (
+      !previewRef.current
+    ) {
 
-    const content = [
-
-      question
-        ? `<div class="qs-question">${autoWrap(question)}</div>`
-        : '',
-
-      optionA
-        ? `<div class="qs-option"><strong>A.</strong> ${autoWrap(optionA)}</div>`
-        : '',
-
-      optionB
-        ? `<div class="qs-option"><strong>B.</strong> ${autoWrap(optionB)}</div>`
-        : '',
-
-      optionC
-        ? `<div class="qs-option"><strong>C.</strong> ${autoWrap(optionC)}</div>`
-        : '',
-
-      optionD
-        ? `<div class="qs-option"><strong>D.</strong> ${autoWrap(optionD)}</div>`
-        : '',
-
-      explanation
-        ? `
-          <div class="qs-explanation">
-            <strong>Explanation</strong>
-            <div>${autoWrap(explanation)}</div>
-          </div>
-        `
-        : ''
-
-    ].join('')
-
-    /*
-      Escape HTML first, but we need to preserve our generated
-      formatting. So build the preview using text-safe containers.
-    */
-
-    const makeBlock = (text, className) => {
-
-      if (!text) return ''
-
-      const safe = escapeHtml(text)
-        .replace(/\n/g, '<br/>')
-
-      return `
-        <div class="${className}">
-          ${safe}
-        </div>
-      `
+      return
 
     }
+
 
     let html = ''
 
-    if (question) {
-      html += makeBlock(
-        autoWrap(question),
-        'qs-question'
-      )
-    }
 
-    if (optionA) {
-      html += makeBlock(
-        `A. ${autoWrap(optionA)}`,
-        'qs-option'
-      )
-    }
+    function addField(
+      label,
+      value,
+      className
+    ) {
 
-    if (optionB) {
-      html += makeBlock(
-        `B. ${autoWrap(optionB)}`,
-        'qs-option'
-      )
-    }
+      if (!value) return
 
-    if (optionC) {
-      html += makeBlock(
-        `C. ${autoWrap(optionC)}`,
-        'qs-option'
-      )
-    }
 
-    if (optionD) {
-      html += makeBlock(
-        `D. ${autoWrap(optionD)}`,
-        'qs-option'
-      )
-    }
+      const latex =
+        autoWrap(value)
 
-    if (explanation) {
+
       html += `
-        <div class="qs-explanation">
-          <strong>Explanation</strong>
-          <div style="margin-top:8px">
-            ${escapeHtml(autoWrap(explanation)).replace(/\n/g, '<br/>')}
+        <div class="${className}">
+          <div class="qs-label">
+            ${label}
+          </div>
+          <div class="qs-content">
+            ${escapeHtml(latex)
+              .replace(
+                /\n/g,
+                '<br/>'
+              )}
           </div>
         </div>
       `
+
     }
 
-    if (!html) {
-      html = `
-        <div style="color:#98a2b3">
-          Start typing a question to see the preview here.
+
+    addField(
+      'Question',
+      question,
+      'qs-question'
+    )
+
+
+    addField(
+      'A',
+      optionA,
+      'qs-option'
+    )
+
+
+    addField(
+      'B',
+      optionB,
+      'qs-option'
+    )
+
+
+    addField(
+      'C',
+      optionC,
+      'qs-option'
+    )
+
+
+    addField(
+      'D',
+      optionD,
+      'qs-option'
+    )
+
+
+    if (explanation) {
+
+      html += `
+        <div class="qs-explanation">
+          <div class="qs-label">
+            Explanation
+          </div>
+
+          <div class="qs-content">
+            ${escapeHtml(
+              autoWrap(
+                explanation
+              )
+            ).replace(
+              /\n/g,
+              '<br/>'
+            )}
+          </div>
         </div>
       `
+
     }
 
-    previewRef.current.innerHTML = html
+
+    if (!html) {
+
+      html = `
+        <div class="qs-empty">
+          Start typing your question to see
+          the rendered preview here.
+        </div>
+      `
+
+    }
+
+
+    previewRef.current.innerHTML =
+      html
+
 
     renderMathInElement(
       previewRef.current,
       {
+
         throwOnError: false,
+
         strict: 'ignore',
+
         delimiters: [
+
           {
             left: '$$',
             right: '$$',
             display: true
           },
+
           {
             left: '$',
             right: '$',
             display: false
           }
+
         ]
+
       }
     )
 
   }
 
+
   useEffect(() => {
+
     renderPreview()
+
   }, [
     question,
     optionA,
     optionB,
     optionC,
     optionD,
-    explanation,
-    subject
+    explanation
   ])
+
 
   /* =========================================================
      COPY
   ========================================================= */
 
-  async function copyText(text) {
+  async function copyText(
+    text
+  ) {
 
     try {
 
-      await navigator.clipboard.writeText(text)
+      await navigator
+        .clipboard
+        .writeText(text)
 
       alert('Copied')
 
@@ -1321,78 +1838,661 @@ export default function QuestionStudioPage() {
 
       console.error(error)
 
-      alert('Could not copy')
+      alert(
+        'Could not copy to clipboard.'
+      )
 
     }
 
   }
 
-  function copyQuestionForExcel() {
-
-    const values = [
-
-      autoWrap(question),
-      autoWrap(optionA),
-      autoWrap(optionB),
-      autoWrap(optionC),
-      autoWrap(optionD),
-      correctAnswer,
-      autoWrap(explanation)
-
-    ]
-
-    copyText(
-      values.join('\t')
-    )
-
-  }
 
   /* =========================================================
-     DOWNLOAD CURRENT QUESTION
+     COPY QUESTION AS LATEX
   ========================================================= */
 
-  function downloadCurrentQuestion() {
+  function copyQuestionLaTeX() {
 
-    const row = {
+    const output = [
 
-      subject,
+      autoWrap(question),
 
-      difficulty,
+      `A. ${autoWrap(optionA)}`,
 
-      question: autoWrap(question),
+      `B. ${autoWrap(optionB)}`,
 
-      option_a: autoWrap(optionA),
+      `C. ${autoWrap(optionC)}`,
 
-      option_b: autoWrap(optionB),
+      `D. ${autoWrap(optionD)}`,
 
-      option_c: autoWrap(optionC),
+      `Correct Answer: ${correctAnswer}`,
 
-      option_d: autoWrap(optionD),
+      `Explanation: ${autoWrap(
+        explanation
+      )}`
 
-      correct_answer: correctAnswer,
+    ].join('\n\n')
 
-      explanation: autoWrap(explanation)
 
-    }
+    copyText(output)
 
-    const sheet =
-      XLSX.utils.json_to_sheet([row])
+  }
 
-    const workbook =
-      XLSX.utils.book_new()
 
-    XLSX.utils.book_append_sheet(
-      workbook,
-      sheet,
-      'Question'
-    )
+  /* =========================================================
+     COPY SINGLE FIELD LATEX
+  ========================================================= */
 
-    XLSX.writeFile(
-      workbook,
-      'question_latex.xlsx'
+  function copyFieldLaTeX(
+    field
+  ) {
+
+    copyText(
+      autoWrap(
+        getFieldValue(field)
+      )
     )
 
   }
+
+
+  /* =========================================================
+     WORD HELPERS
+  ========================================================= */
+
+  function splitWordContent(
+    text
+  ) {
+
+    const latex =
+      autoWrap(text)
+
+
+    const parts = []
+
+
+    /*
+      Matches:
+
+      $$ display equation $$
+
+      OR
+
+      $ inline equation $
+    */
+
+    const regex =
+      /(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g
+
+
+    let lastIndex = 0
+
+    let match
+
+
+    while (
+      (match = regex.exec(latex))
+      !== null
+    ) {
+
+      if (
+        match.index >
+        lastIndex
+      ) {
+
+        parts.push({
+          type: 'text',
+          value:
+            latex.substring(
+              lastIndex,
+              match.index
+            )
+        })
+
+      }
+
+
+      const token =
+        match[0]
+
+
+      if (
+        token.startsWith('$$')
+      ) {
+
+        parts.push({
+          type: 'displayMath',
+          value:
+            token.slice(
+              2,
+              -2
+            ).trim()
+        })
+
+      } else {
+
+        parts.push({
+          type: 'math',
+          value:
+            token.slice(
+              1,
+              -1
+            ).trim()
+        })
+
+      }
+
+
+      lastIndex =
+        match.index +
+        token.length
+
+    }
+
+
+    if (
+      lastIndex <
+      latex.length
+    ) {
+
+      parts.push({
+        type: 'text',
+        value:
+          latex.substring(
+            lastIndex
+          )
+      })
+
+    }
+
+
+    if (!parts.length) {
+
+      parts.push({
+        type: 'text',
+        value: latex
+      })
+
+    }
+
+
+    return parts
+
+  }
+
+
+  /* =========================================================
+     CREATE WORD PARAGRAPH
+  ========================================================= */
+
+  function createWordParagraph(
+    text,
+    options = {}
+  ) {
+
+    const parts =
+      splitWordContent(text)
+
+
+    const children = []
+
+
+    for (
+      const part of parts
+    ) {
+
+      if (
+        part.type === 'text'
+      ) {
+
+        if (part.value) {
+
+          children.push(
+            new TextRun({
+              text:
+                part.value,
+              font:
+                'Arial',
+              size:
+                24
+            })
+          )
+
+        }
+
+        continue
+
+      }
+
+
+      /*
+        Native Word equation.
+
+        convertLatex2Math()
+        returns a docx math object.
+      */
+
+      try {
+
+        const math =
+          convertLatex2Math(
+            part.value
+          )
+
+
+        children.push(
+          math
+        )
+
+      } catch (error) {
+
+        console.error(
+          'LaTeX conversion failed:',
+          part.value,
+          error
+        )
+
+
+        /*
+          If a formula fails,
+          don't lose the content.
+        */
+
+        children.push(
+          new TextRun({
+            text:
+              part.value,
+            font:
+              'Consolas',
+            size:
+              22
+          })
+        )
+
+      }
+
+    }
+
+
+    return new Paragraph({
+
+      alignment:
+        options.center
+          ? 'center'
+          : undefined,
+
+      spacing: {
+        after: 140,
+        line: 276
+      },
+
+      children
+
+    })
+
+  }
+
+
+  /* =========================================================
+     CREATE WORD DOCUMENT
+  ========================================================= */
+
+  async function exportToWord() {
+
+    if (
+      !question.trim() &&
+      !optionA.trim() &&
+      !optionB.trim() &&
+      !optionC.trim() &&
+      !optionD.trim()
+    ) {
+
+      alert(
+        'Please enter a question first.'
+      )
+
+      return
+
+    }
+
+
+    setWordLoading(true)
+
+
+    try {
+
+      /*
+        Initialise MathJax used by
+        the LaTeX → OMML converter.
+      */
+
+      await mathJaxReady()
+
+
+      const children = []
+
+
+      /*
+        TITLE
+      */
+
+      children.push(
+        new Paragraph({
+
+          spacing: {
+            after: 240
+          },
+
+          children: [
+
+            new TextRun({
+              text:
+                'Question',
+              bold:
+                true,
+              font:
+                'Arial',
+              size:
+                28
+            })
+
+          ]
+
+        })
+      )
+
+
+      /*
+        QUESTION
+      */
+
+      if (
+        question.trim()
+      ) {
+
+        children.push(
+          createWordParagraph(
+            question
+          )
+        )
+
+      }
+
+
+      /*
+        OPTIONS
+      */
+
+      const options = [
+
+        {
+          label: 'A',
+          value: optionA
+        },
+
+        {
+          label: 'B',
+          value: optionB
+        },
+
+        {
+          label: 'C',
+          value: optionC
+        },
+
+        {
+          label: 'D',
+          value: optionD
+        }
+
+      ]
+
+
+      for (
+        const option
+        of options
+      ) {
+
+        if (
+          !option.value.trim()
+        ) {
+
+          continue
+
+        }
+
+
+        children.push(
+
+          new Paragraph({
+
+            spacing: {
+              after: 120,
+              line: 276
+            },
+
+            children: [
+
+              new TextRun({
+
+                text:
+                  `${option.label}. `,
+
+                bold:
+                  true,
+
+                font:
+                  'Arial',
+
+                size:
+                  24
+
+              }),
+
+              ...createWordParagraph(
+                option.value
+              ).options.children
+
+            ]
+
+          })
+
+        )
+
+      }
+
+
+      /*
+        CORRECT ANSWER
+      */
+
+      children.push(
+
+        new Paragraph({
+
+          spacing: {
+            before: 180,
+            after: 140
+          },
+
+          children: [
+
+            new TextRun({
+
+              text:
+                `Correct Answer: ${correctAnswer}`,
+
+              bold:
+                true,
+
+              font:
+                'Arial',
+
+              size:
+                24
+
+            })
+
+          ]
+
+        })
+
+      )
+
+
+      /*
+        EXPLANATION
+      */
+
+      if (
+        explanation.trim()
+      ) {
+
+        children.push(
+
+          new Paragraph({
+
+            spacing: {
+              before: 200,
+              after: 120
+            },
+
+            children: [
+
+              new TextRun({
+
+                text:
+                  'Explanation',
+
+                bold:
+                  true,
+
+                font:
+                  'Arial',
+
+                size:
+                  26
+
+              })
+
+            ]
+
+          })
+
+        )
+
+
+        children.push(
+          createWordParagraph(
+            explanation
+          )
+        )
+
+      }
+
+
+      /*
+        CREATE DOCX
+      */
+
+      const document =
+        new Document({
+
+          creator:
+            'Question Studio',
+
+          title:
+            'Exam Question',
+
+          description:
+            'Question created using Question Studio',
+
+          sections: [
+
+            {
+
+              properties: {},
+
+              children
+
+            }
+
+          ]
+
+        })
+
+
+      /*
+        Browser download.
+      */
+
+      const blob =
+        await Packer.toBlob(
+          document
+        )
+
+
+      const url =
+        URL.createObjectURL(
+          blob
+        )
+
+
+      const anchor =
+        document.createElement('a')
+
+
+      anchor.href =
+        url
+
+
+      anchor.download =
+        'question.docx'
+
+
+      document.body.appendChild(
+        anchor
+      )
+
+
+      anchor.click()
+
+
+      document.body.removeChild(
+        anchor
+      )
+
+
+      setTimeout(() => {
+
+        URL.revokeObjectURL(
+          url
+        )
+
+      }, 1000)
+
+
+    } catch (error) {
+
+      console.error(
+        'Word export error:',
+        error
+      )
+
+
+      alert(
+        'Word export failed. Please check the browser console for details.'
+      )
+
+
+    } finally {
+
+      setWordLoading(false)
+
+    }
+
+  }
+
 
   /* =========================================================
      CLEAR
@@ -1401,48 +2501,65 @@ export default function QuestionStudioPage() {
   function clearQuestion() {
 
     setQuestion('')
+
     setOptionA('')
     setOptionB('')
     setOptionC('')
     setOptionD('')
+
     setCorrectAnswer('A')
+
     setExplanation('')
 
   }
 
+
   /* =========================================================
-     OCR MCQ PARSER
+     OCR PARSER
   ========================================================= */
 
-  function parseMCQ(text) {
+  function parseMCQ(
+    text
+  ) {
 
     const result = {
 
       question: '',
 
       optionA: '',
-
       optionB: '',
-
       optionC: '',
-
       optionD: '',
 
       explanation: ''
 
     }
 
+
     if (!text) {
+
       return result
+
     }
 
-    const lines = text
-      .replace(/\r/g, '')
-      .split('\n')
-      .map(line => line.trim())
-      .filter(Boolean)
 
-    let current = 'question'
+    const lines =
+      text
+        .replace(
+          /\r/g,
+          ''
+        )
+        .split('\n')
+        .map(
+          line =>
+            line.trim()
+        )
+        .filter(Boolean)
+
+
+    let current =
+      'question'
+
 
     const patterns = {
 
@@ -1460,127 +2577,226 @@ export default function QuestionStudioPage() {
 
     }
 
-    for (const line of lines) {
 
-      if (patterns.optionA.test(line)) {
+    for (
+      const line
+      of lines
+    ) {
 
-        current = 'optionA'
+      if (
+        patterns.optionA
+          .test(line)
+      ) {
+
+        current =
+          'optionA'
 
         result.optionA =
           line
-            .replace(patterns.optionA, '')
+            .replace(
+              patterns.optionA,
+              ''
+            )
             .trim()
 
         continue
 
       }
 
-      if (patterns.optionB.test(line)) {
 
-        current = 'optionB'
+      if (
+        patterns.optionB
+          .test(line)
+      ) {
+
+        current =
+          'optionB'
 
         result.optionB =
           line
-            .replace(patterns.optionB, '')
+            .replace(
+              patterns.optionB,
+              ''
+            )
             .trim()
 
         continue
 
       }
 
-      if (patterns.optionC.test(line)) {
 
-        current = 'optionC'
+      if (
+        patterns.optionC
+          .test(line)
+      ) {
+
+        current =
+          'optionC'
 
         result.optionC =
           line
-            .replace(patterns.optionC, '')
+            .replace(
+              patterns.optionC,
+              ''
+            )
             .trim()
 
         continue
 
       }
 
-      if (patterns.optionD.test(line)) {
 
-        current = 'optionD'
+      if (
+        patterns.optionD
+          .test(line)
+      ) {
+
+        current =
+          'optionD'
 
         result.optionD =
           line
-            .replace(patterns.optionD, '')
+            .replace(
+              patterns.optionD,
+              ''
+            )
             .trim()
 
         continue
 
       }
+
 
       if (
         /^(Explanation|Solution|Answer explanation)/i
           .test(line)
       ) {
 
-        current = 'explanation'
+        current =
+          'explanation'
 
         continue
 
       }
 
-      if (current === 'question') {
+
+      if (
+        current ===
+        'question'
+      ) {
 
         result.question +=
-          (result.question ? ' ' : '') +
-          line
+          (
+            result.question
+              ? ' '
+              : ''
+          ) + line
 
-      } else if (current === 'optionA') {
+      }
+
+
+      else if (
+        current ===
+        'optionA'
+      ) {
 
         result.optionA +=
-          (result.optionA ? ' ' : '') +
-          line
+          (
+            result.optionA
+              ? ' '
+              : ''
+          ) + line
 
-      } else if (current === 'optionB') {
+      }
+
+
+      else if (
+        current ===
+        'optionB'
+      ) {
 
         result.optionB +=
-          (result.optionB ? ' ' : '') +
-          line
+          (
+            result.optionB
+              ? ' '
+              : ''
+          ) + line
 
-      } else if (current === 'optionC') {
+      }
+
+
+      else if (
+        current ===
+        'optionC'
+      ) {
 
         result.optionC +=
-          (result.optionC ? ' ' : '') +
-          line
+          (
+            result.optionC
+              ? ' '
+              : ''
+          ) + line
 
-      } else if (current === 'optionD') {
+      }
+
+
+      else if (
+        current ===
+        'optionD'
+      ) {
 
         result.optionD +=
-          (result.optionD ? ' ' : '') +
-          line
+          (
+            result.optionD
+              ? ' '
+              : ''
+          ) + line
 
-      } else if (current === 'explanation') {
+      }
+
+
+      else if (
+        current ===
+        'explanation'
+      ) {
 
         result.explanation +=
-          (result.explanation ? ' ' : '') +
-          line
+          (
+            result.explanation
+              ? ' '
+              : ''
+          ) + line
 
       }
 
     }
 
+
     result.question =
       result.question
-        .replace(/^\d+[\.)]\s*/, '')
+        .replace(
+          /^\d+[\.)]\s*/,
+          ''
+        )
+
 
     return result
 
   }
 
+
   /* =========================================================
      OCR
   ========================================================= */
 
-  async function processImageOCR(fileToRead) {
+  async function processImageOCR(
+    fileToRead
+  ) {
 
     const file =
-      fileToRead || imageFile
+      fileToRead ||
+      imageFile
+
 
     if (!file) {
 
@@ -1592,67 +2808,135 @@ export default function QuestionStudioPage() {
 
     }
 
+
     setOcrLoading(true)
+
     setOcrProgress(0)
+
 
     try {
 
       const result =
         await Tesseract.recognize(
+
           file,
+
           'eng',
+
           {
-            logger: message => {
 
-              if (
-                message.status ===
-                'recognizing text'
-              ) {
+            logger:
+              message => {
 
-                setOcrProgress(
-                  Math.round(
-                    message.progress * 100
+                if (
+                  message.status ===
+                  'recognizing text'
+                ) {
+
+                  setOcrProgress(
+                    Math.round(
+                      message.progress *
+                      100
+                    )
                   )
-                )
+
+                }
 
               }
 
-            }
           }
+
         )
+
 
       let text =
         result.data.text || ''
+
 
       /*
         Common OCR corrections.
       */
 
-      text = text
-        .replace(/©/g, 'A.')
-        .replace(/®/g, 'B.')
-        .replace(/0\s*63%/g, '0.63%')
-        .replace(/0\s*82%/g, '0.82%')
-        .replace(/0\s*72%/g, '0.72%')
-        .replace(/0\s*25%/g, '0.25%')
-        .replace(/[ \t]+$/gm, '')
-        .trim()
+      text =
+        text
+
+          .replace(
+            /©/g,
+            'A.'
+          )
+
+          .replace(
+            /®/g,
+            'B.'
+          )
+
+          .replace(
+            /0\s*63%/g,
+            '0.63%'
+          )
+
+          .replace(
+            /0\s*82%/g,
+            '0.82%'
+          )
+
+          .replace(
+            /0\s*72%/g,
+            '0.72%'
+          )
+
+          .replace(
+            /0\s*25%/g,
+            '0.25%'
+          )
+
+          .replace(
+            /[ \t]+$/gm,
+            ''
+          )
+
+          .trim()
+
 
       const parsed =
         parseMCQ(text)
 
-      setQuestion(parsed.question)
-      setOptionA(parsed.optionA)
-      setOptionB(parsed.optionB)
-      setOptionC(parsed.optionC)
-      setOptionD(parsed.optionD)
-      setExplanation(parsed.explanation)
 
-      setActiveField('question')
+      setQuestion(
+        parsed.question
+      )
+
+      setOptionA(
+        parsed.optionA
+      )
+
+      setOptionB(
+        parsed.optionB
+      )
+
+      setOptionC(
+        parsed.optionC
+      )
+
+      setOptionD(
+        parsed.optionD
+      )
+
+      setExplanation(
+        parsed.explanation
+      )
+
+
+      setActiveField(
+        'question'
+      )
+
 
     } catch (error) {
 
-      console.error(error)
+      console.error(
+        error
+      )
 
       alert(
         'OCR failed. Please try a clearer image.'
@@ -1662,9 +2946,11 @@ export default function QuestionStudioPage() {
 
       setOcrProgress(100)
 
+
       setTimeout(() => {
 
         setOcrLoading(false)
+
         setOcrProgress(0)
 
       }, 500)
@@ -1673,31 +2959,52 @@ export default function QuestionStudioPage() {
 
   }
 
+
   /* =========================================================
      IMAGE HANDLING
   ========================================================= */
 
-  function handleImageFile(file) {
+  function handleImageFile(
+    file
+  ) {
 
     if (!file) return
 
-    if (!file.type.startsWith('image/')) {
 
-      alert('Please select an image file.')
+    if (
+      !file.type.startsWith(
+        'image/'
+      )
+    ) {
+
+      alert(
+        'Please select an image file.'
+      )
 
       return
 
     }
 
+
     if (imagePreview) {
-      URL.revokeObjectURL(imagePreview)
+
+      URL.revokeObjectURL(
+        imagePreview
+      )
+
     }
 
+
     const url =
-      URL.createObjectURL(file)
+      URL.createObjectURL(
+        file
+      )
+
 
     setImageFile(file)
+
     setImagePreview(url)
+
 
     setTimeout(() => {
 
@@ -1707,49 +3014,71 @@ export default function QuestionStudioPage() {
 
   }
 
-  function handleDrag(event) {
+
+  function handleDrag(
+    event
+  ) {
 
     event.preventDefault()
+
     event.stopPropagation()
 
   }
 
-  function handleDragEnter(event) {
+
+  function handleDragEnter(
+    event
+  ) {
 
     event.preventDefault()
+
     event.stopPropagation()
 
     setDragActive(true)
 
   }
 
-  function handleDragLeave(event) {
+
+  function handleDragLeave(
+    event
+  ) {
 
     event.preventDefault()
+
     event.stopPropagation()
 
     setDragActive(false)
 
   }
 
-  function handleDrop(event) {
+
+  function handleDrop(
+    event
+  ) {
 
     event.preventDefault()
+
     event.stopPropagation()
 
     setDragActive(false)
 
+
     const file =
-      event.dataTransfer.files?.[0]
+      event.dataTransfer
+        .files?.[0]
+
 
     if (file) {
+
       handleImageFile(file)
+
     }
 
   }
 
+
   /* =========================================================
-     EXCEL
+     EXCEL CONVERSION
   ========================================================= */
 
   function processExcel() {
@@ -1764,111 +3093,125 @@ export default function QuestionStudioPage() {
 
     }
 
+
     const reader =
       new FileReader()
 
-    reader.onload = event => {
 
-      try {
+    reader.onload =
+      event => {
 
-        const data =
-          new Uint8Array(
-            event.target.result
+        try {
+
+          const data =
+            new Uint8Array(
+              event.target.result
+            )
+
+
+          const workbook =
+            XLSX.read(
+              data,
+              {
+                type: 'array'
+              }
+            )
+
+
+          const sheet =
+            workbook.Sheets[
+              workbook.SheetNames[0]
+            ]
+
+
+          const rows =
+            XLSX.utils.sheet_to_json(
+              sheet
+            )
+
+
+          const converted =
+            rows.map(
+              row => ({
+
+                ...row,
+
+                question:
+                  autoWrap(
+                    row.question ||
+                    ''
+                  ),
+
+                option_a:
+                  autoWrap(
+                    row.option_a ||
+                    ''
+                  ),
+
+                option_b:
+                  autoWrap(
+                    row.option_b ||
+                    ''
+                  ),
+
+                option_c:
+                  autoWrap(
+                    row.option_c ||
+                    ''
+                  ),
+
+                option_d:
+                  autoWrap(
+                    row.option_d ||
+                    ''
+                  ),
+
+                correct_answer:
+                  row.correct_answer ||
+                  '',
+
+                explanation:
+                  autoWrap(
+                    row.explanation ||
+                    ''
+                  )
+
+              })
+            )
+
+
+          setProcessedData(
+            converted
           )
 
-        const workbook =
-          XLSX.read(
-            data,
-            { type: 'array' }
+
+          setExcelPreview(
+            converted.slice(
+              0,
+              15
+            )
           )
 
-        const sheet =
-          workbook.Sheets[
-            workbook.SheetNames[0]
-          ]
 
-        const rows =
-          XLSX.utils.sheet_to_json(
-            sheet
+          alert(
+            `${converted.length} question(s) converted.`
           )
 
-        const converted =
-          rows.map(row => {
 
-            const rowSubject =
-              row.subject ||
-              subject
+        } catch (error) {
 
-            return {
+          console.error(
+            error
+          )
 
-              ...row,
+          alert(
+            'Could not read the Excel file.'
+          )
 
-              question:
-                autoWrap(
-                  row.question || '',
-                  rowSubject
-                ),
-
-              option_a:
-                autoWrap(
-                  row.option_a || '',
-                  rowSubject
-                ),
-
-              option_b:
-                autoWrap(
-                  row.option_b || '',
-                  rowSubject
-                ),
-
-              option_c:
-                autoWrap(
-                  row.option_c || '',
-                  rowSubject
-                ),
-
-              option_d:
-                autoWrap(
-                  row.option_d || '',
-                  rowSubject
-                ),
-
-              correct_answer:
-                row.correct_answer || '',
-
-              explanation:
-                autoWrap(
-                  row.explanation || '',
-                  rowSubject
-                )
-
-            }
-
-          })
-
-        setProcessedData(
-          converted
-        )
-
-        setExcelPreview(
-          converted.slice(0, 15)
-        )
-
-        alert(
-          `${converted.length} question(s) converted.`
-        )
-
-      } catch (error) {
-
-        console.error(error)
-
-        alert(
-          'Could not read the Excel file.'
-        )
+        }
 
       }
 
-    }
 
     reader.readAsArrayBuffer(
       excelFile
@@ -1876,9 +3219,16 @@ export default function QuestionStudioPage() {
 
   }
 
+
+  /* =========================================================
+     DOWNLOAD EXCEL
+  ========================================================= */
+
   function downloadProcessedExcel() {
 
-    if (!processedData.length) {
+    if (
+      !processedData.length
+    ) {
 
       alert(
         'Please convert an Excel file first.'
@@ -1888,19 +3238,23 @@ export default function QuestionStudioPage() {
 
     }
 
+
     const sheet =
       XLSX.utils.json_to_sheet(
         processedData
       )
 
+
     const workbook =
       XLSX.utils.book_new()
+
 
     XLSX.utils.book_append_sheet(
       workbook,
       sheet,
       'Converted'
     )
+
 
     XLSX.writeFile(
       workbook,
@@ -1909,69 +3263,174 @@ export default function QuestionStudioPage() {
 
   }
 
+
   /* =========================================================
-     FIELD DEFINITIONS
+     CURRENT QUESTION EXCEL
+  ========================================================= */
+
+  function downloadCurrentExcel() {
+
+    const row = {
+
+      question:
+        autoWrap(question),
+
+      option_a:
+        autoWrap(optionA),
+
+      option_b:
+        autoWrap(optionB),
+
+      option_c:
+        autoWrap(optionC),
+
+      option_d:
+        autoWrap(optionD),
+
+      correct_answer:
+        correctAnswer,
+
+      explanation:
+        autoWrap(explanation)
+
+    }
+
+
+    const sheet =
+      XLSX.utils.json_to_sheet(
+        [row]
+      )
+
+
+    const workbook =
+      XLSX.utils.book_new()
+
+
+    XLSX.utils.book_append_sheet(
+      workbook,
+      sheet,
+      'Question'
+    )
+
+
+    XLSX.writeFile(
+      workbook,
+      'question_latex.xlsx'
+    )
+
+  }
+
+
+  /* =========================================================
+     FIELDS
   ========================================================= */
 
   const fields = [
 
     {
       key: 'question',
+
       label: 'Question',
+
       value: question,
-      setter: setQuestion,
+
+      setter:
+        setQuestion,
+
       placeholder:
         'Type or paste the question here...',
-      height: 140
+
+      height: 145
+
     },
 
     {
       key: 'optionA',
+
       label: 'Option A',
+
       value: optionA,
-      setter: setOptionA,
-      placeholder: 'Option A',
+
+      setter:
+        setOptionA,
+
+      placeholder:
+        'Option A',
+
       height: 75
+
     },
 
     {
       key: 'optionB',
+
       label: 'Option B',
+
       value: optionB,
-      setter: setOptionB,
-      placeholder: 'Option B',
+
+      setter:
+        setOptionB,
+
+      placeholder:
+        'Option B',
+
       height: 75
+
     },
 
     {
       key: 'optionC',
+
       label: 'Option C',
+
       value: optionC,
-      setter: setOptionC,
-      placeholder: 'Option C',
+
+      setter:
+        setOptionC,
+
+      placeholder:
+        'Option C',
+
       height: 75
+
     },
 
     {
       key: 'optionD',
+
       label: 'Option D',
+
       value: optionD,
-      setter: setOptionD,
-      placeholder: 'Option D',
+
+      setter:
+        setOptionD,
+
+      placeholder:
+        'Option D',
+
       height: 75
+
     },
 
     {
       key: 'explanation',
+
       label: 'Explanation',
+
       value: explanation,
-      setter: setExplanation,
+
+      setter:
+        setExplanation,
+
       placeholder:
-        'Explain why the correct answer is correct...',
+        'Explain the answer...',
+
       height: 120
+
     }
 
   ]
+
 
   /* =========================================================
      LOADING
@@ -1980,12 +3439,21 @@ export default function QuestionStudioPage() {
   if (loading) {
 
     return (
-      <div style={styles.loading}>
+
+      <div
+        style={
+          styles.loading
+        }
+      >
+
         Loading Question Studio...
+
       </div>
+
     )
 
   }
+
 
   /* =========================================================
      PAGE
@@ -1993,31 +3461,62 @@ export default function QuestionStudioPage() {
 
   return (
 
-    <div style={styles.page}>
+    <div
+      style={
+        styles.page
+      }
+    >
 
       {/* =====================================================
           HEADER
       ===================================================== */}
 
-      <header style={styles.header}>
+      <header
+        style={
+          styles.header
+        }
+      >
 
-        <div style={styles.titleRow}>
+        <div
+          style={
+            styles.titleRow
+          }
+        >
 
-          <span style={styles.rocket}>
+          <span
+            style={
+              styles.rocket
+            }
+          >
             🚀
           </span>
 
+
           <div>
 
-            <h1 style={styles.title}>
+            <h1
+              style={
+                styles.title
+              }
+            >
               Question Studio
             </h1>
 
-            <p style={styles.subtitle}>
+
+            <p
+              style={
+                styles.subtitle
+              }
+            >
               Build exam questions faster using OCR and LaTeX
             </p>
 
-            <p style={styles.welcome}>
+
+            <p
+              style={
+                styles.welcome
+              }
+            >
               Welcome, {adminName}
             </p>
 
@@ -2027,379 +3526,519 @@ export default function QuestionStudioPage() {
 
       </header>
 
-      {/* =====================================================
-          META
-      ===================================================== */}
-
-      <div style={styles.metaBar}>
-
-        <div style={styles.metaField}>
-
-          <label style={styles.label}>
-            Subject
-          </label>
-
-          <select
-            value={subject}
-            onChange={event => {
-
-              const value =
-                event.target.value
-
-              setSubject(value)
-
-              setActiveFormulaTab(
-                subjectToToolbar(value)
-              )
-
-            }}
-            style={styles.select}
-          >
-
-            <option value="Mathematics">
-              Mathematics
-            </option>
-
-            <option value="Physics">
-              Physics
-            </option>
-
-            <option value="Chemistry">
-              Chemistry
-            </option>
-
-          </select>
-
-        </div>
-
-        <div style={styles.metaField}>
-
-          <label style={styles.label}>
-            Difficulty
-          </label>
-
-          <select
-            value={difficulty}
-            onChange={event =>
-              setDifficulty(
-                event.target.value
-              )
-            }
-            style={styles.select}
-          >
-
-            <option value="Easy">
-              Easy
-            </option>
-
-            <option value="Medium">
-              Medium
-            </option>
-
-            <option value="Hard">
-              Hard
-            </option>
-
-          </select>
-
-        </div>
-
-      </div>
 
       {/* =====================================================
           MAIN
       ===================================================== */}
 
-      <main style={styles.main}>
+      <main
+        style={
+          styles.main
+        }
+      >
+
 
         {/* ===================================================
-            LEFT / EDITOR
+            LEFT
         =================================================== */}
 
         <section>
 
-          <div style={styles.sectionHeader}>
+
+          <div
+            style={
+              styles.sectionHeader
+            }
+          >
 
             <div>
 
-              <h2 style={styles.sectionTitle}>
+              <h2
+                style={
+                  styles.sectionTitle
+                }
+              >
                 Question Editor
               </h2>
 
-              <p style={styles.hint}>
-                Select a field, then use the formula buttons.
+
+              <p
+                style={
+                  styles.hint
+                }
+              >
+                Select a field and use the formula toolbar.
               </p>
 
             </div>
 
+
             <button
               type="button"
-              onClick={clearQuestion}
-              style={styles.secondaryButton}
+              onClick={
+                clearQuestion
+              }
+              style={
+                styles.secondaryButton
+              }
             >
               Clear
             </button>
 
           </div>
 
+
           {/* =================================================
-              FORMULA TOOLBAR
+              FORMULA TABS
           ================================================= */}
 
-          <div style={styles.toolbarCard}>
+          <div
+            style={
+              styles.toolbarCard
+            }
+          >
 
-            <div style={styles.tabs}>
+            <div
+              style={
+                styles.tabs
+              }
+            >
 
               {[
                 'math',
                 'physics',
                 'chemistry'
-              ].map(tab => (
+              ].map(
+                tab => (
 
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() =>
-                    setActiveFormulaTab(tab)
-                  }
-                  style={{
-                    ...styles.tab,
-                    ...(activeFormulaTab === tab
-                      ? styles.tabActive
-                      : {})
-                  }}
-                >
+                  <button
+                    key={tab}
+                    type="button"
+                    onClick={() =>
+                      setActiveFormulaTab(
+                        tab
+                      )
+                    }
+                    style={{
+                      ...styles.tab,
 
-                  {tab === 'math'
-                    ? 'Mathematics'
-                    : tab.charAt(0).toUpperCase() +
-                      tab.slice(1)}
+                      ...(activeFormulaTab === tab
+                        ? styles.tabActive
+                        : {})
+                    }}
+                  >
 
-                </button>
+                    {
+                      tab === 'math'
+                        ? 'Mathematics'
+                        : tab.charAt(0)
+                            .toUpperCase() +
+                          tab.slice(1)
+                    }
 
-              ))}
+                  </button>
+
+                )
+              )}
 
             </div>
 
-            <div style={styles.toolbar}>
+
+            <div
+              style={
+                styles.toolbar
+              }
+            >
 
               {TOOLBAR[
                 activeFormulaTab
-              ].map((button, index) => (
+              ].map(
+                (button, index) => (
 
-                <button
-                  key={
-                    `${button.label}-${index}`
-                  }
-                  type="button"
-                  title={button.latex}
-                  onClick={() =>
-                    insertFormula(
+                  <button
+                    key={
+                      `${button.label}-${index}`
+                    }
+                    type="button"
+                    title={
                       button.latex
-                    )
-                  }
-                  style={styles.toolButton}
-                >
-                  {button.label}
-                </button>
+                    }
+                    onClick={() =>
+                      insertFormula(
+                        button.latex
+                      )
+                    }
+                    style={
+                      styles.toolButton
+                    }
+                  >
+                    {button.label}
+                  </button>
 
-              ))}
+                )
+              )}
 
             </div>
 
-            <div style={styles.toolbarHint}>
-              Formula buttons insert LaTeX into the currently selected field.
+
+            <div
+              style={
+                styles.toolbarHint
+              }
+            >
+              Formula buttons insert LaTeX into the selected field.
             </div>
 
           </div>
 
+
           {/* =================================================
-              QUESTION / OPTIONS / EXPLANATION
+              FIELDS
           ================================================= */}
 
-          {fields.map(field => (
+          {fields.map(
+            field => (
 
-            <div
-              key={field.key}
-              onClick={() =>
-                setActiveField(field.key)
-              }
-              style={{
-                ...styles.fieldCard,
-
-                ...(activeField === field.key
-                  ? styles.fieldActive
-                  : {})
-              }}
-            >
-
-              <div style={styles.fieldHeader}>
-
-                <strong style={styles.fieldLabel}>
-                  {field.label}
-                </strong>
-
-                <button
-                  type="button"
-                  onClick={event => {
-
-                    event.stopPropagation()
-
-                    setActiveField(
-                      field.key
-                    )
-
-                    copyText(
-                      autoWrap(field.value)
-                    )
-
-                  }}
-                  style={styles.miniButton}
-                >
-                  Copy LaTeX
-                </button>
-
-              </div>
-
-              <textarea
-                ref={element => {
-                  inputRefs.current[
-                    field.key
-                  ] = element
-                }}
-                value={field.value}
-                onFocus={() =>
+              <div
+                key={
+                  field.key
+                }
+                onClick={() =>
                   setActiveField(
                     field.key
                   )
                 }
-                onChange={event =>
-                  field.setter(
-                    event.target.value
-                  )
-                }
-                placeholder={field.placeholder}
-                spellCheck={false}
                 style={{
-                  ...styles.textarea,
-                  minHeight: field.height
-                }}
-              />
+                  ...styles.fieldCard,
 
-              <div style={styles.outputTitle}>
-                LaTeX output
+                  ...(activeField === field.key
+                    ? styles.fieldActive
+                    : {})
+                }}
+              >
+
+
+                <div
+                  style={
+                    styles.fieldHeader
+                  }
+                >
+
+                  <strong
+                    style={
+                      styles.fieldLabel
+                    }
+                  >
+                    {field.label}
+                  </strong>
+
+
+                  <button
+                    type="button"
+                    onClick={
+                      event => {
+
+                        event.stopPropagation()
+
+                        setActiveField(
+                          field.key
+                        )
+
+                        copyFieldLaTeX(
+                          field.key
+                        )
+
+                      }
+                    }
+                    style={
+                      styles.miniButton
+                    }
+                  >
+                    Copy LaTeX
+                  </button>
+
+                </div>
+
+
+                <textarea
+                  ref={
+                    element => {
+
+                      inputRefs.current[
+                        field.key
+                      ] = element
+
+                    }
+                  }
+                  value={
+                    field.value
+                  }
+                  onFocus={() =>
+                    setActiveField(
+                      field.key
+                    )
+                  }
+                  onChange={
+                    event =>
+                      field.setter(
+                        event.target.value
+                      )
+                  }
+                  placeholder={
+                    field.placeholder
+                  }
+                  spellCheck={false}
+                  style={{
+                    ...styles.textarea,
+
+                    minHeight:
+                      field.height
+                  }}
+                />
+
+
+                <div
+                  style={
+                    styles.outputTitle
+                  }
+                >
+                  LaTeX
+                </div>
+
+
+                <textarea
+                  value={
+                    autoWrap(
+                      field.value
+                    )
+                  }
+                  readOnly
+                  spellCheck={false}
+                  style={
+                    styles.output
+                  }
+                />
+
               </div>
 
-              <textarea
-                value={autoWrap(
-                  field.value
-                )}
-                readOnly
-                spellCheck={false}
-                style={styles.output}
-              />
+            )
+          )}
 
-            </div>
-
-          ))}
 
           {/* =================================================
-              CORRECT ANSWER
+              ANSWER
           ================================================= */}
 
-          <div style={styles.answerCard}>
+          <div
+            style={
+              styles.answerCard
+            }
+          >
 
-            <strong style={styles.fieldLabel}>
+            <strong
+              style={
+                styles.fieldLabel
+              }
+            >
               Correct Answer
             </strong>
 
-            <div style={styles.answerButtons}>
+
+            <div
+              style={
+                styles.answerButtons
+              }
+            >
 
               {[
                 'A',
                 'B',
                 'C',
                 'D'
-              ].map(answer => (
+              ].map(
+                answer => (
 
-                <button
-                  key={answer}
-                  type="button"
-                  onClick={() =>
-                    setCorrectAnswer(
-                      answer
-                    )
-                  }
-                  style={{
-                    ...styles.answerButton,
+                  <button
+                    key={answer}
+                    type="button"
+                    onClick={() =>
+                      setCorrectAnswer(
+                        answer
+                      )
+                    }
+                    style={{
+                      ...styles.answerButton,
 
-                    ...(correctAnswer === answer
-                      ? styles.answerActive
-                      : {})
-                  }}
-                >
-                  {answer}
-                </button>
+                      ...(correctAnswer === answer
+                        ? styles.answerActive
+                        : {})
+                    }}
+                  >
+                    {answer}
+                  </button>
 
-              ))}
+                )
+              )}
 
             </div>
 
           </div>
 
+
           {/* =================================================
-              ACTIONS
+              OUTPUT ACTIONS
           ================================================= */}
 
-          <div style={styles.actionRow}>
+          <div
+            style={
+              styles.actionRow
+            }
+          >
 
             <button
               type="button"
               onClick={
-                copyQuestionForExcel
+                copyQuestionLaTeX
               }
-              style={styles.primaryButton}
+              style={
+                styles.primaryButton
+              }
             >
-              📋 Copy for Excel
+              📋 Copy LaTeX
             </button>
 
+
             <button
               type="button"
               onClick={
-                downloadCurrentQuestion
+                downloadCurrentExcel
               }
-              style={styles.primaryButton}
+              style={
+                styles.secondaryButton
+              }
             >
-              ⬇️ Download Excel
+              📊 Excel
+            </button>
+
+
+            <button
+              type="button"
+              disabled={
+                wordLoading
+              }
+              onClick={
+                exportToWord
+              }
+              style={{
+                ...styles.wordButton,
+
+                ...(wordLoading
+                  ? styles.disabled
+                  : {})
+              }}
+            >
+
+              {wordLoading
+                ? 'Creating Word...'
+                : '📄 Export to Word'}
+
             </button>
 
           </div>
+
+
+          {/* =================================================
+              OUTPUT EXPLANATION
+          ================================================= */}
+
+          <div
+            style={
+              styles.formatInfo
+            }
+          >
+
+            <div>
+
+              <strong>
+                📦 LaTeX
+              </strong>
+
+              <span>
+                Use for Excel / database storage
+              </span>
+
+            </div>
+
+
+            <div>
+
+              <strong>
+                📄 Word
+              </strong>
+
+              <span>
+                Export creates editable Word equations
+              </span>
+
+            </div>
+
+          </div>
+
 
           {/* =================================================
               OCR
           ================================================= */}
 
-          <section style={styles.card}>
+          <section
+            style={
+              styles.card
+            }
+          >
 
-            <h2 style={styles.sectionTitle}>
+            <h2
+              style={
+                styles.sectionTitle
+              }
+            >
               📷 OCR
             </h2>
 
-            <p style={styles.hint}>
-              Copy a screenshot with Win + Shift + S,
-              then click here and press Ctrl + V.
-              You can also drag an image or select a file.
+
+            <p
+              style={
+                styles.hint
+              }
+            >
+              Copy a screenshot using Win + Shift + S,
+              then press Ctrl + V here. You can also drag
+              or select an image.
             </p>
+
 
             <div
               tabIndex={0}
-              onClick={event =>
-                event.currentTarget.focus()
+
+              onClick={
+                event =>
+                  event.currentTarget.focus()
               }
-              onDragEnter={handleDragEnter}
-              onDragOver={handleDrag}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
+
+              onDragEnter={
+                handleDragEnter
+              }
+
+              onDragOver={
+                handleDrag
+              }
+
+              onDragLeave={
+                handleDragLeave
+              }
+
+              onDrop={
+                handleDrop
+              }
+
               style={{
                 ...styles.dropZone,
 
@@ -2409,53 +4048,81 @@ export default function QuestionStudioPage() {
               }}
             >
 
-              <div style={styles.dropIcon}>
+              <div
+                style={
+                  styles.dropIcon
+                }
+              >
                 🖼️
               </div>
+
 
               <strong>
                 Ctrl + V screenshot here
               </strong>
 
-              <span style={styles.dropText}>
+
+              <span
+                style={
+                  styles.dropText
+                }
+              >
                 or drag and drop an image
               </span>
+
 
               <input
                 type="file"
                 accept="image/*"
-                onChange={event =>
-                  handleImageFile(
-                    event.target.files?.[0]
-                  )
+                onChange={
+                  event =>
+                    handleImageFile(
+                      event.target.files?.[0]
+                    )
                 }
-                style={styles.fileInput}
+                style={
+                  styles.fileInput
+                }
               />
 
             </div>
 
+
             {imagePreview && (
 
-              <div style={styles.imageBox}>
+              <div
+                style={
+                  styles.imageBox
+                }
+              >
 
                 <img
-                  src={imagePreview}
+                  src={
+                    imagePreview
+                  }
                   alt="OCR source"
-                  style={styles.image}
+                  style={
+                    styles.image
+                  }
                 />
 
               </div>
 
             )}
 
+
             <button
               type="button"
-              disabled={ocrLoading}
+              disabled={
+                ocrLoading
+              }
               onClick={() =>
                 processImageOCR()
               }
               style={{
                 ...styles.primaryButton,
+
+                marginTop: 12,
 
                 ...(ocrLoading
                   ? styles.disabled
@@ -2471,96 +4138,162 @@ export default function QuestionStudioPage() {
 
           </section>
 
+
           {/* =================================================
               EXCEL
           ================================================= */}
 
-          <section style={styles.card}>
+          <section
+            style={
+              styles.card
+            }
+          >
 
-            <h2 style={styles.sectionTitle}>
+            <h2
+              style={
+                styles.sectionTitle
+              }
+            >
               📊 Excel Conversion
             </h2>
 
-            <p style={styles.hint}>
-              Upload an existing question bank and convert
-              its question, options and explanations to LaTeX.
+
+            <p
+              style={
+                styles.hint
+              }
+            >
+              Convert an existing question bank into
+              LaTeX-formatted questions.
             </p>
+
 
             <input
               type="file"
               accept=".xlsx,.xls,.csv"
-              onChange={event =>
-                setExcelFile(
-                  event.target.files?.[0] ||
-                  null
-                )
+              onChange={
+                event =>
+                  setExcelFile(
+                    event.target.files?.[0] ||
+                    null
+                  )
               }
-              style={styles.fileInputStandalone}
+              style={
+                styles.fileInputStandalone
+              }
             />
 
-            <div style={styles.actionRow}>
+
+            <div
+              style={
+                styles.actionRow
+              }
+            >
 
               <button
                 type="button"
-                onClick={processExcel}
-                style={styles.primaryButton}
+                onClick={
+                  processExcel
+                }
+                style={
+                  styles.primaryButton
+                }
               >
                 Convert Excel
               </button>
+
 
               <button
                 type="button"
                 onClick={
                   downloadProcessedExcel
                 }
-                style={styles.secondaryButton}
+                style={
+                  styles.secondaryButton
+                }
               >
                 Download Converted Excel
               </button>
 
             </div>
 
+
             {excelPreview.length > 0 && (
 
-              <div style={styles.excelPreview}>
+              <div
+                style={
+                  styles.excelPreview
+                }
+              >
 
                 <strong>
-                  Preview — first {excelPreview.length} rows
+                  Preview — first {
+                    excelPreview.length
+                  } rows
                 </strong>
 
-                <div style={styles.tableWrap}>
 
-                  <table style={styles.table}>
+                <div
+                  style={
+                    styles.tableWrap
+                  }
+                >
+
+                  <table
+                    style={
+                      styles.table
+                    }
+                  >
 
                     <thead>
 
                       <tr>
 
-                        <th style={styles.th}>
-                          Subject
-                        </th>
-
-                        <th style={styles.th}>
+                        <th
+                          style={
+                            styles.th
+                          }
+                        >
                           Question
                         </th>
 
-                        <th style={styles.th}>
+                        <th
+                          style={
+                            styles.th
+                          }
+                        >
                           A
                         </th>
 
-                        <th style={styles.th}>
+                        <th
+                          style={
+                            styles.th
+                          }
+                        >
                           B
                         </th>
 
-                        <th style={styles.th}>
+                        <th
+                          style={
+                            styles.th
+                          }
+                        >
                           C
                         </th>
 
-                        <th style={styles.th}>
+                        <th
+                          style={
+                            styles.th
+                          }
+                        >
                           D
                         </th>
 
-                        <th style={styles.th}>
+                        <th
+                          style={
+                            styles.th
+                          }
+                        >
                           Answer
                         </th>
 
@@ -2568,39 +4301,85 @@ export default function QuestionStudioPage() {
 
                     </thead>
 
+
                     <tbody>
 
                       {excelPreview.map(
-                        (row, index) => (
+                        (
+                          row,
+                          index
+                        ) => (
 
-                          <tr key={index}>
+                          <tr
+                            key={
+                              index
+                            }
+                          >
 
-                            <td style={styles.td}>
-                              {row.subject || ''}
+                            <td
+                              style={
+                                styles.td
+                              }
+                            >
+                              {
+                                row.question ||
+                                ''
+                              }
                             </td>
 
-                            <td style={styles.td}>
-                              {row.question || ''}
+                            <td
+                              style={
+                                styles.td
+                              }
+                            >
+                              {
+                                row.option_a ||
+                                ''
+                              }
                             </td>
 
-                            <td style={styles.td}>
-                              {row.option_a || ''}
+                            <td
+                              style={
+                                styles.td
+                              }
+                            >
+                              {
+                                row.option_b ||
+                                ''
+                              }
                             </td>
 
-                            <td style={styles.td}>
-                              {row.option_b || ''}
+                            <td
+                              style={
+                                styles.td
+                              }
+                            >
+                              {
+                                row.option_c ||
+                                ''
+                              }
                             </td>
 
-                            <td style={styles.td}>
-                              {row.option_c || ''}
+                            <td
+                              style={
+                                styles.td
+                              }
+                            >
+                              {
+                                row.option_d ||
+                                ''
+                              }
                             </td>
 
-                            <td style={styles.td}>
-                              {row.option_d || ''}
-                            </td>
-
-                            <td style={styles.td}>
-                              {row.correct_answer || ''}
+                            <td
+                              style={
+                                styles.td
+                              }
+                            >
+                              {
+                                row.correct_answer ||
+                                ''
+                              }
                             </td>
 
                           </tr>
@@ -2622,40 +4401,64 @@ export default function QuestionStudioPage() {
 
         </section>
 
+
         {/* ===================================================
-            RIGHT / LIVE PREVIEW
+            RIGHT PREVIEW
         =================================================== */}
 
         <aside>
 
-          <div style={styles.previewSticky}>
+          <div
+            style={
+              styles.previewSticky
+            }
+          >
 
-            <div style={styles.previewHeader}>
+            <div
+              style={
+                styles.previewHeader
+              }
+            >
 
               <div>
 
-                <h2 style={styles.sectionTitle}>
+                <h2
+                  style={
+                    styles.sectionTitle
+                  }
+                >
                   Live Preview
                 </h2>
 
-                <p style={styles.hint}>
-                  The question below is rendered using KaTeX.
+
+                <p
+                  style={
+                    styles.hint
+                  }
+                >
+                  Rendered exactly from the LaTeX output.
                 </p>
 
               </div>
 
-              <span style={styles.badge}>
-                {subject} · {difficulty}
-              </span>
-
             </div>
 
+
             <div
-              ref={previewRef}
-              style={styles.preview}
+              ref={
+                previewRef
+              }
+              style={
+                styles.preview
+              }
             />
 
-            <div style={styles.correctBox}>
+
+            <div
+              style={
+                styles.correctBox
+              }
+            >
 
               <strong>
                 Correct Answer:
@@ -2667,40 +4470,56 @@ export default function QuestionStudioPage() {
 
             </div>
 
-            <div style={styles.tipBox}>
+
+            <div
+              style={
+                styles.tipBox
+              }
+            >
 
               <strong>
-                How to use:
+                Output strategy
               </strong>
 
-              <div style={{ marginTop: 5 }}>
 
-                Type normal English normally.
+              <div
+                style={{
+                  marginTop: 7
+                }}
+              >
+
+                <b>
+                  Excel / DB:
+                </b>
+
+                {' '}
+                store the LaTeX.
+
 
                 <br />
 
-                Use the formula buttons for
-                precise mathematical or chemical notation.
+
+                <b>
+                  Word:
+                </b>
+
+                {' '}
+                use Export to Word for
+                editable Word equations.
+
 
                 <br />
+                <br />
+
 
                 Example:
 
                 <br />
 
+
                 <code>
-                  KE = 1/2 mv²
+                  KE = \frac{'{1}{2}'}mv^2
                 </code>
-
-                <br />
-
-                becomes
-
-                <br />
-
-                <strong>
-                  KE = ½mv²
-                </strong>
 
               </div>
 
@@ -2712,35 +4531,55 @@ export default function QuestionStudioPage() {
 
       </main>
 
+
       {/* =====================================================
-          LOCAL PREVIEW STYLES
+          PREVIEW STYLES
       ===================================================== */}
 
       <style jsx global>{`
 
         .qs-question {
-          font-size: 19px;
-          font-weight: 600;
-          margin-bottom: 22px;
-          line-height: 1.7;
+          margin-bottom: 24px;
+          padding-bottom: 16px;
+          border-bottom: 1px solid #eaecf0;
         }
 
         .qs-option {
-          font-size: 17px;
-          margin: 13px 0;
-          padding: 10px 12px;
+          margin-bottom: 12px;
+          padding: 12px;
           border-radius: 7px;
           background: #f8fafc;
           line-height: 1.7;
         }
 
         .qs-explanation {
-          margin-top: 28px;
+          margin-top: 25px;
           padding: 15px;
           border-radius: 8px;
           background: #f8fafc;
           border: 1px solid #eaecf0;
-          line-height: 1.7;
+        }
+
+        .qs-label {
+          font-size: 11px;
+          font-weight: 700;
+          color: #667085;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          margin-bottom: 7px;
+        }
+
+        .qs-content {
+          font-size: 17px;
+          line-height: 1.75;
+          color: #101828;
+        }
+
+        .qs-empty {
+          color: #98a2b3;
+          text-align: center;
+          padding: 70px 20px;
+          font-size: 15px;
         }
 
         .katex {
@@ -2755,6 +4594,7 @@ export default function QuestionStudioPage() {
 
 }
 
+
 /* ============================================================
    STYLES
 ============================================================ */
@@ -2762,499 +4602,1115 @@ export default function QuestionStudioPage() {
 const styles = {
 
   page: {
-    minHeight: '100vh',
-    background: '#f5f7fb',
-    color: '#172033',
+
+    minHeight:
+      '100vh',
+
+    background:
+      '#f5f7fb',
+
+    color:
+      '#172033',
+
     fontFamily:
       'Arial, Helvetica, sans-serif',
-    paddingBottom: 50
+
+    paddingBottom:
+      50
+
   },
+
 
   loading: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 18
+
+    minHeight:
+      '100vh',
+
+    display:
+      'flex',
+
+    alignItems:
+      'center',
+
+    justifyContent:
+      'center',
+
+    fontSize:
+      18
+
   },
+
 
   header: {
-    background: '#ffffff',
+
+    background:
+      '#ffffff',
+
     borderBottom:
       '1px solid #e5e7eb',
-    padding: '20px 30px'
+
+    padding:
+      '20px 30px'
+
   },
+
 
   titleRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12
+
+    display:
+      'flex',
+
+    alignItems:
+      'center',
+
+    gap:
+      12
+
   },
+
 
   rocket: {
-    fontSize: 30
+
+    fontSize:
+      30
+
   },
+
 
   title: {
-    margin: 0,
-    fontSize: 30,
-    color: '#111827'
+
+    margin:
+      0,
+
+    fontSize:
+      30,
+
+    color:
+      '#111827'
+
   },
+
 
   subtitle: {
-    margin: '6px 0 0',
-    color: '#667085',
-    fontSize: 14
+
+    margin:
+      '6px 0 0',
+
+    color:
+      '#667085',
+
+    fontSize:
+      14
+
   },
+
 
   welcome: {
-    margin: '6px 0 0',
-    color: '#475467',
-    fontSize: 13
+
+    margin:
+      '6px 0 0',
+
+    color:
+      '#475467',
+
+    fontSize:
+      13
+
   },
 
-  metaBar: {
-    display: 'flex',
-    gap: 20,
-    alignItems: 'flex-end',
-    background: '#ffffff',
-    borderBottom:
-      '1px solid #e5e7eb',
-    padding: '14px 30px'
-  },
-
-  metaField: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 5
-  },
-
-  label: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: '#475467'
-  },
-
-  select: {
-    minWidth: 150,
-    padding: '9px 11px',
-    border:
-      '1px solid #cfd4dc',
-    borderRadius: 7,
-    background: '#ffffff',
-    fontSize: 14
-  },
 
   main: {
-    maxWidth: 1500,
-    margin: '22px auto',
-    padding: '0 22px',
-    display: 'grid',
+
+    maxWidth:
+      1500,
+
+    margin:
+      '22px auto',
+
+    padding:
+      '0 22px',
+
+    display:
+      'grid',
+
     gridTemplateColumns:
       'minmax(0, 1.2fr) minmax(420px, 0.8fr)',
-    gap: 22,
-    alignItems: 'start'
+
+    gap:
+      22,
+
+    alignItems:
+      'start'
+
   },
+
 
   previewSticky: {
-    position: 'sticky',
-    top: 15
+
+    position:
+      'sticky',
+
+    top:
+      15
+
   },
+
 
   sectionHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 14,
-    gap: 15
+
+    display:
+      'flex',
+
+    justifyContent:
+      'space-between',
+
+    alignItems:
+      'flex-start',
+
+    marginBottom:
+      14,
+
+    gap:
+      15
+
   },
+
 
   sectionTitle: {
-    margin: 0,
-    fontSize: 19,
-    color: '#111827'
+
+    margin:
+      0,
+
+    fontSize:
+      19,
+
+    color:
+      '#111827'
+
   },
+
 
   hint: {
-    margin: '5px 0 0',
-    color: '#667085',
-    fontSize: 13,
-    lineHeight: 1.5
+
+    margin:
+      '5px 0 0',
+
+    color:
+      '#667085',
+
+    fontSize:
+      13,
+
+    lineHeight:
+      1.5
+
   },
+
 
   toolbarCard: {
-    background: '#ffffff',
+
+    background:
+      '#ffffff',
+
     border:
       '1px solid #e1e5ea',
-    borderRadius: 10,
-    padding: 13,
-    marginBottom: 14
+
+    borderRadius:
+      10,
+
+    padding:
+      13,
+
+    marginBottom:
+      14
+
   },
+
 
   tabs: {
-    display: 'flex',
-    gap: 7,
-    flexWrap: 'wrap',
-    marginBottom: 10
+
+    display:
+      'flex',
+
+    gap:
+      7,
+
+    flexWrap:
+      'wrap',
+
+    marginBottom:
+      10
+
   },
+
 
   tab: {
-    padding: '7px 12px',
+
+    padding:
+      '7px 13px',
+
     border:
       '1px solid #d0d5dd',
-    borderRadius: 6,
-    background: '#f8fafc',
-    color: '#344054',
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 600
+
+    borderRadius:
+      6,
+
+    background:
+      '#f8fafc',
+
+    color:
+      '#344054',
+
+    cursor:
+      'pointer',
+
+    fontSize:
+      13,
+
+    fontWeight:
+      600
+
   },
+
 
   tabActive: {
-    background: '#2563eb',
-    color: '#ffffff',
-    borderColor: '#2563eb'
+
+    background:
+      '#2563eb',
+
+    color:
+      '#ffffff',
+
+    borderColor:
+      '#2563eb'
+
   },
+
 
   toolbar: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: 7
+
+    display:
+      'flex',
+
+    flexWrap:
+      'wrap',
+
+    gap:
+      7
+
   },
+
 
   toolButton: {
-    minWidth: 52,
-    minHeight: 36,
-    padding: '6px 9px',
+
+    minWidth:
+      52,
+
+    minHeight:
+      36,
+
+    padding:
+      '6px 9px',
+
     border:
       '1px solid #d0d5dd',
-    borderRadius: 6,
-    background: '#ffffff',
-    color: '#1d2939',
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 600
+
+    borderRadius:
+      6,
+
+    background:
+      '#ffffff',
+
+    color:
+      '#1d2939',
+
+    cursor:
+      'pointer',
+
+    fontSize:
+      13,
+
+    fontWeight:
+      600
+
   },
+
 
   toolbarHint: {
-    marginTop: 9,
-    fontSize: 11,
-    color: '#98a2b3'
+
+    marginTop:
+      9,
+
+    fontSize:
+      11,
+
+    color:
+      '#98a2b3'
+
   },
+
 
   fieldCard: {
-    background: '#ffffff',
+
+    background:
+      '#ffffff',
+
     border:
       '1px solid #e1e5ea',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 13
+
+    borderRadius:
+      10,
+
+    padding:
+      14,
+
+    marginBottom:
+      13
+
   },
+
 
   fieldActive: {
+
     border:
       '1px solid #2563eb',
+
     boxShadow:
       '0 0 0 2px rgba(37,99,235,0.08)'
+
   },
+
 
   fieldHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 7
+
+    display:
+      'flex',
+
+    justifyContent:
+      'space-between',
+
+    alignItems:
+      'center',
+
+    marginBottom:
+      7
+
   },
+
 
   fieldLabel: {
-    fontSize: 14,
-    color: '#1d2939'
+
+    fontSize:
+      14,
+
+    color:
+      '#1d2939'
+
   },
+
 
   miniButton: {
+
     border:
       '1px solid #d0d5dd',
-    background: '#ffffff',
-    color: '#344054',
-    padding: '5px 8px',
-    borderRadius: 5,
-    cursor: 'pointer',
-    fontSize: 11
+
+    background:
+      '#ffffff',
+
+    color:
+      '#344054',
+
+    padding:
+      '5px 8px',
+
+    borderRadius:
+      5,
+
+    cursor:
+      'pointer',
+
+    fontSize:
+      11
+
   },
+
 
   textarea: {
-    width: '100%',
-    boxSizing: 'border-box',
-    resize: 'vertical',
-    padding: 11,
+
+    width:
+      '100%',
+
+    boxSizing:
+      'border-box',
+
+    resize:
+      'vertical',
+
+    padding:
+      11,
+
     border:
       '1px solid #cfd4dc',
-    borderRadius: 7,
+
+    borderRadius:
+      7,
+
     fontFamily:
       'Consolas, "Courier New", monospace',
-    fontSize: 14,
-    lineHeight: 1.6,
-    outline: 'none',
-    color: '#111827'
+
+    fontSize:
+      14,
+
+    lineHeight:
+      1.6,
+
+    outline:
+      'none',
+
+    color:
+      '#111827'
+
   },
+
 
   outputTitle: {
-    marginTop: 9,
-    marginBottom: 5,
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#667085',
-    textTransform: 'uppercase'
+
+    marginTop:
+      9,
+
+    marginBottom:
+      5,
+
+    fontSize:
+      11,
+
+    fontWeight:
+      700,
+
+    color:
+      '#667085',
+
+    textTransform:
+      'uppercase'
+
   },
+
 
   output: {
-    width: '100%',
-    minHeight: 50,
-    boxSizing: 'border-box',
-    resize: 'vertical',
-    padding: 10,
+
+    width:
+      '100%',
+
+    minHeight:
+      50,
+
+    boxSizing:
+      'border-box',
+
+    resize:
+      'vertical',
+
+    padding:
+      10,
+
     border:
       '1px solid #e4e7ec',
-    borderRadius: 7,
+
+    borderRadius:
+      7,
+
     fontFamily:
       'Consolas, "Courier New", monospace',
-    fontSize: 13,
-    lineHeight: 1.5,
-    color: '#344054',
-    background: '#f8fafc'
+
+    fontSize:
+      13,
+
+    lineHeight:
+      1.5,
+
+    color:
+      '#344054',
+
+    background:
+      '#f8fafc'
+
   },
+
 
   answerCard: {
-    background: '#ffffff',
+
+    background:
+      '#ffffff',
+
     border:
       '1px solid #e1e5ea',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 14
+
+    borderRadius:
+      10,
+
+    padding:
+      14,
+
+    marginBottom:
+      14
+
   },
+
 
   answerButtons: {
-    display: 'flex',
-    gap: 9,
-    marginTop: 10
+
+    display:
+      'flex',
+
+    gap:
+      9,
+
+    marginTop:
+      10
+
   },
+
 
   answerButton: {
-    width: 45,
-    height: 38,
-    borderRadius: 7,
+
+    width:
+      45,
+
+    height:
+      38,
+
+    borderRadius:
+      7,
+
     border:
       '1px solid #d0d5dd',
-    background: '#ffffff',
-    cursor: 'pointer',
-    fontWeight: 700
+
+    background:
+      '#ffffff',
+
+    cursor:
+      'pointer',
+
+    fontWeight:
+      700
+
   },
+
 
   answerActive: {
-    background: '#16a34a',
-    color: '#ffffff',
-    borderColor: '#16a34a'
+
+    background:
+      '#16a34a',
+
+    color:
+      '#ffffff',
+
+    borderColor:
+      '#16a34a'
+
   },
+
 
   actionRow: {
-    display: 'flex',
-    gap: 9,
-    flexWrap: 'wrap',
-    marginBottom: 18
+
+    display:
+      'flex',
+
+    gap:
+      9,
+
+    flexWrap:
+      'wrap',
+
+    marginBottom:
+      18
+
   },
+
 
   primaryButton: {
-    border: 'none',
-    background: '#2563eb',
-    color: '#ffffff',
-    padding: '10px 14px',
-    borderRadius: 7,
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 700
+
+    border:
+      'none',
+
+    background:
+      '#2563eb',
+
+    color:
+      '#ffffff',
+
+    padding:
+      '10px 14px',
+
+    borderRadius:
+      7,
+
+    cursor:
+      'pointer',
+
+    fontSize:
+      13,
+
+    fontWeight:
+      700
+
   },
+
+
+  wordButton: {
+
+    border:
+      'none',
+
+    background:
+      '#0f766e',
+
+    color:
+      '#ffffff',
+
+    padding:
+      '10px 14px',
+
+    borderRadius:
+      7,
+
+    cursor:
+      'pointer',
+
+    fontSize:
+      13,
+
+    fontWeight:
+      700
+
+  },
+
 
   secondaryButton: {
+
     border:
       '1px solid #d0d5dd',
-    background: '#ffffff',
-    color: '#344054',
-    padding: '9px 13px',
-    borderRadius: 7,
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 600
+
+    background:
+      '#ffffff',
+
+    color:
+      '#344054',
+
+    padding:
+      '9px 13px',
+
+    borderRadius:
+      7,
+
+    cursor:
+      'pointer',
+
+    fontSize:
+      13,
+
+    fontWeight:
+      600
+
   },
+
 
   disabled: {
-    opacity: 0.6,
-    cursor: 'not-allowed'
+
+    opacity:
+      0.6,
+
+    cursor:
+      'not-allowed'
+
   },
+
+
+  formatInfo: {
+
+    display:
+      'grid',
+
+    gridTemplateColumns:
+      '1fr 1fr',
+
+    gap:
+      10,
+
+    marginBottom:
+      18
+
+  },
+
+
+  formatInfoItem: {
+
+    background:
+      '#ffffff',
+
+    border:
+      '1px solid #eaecf0',
+
+    borderRadius:
+      8,
+
+    padding:
+      11
+
+  },
+
 
   card: {
-    background: '#ffffff',
+
+    background:
+      '#ffffff',
+
     border:
       '1px solid #e1e5ea',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 18
+
+    borderRadius:
+      10,
+
+    padding:
+      15,
+
+    marginBottom:
+      18
+
   },
+
 
   dropZone: {
+
     border:
       '2px dashed #93c5fd',
-    borderRadius: 10,
-    padding: 25,
-    textAlign: 'center',
-    background: '#f8fbff',
-    cursor: 'pointer'
+
+    borderRadius:
+      10,
+
+    padding:
+      25,
+
+    textAlign:
+      'center',
+
+    background:
+      '#f8fbff',
+
+    cursor:
+      'pointer'
+
   },
+
 
   dropActive: {
+
     border:
       '2px dashed #2563eb',
-    background: '#eff6ff'
+
+    background:
+      '#eff6ff'
+
   },
+
 
   dropIcon: {
-    fontSize: 28,
-    marginBottom: 7
+
+    fontSize:
+      28,
+
+    marginBottom:
+      7
+
   },
+
 
   dropText: {
-    display: 'block',
-    marginTop: 5,
-    color: '#667085',
-    fontSize: 12
+
+    display:
+      'block',
+
+    marginTop:
+      5,
+
+    color:
+      '#667085',
+
+    fontSize:
+      12
+
   },
+
 
   fileInput: {
-    display: 'block',
-    margin: '14px auto 0',
-    maxWidth: '100%',
-    fontSize: 12
+
+    display:
+      'block',
+
+    margin:
+      '14px auto 0',
+
+    maxWidth:
+      '100%',
+
+    fontSize:
+      12
+
   },
+
 
   fileInputStandalone: {
-    display: 'block',
-    margin: '13px 0',
-    maxWidth: '100%'
+
+    display:
+      'block',
+
+    margin:
+      '13px 0',
+
+    maxWidth:
+      '100%'
+
   },
+
 
   imageBox: {
-    marginTop: 13,
-    padding: 10,
+
+    marginTop:
+      13,
+
+    padding:
+      10,
+
     border:
       '1px solid #e4e7ec',
-    borderRadius: 8,
-    background: '#f8fafc'
+
+    borderRadius:
+      8,
+
+    background:
+      '#f8fafc'
+
   },
+
 
   image: {
-    display: 'block',
-    maxWidth: '100%',
-    maxHeight: 280,
-    margin: '0 auto',
-    borderRadius: 6
+
+    display:
+      'block',
+
+    maxWidth:
+      '100%',
+
+    maxHeight:
+      280,
+
+    margin:
+      '0 auto',
+
+    borderRadius:
+      6
+
   },
+
 
   excelPreview: {
-    marginTop: 14,
+
+    marginTop:
+      14,
+
     borderTop:
       '1px solid #eaecf0',
-    paddingTop: 12
+
+    paddingTop:
+      12
+
   },
+
 
   tableWrap: {
-    overflowX: 'auto',
-    marginTop: 9,
+
+    overflowX:
+      'auto',
+
+    marginTop:
+      9,
+
     border:
       '1px solid #eaecf0',
-    borderRadius: 7
+
+    borderRadius:
+      7
+
   },
+
 
   table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    fontSize: 11,
-    minWidth: 850
+
+    width:
+      '100%',
+
+    borderCollapse:
+      'collapse',
+
+    fontSize:
+      11,
+
+    minWidth:
+      850
+
   },
+
 
   th: {
-    padding: 8,
-    textAlign: 'left',
-    background: '#f8fafc',
+
+    padding:
+      8,
+
+    textAlign:
+      'left',
+
+    background:
+      '#f8fafc',
+
     borderBottom:
       '1px solid #eaecf0',
-    whiteSpace: 'nowrap'
+
+    whiteSpace:
+      'nowrap'
+
   },
+
 
   td: {
-    padding: 8,
+
+    padding:
+      8,
+
     borderBottom:
       '1px solid #eaecf0',
-    verticalAlign: 'top',
-    maxWidth: 300
+
+    verticalAlign:
+      'top',
+
+    maxWidth:
+      300
+
   },
+
 
   previewHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 12
+
+    display:
+      'flex',
+
+    justifyContent:
+      'space-between',
+
+    alignItems:
+      'flex-start',
+
+    gap:
+      12,
+
+    marginBottom:
+      12
+
   },
 
-  badge: {
-    display: 'inline-block',
-    background: '#eff6ff',
-    color: '#1d4ed8',
-    border:
-      '1px solid #bfdbfe',
-    borderRadius: 20,
-    padding: '6px 10px',
-    fontSize: 11,
-    fontWeight: 700,
-    whiteSpace: 'nowrap'
-  },
 
   preview: {
-    background: '#ffffff',
+
+    background:
+      '#ffffff',
+
     border:
       '1px solid #dfe3e8',
-    borderRadius: 10,
-    padding: 24,
-    minHeight: 500,
-    lineHeight: 1.8,
-    fontSize: 17,
-    overflowWrap: 'break-word',
-    wordBreak: 'break-word',
+
+    borderRadius:
+      10,
+
+    padding:
+      24,
+
+    minHeight:
+      500,
+
+    lineHeight:
+      1.8,
+
+    fontSize:
+      17,
+
+    overflowWrap:
+      'break-word',
+
+    wordBreak:
+      'break-word',
+
     boxShadow:
       '0 2px 8px rgba(16,24,40,0.04)'
+
   },
+
 
   correctBox: {
-    marginTop: 12,
-    display: 'flex',
-    gap: 7,
-    background: '#ecfdf3',
+
+    marginTop:
+      12,
+
+    display:
+      'flex',
+
+    gap:
+      7,
+
+    background:
+      '#ecfdf3',
+
     border:
       '1px solid #abefc6',
-    borderRadius: 8,
-    padding: 10,
-    color: '#027a48',
-    fontSize: 13
+
+    borderRadius:
+      8,
+
+    padding:
+      10,
+
+    color:
+      '#027a48',
+
+    fontSize:
+      13
+
   },
 
+
   tipBox: {
-    marginTop: 12,
-    background: '#f8fafc',
+
+    marginTop:
+      12,
+
+    background:
+      '#f8fafc',
+
     border:
       '1px solid #eaecf0',
-    borderRadius: 8,
-    padding: 11,
-    color: '#667085',
-    fontSize: 12,
-    lineHeight: 1.6
+
+    borderRadius:
+      8,
+
+    padding:
+      11,
+
+    color:
+      '#667085',
+
+    fontSize:
+      12,
+
+    lineHeight:
+      1.6
+
   }
 
 }
