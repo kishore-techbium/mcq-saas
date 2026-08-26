@@ -2050,113 +2050,74 @@ export default function QuestionStudioPage() {
      CREATE WORD PARAGRAPH
   ========================================================= */
 
-  function createWordParagraph(
-    text,
-    options = {}
-  ) {
+  function createWordMathChildren(text) {
 
-    const parts =
-      splitWordContent(text)
+  const parts =
+    splitWordContent(text)
 
+  const children = []
 
-    const children = []
+  for (const part of parts) {
 
+    if (part.type === 'text') {
 
-    for (
-      const part of parts
-    ) {
-
-      if (
-        part.type === 'text'
-      ) {
-
-        if (part.value) {
-
-          children.push(
-            new TextRun({
-              text:
-                part.value,
-              font:
-                'Arial',
-              size:
-                24
-            })
-          )
-
-        }
-
-        continue
-
-      }
-
-
-      /*
-        Native Word equation.
-
-        convertLatex2Math()
-        returns a docx math object.
-      */
-
-      try {
-
-        const math =
-          convertLatex2Math(
-            part.value
-          )
-
-
-        children.push(
-          math
-        )
-
-      } catch (error) {
-
-        console.error(
-          'LaTeX conversion failed:',
-          part.value,
-          error
-        )
-
-
-        /*
-          If a formula fails,
-          don't lose the content.
-        */
+      if (part.value) {
 
         children.push(
           new TextRun({
-            text:
-              part.value,
-            font:
-              'Consolas',
-            size:
-              22
+            text: part.value,
+            font: 'Arial',
+            size: 24
           })
         )
 
       }
 
+      continue
     }
 
 
-    return new Paragraph({
+    /*
+      Convert LaTeX into a native
+      Word mathematical object.
+    */
 
-      alignment:
-        options.center
-          ? 'center'
-          : undefined,
+    try {
 
-      spacing: {
-        after: 140,
-        line: 276
-      },
+      const math =
+        convertLatex2Math(
+          part.value
+        )
 
-      children
+      children.push(math)
 
-    })
+    } catch (error) {
+
+      console.error(
+        'LaTeX conversion failed:',
+        part.value,
+        error
+      )
+
+      /*
+        Do not lose the formula if
+        conversion fails.
+      */
+
+      children.push(
+        new TextRun({
+          text: part.value,
+          font: 'Consolas',
+          size: 22
+        })
+      )
+
+    }
 
   }
 
+  return children
+}
 
   /* =========================================================
      CREATE WORD DOCUMENT
@@ -2231,18 +2192,27 @@ export default function QuestionStudioPage() {
         QUESTION
       */
 
-      if (
-        question.trim()
-      ) {
+     if (
+  question.trim()
+) {
 
-        children.push(
-          createWordParagraph(
-            question
-          )
+  children.push(
+    new Paragraph({
+
+      spacing: {
+        after: 140,
+        line: 276
+      },
+
+      children:
+        createWordMathChildren(
+          question
         )
 
-      }
+    })
+  )
 
+}
 
       /*
         OPTIONS
@@ -2273,58 +2243,58 @@ export default function QuestionStudioPage() {
       ]
 
 
-      for (
-        const option
-        of options
-      ) {
+  for (
+  const option
+  of options
+) {
 
-        if (
-          !option.value.trim()
-        ) {
+  if (
+    !option.value.trim()
+  ) {
 
-          continue
+    continue
 
-        }
+  }
 
 
-        children.push(
+  children.push(
 
-          new Paragraph({
+    new Paragraph({
 
-            spacing: {
-              after: 120,
-              line: 276
-            },
+      spacing: {
+        after: 120,
+        line: 276
+      },
 
-            children: [
+      children: [
 
-              new TextRun({
+        new TextRun({
 
-                text:
-                  `${option.label}. `,
+          text:
+            `${option.label}. `,
 
-                bold:
-                  true,
+          bold:
+            true,
 
-                font:
-                  'Arial',
+          font:
+            'Arial',
 
-                size:
-                  24
+          size:
+            24
 
-              }),
+        }),
 
-              ...createWordParagraph(
-                option.value
-              ).options.children
-
-            ]
-
-          })
-
+        ...createWordMathChildren(
+          option.value
         )
 
-      }
+      ]
+
+    })
+
+  )
+
+}
 
 
       /*
@@ -2407,12 +2377,23 @@ export default function QuestionStudioPage() {
         )
 
 
-        children.push(
-          createWordParagraph(
-            explanation
-          )
-        )
+  children.push(
 
+  new Paragraph({
+
+    spacing: {
+      after: 140,
+      line: 276
+    },
+
+    children:
+      createWordMathChildren(
+        explanation
+      )
+
+  })
+
+)
       }
 
 
