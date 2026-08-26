@@ -2519,569 +2519,1528 @@ export default function QuestionStudioPage() {
 
   }
 
+/* =========================================================
+   OCR - IMPROVED MATH QUESTION OCR
+========================================================= */
 
-  /* =========================================================
-     OCR PARSER
-  ========================================================= */
 
-  function parseMCQ(
-    text
-  ) {
+/* =========================================================
+   PREPROCESS IMAGE
+========================================================= */
 
-    const result = {
+async function preprocessOCRImage(file) {
 
-      question: '',
+  return new Promise((resolve, reject) => {
 
-      optionA: '',
-      optionB: '',
-      optionC: '',
-      optionD: '',
+    const image = new Image()
 
-      explanation: ''
+    const objectUrl =
+      URL.createObjectURL(file)
 
-    }
+    image.onload = () => {
 
+      try {
 
-    if (!text) {
+        /*
+          Enlarge the image.
 
-      return result
+          Small mathematical symbols such as:
+          ² ρ μ π √
+          are much easier for OCR to recognize
+          when the source is enlarged.
+        */
 
-    }
+        const scale = 3
 
+        const width =
+          Math.round(
+            image.naturalWidth * scale
+          )
 
-    const lines =
-      text
-        .replace(
-          /\r/g,
-          ''
-        )
-        .split('\n')
-        .map(
-          line =>
-            line.trim()
-        )
-        .filter(Boolean)
+        const height =
+          Math.round(
+            image.naturalHeight * scale
+          )
 
 
-    let current =
-      'question'
+        const canvas =
+          document.createElement('canvas')
 
 
-    const patterns = {
+        canvas.width =
+          width
 
-      optionA:
-        /^(?:A|a|\(A\)|A\)|①|1[.)])\s*/,
+        canvas.height =
+          height
 
-      optionB:
-        /^(?:B|b|\(B\)|B\)|②|2[.)])\s*/,
 
-      optionC:
-        /^(?:C|c|\(C\)|C\)|③|3[.)])\s*/,
+        const ctx =
+          canvas.getContext('2d')
 
-      optionD:
-        /^(?:D|d|\(D\)|D\)|④|4[.)])\s*/
 
-    }
+        /*
+          White background.
+        */
 
+        ctx.fillStyle =
+          '#ffffff'
 
-    for (
-      const line
-      of lines
-    ) {
-
-      if (
-        patterns.optionA
-          .test(line)
-      ) {
-
-        current =
-          'optionA'
-
-        result.optionA =
-          line
-            .replace(
-              patterns.optionA,
-              ''
-            )
-            .trim()
-
-        continue
-
-      }
-
-
-      if (
-        patterns.optionB
-          .test(line)
-      ) {
-
-        current =
-          'optionB'
-
-        result.optionB =
-          line
-            .replace(
-              patterns.optionB,
-              ''
-            )
-            .trim()
-
-        continue
-
-      }
-
-
-      if (
-        patterns.optionC
-          .test(line)
-      ) {
-
-        current =
-          'optionC'
-
-        result.optionC =
-          line
-            .replace(
-              patterns.optionC,
-              ''
-            )
-            .trim()
-
-        continue
-
-      }
-
-
-      if (
-        patterns.optionD
-          .test(line)
-      ) {
-
-        current =
-          'optionD'
-
-        result.optionD =
-          line
-            .replace(
-              patterns.optionD,
-              ''
-            )
-            .trim()
-
-        continue
-
-      }
-
-
-      if (
-        /^(Explanation|Solution|Answer explanation)/i
-          .test(line)
-      ) {
-
-        current =
-          'explanation'
-
-        continue
-
-      }
-
-
-      if (
-        current ===
-        'question'
-      ) {
-
-        result.question +=
-          (
-            result.question
-              ? ' '
-              : ''
-          ) + line
-
-      }
-
-
-      else if (
-        current ===
-        'optionA'
-      ) {
-
-        result.optionA +=
-          (
-            result.optionA
-              ? ' '
-              : ''
-          ) + line
-
-      }
-
-
-      else if (
-        current ===
-        'optionB'
-      ) {
-
-        result.optionB +=
-          (
-            result.optionB
-              ? ' '
-              : ''
-          ) + line
-
-      }
-
-
-      else if (
-        current ===
-        'optionC'
-      ) {
-
-        result.optionC +=
-          (
-            result.optionC
-              ? ' '
-              : ''
-          ) + line
-
-      }
-
-
-      else if (
-        current ===
-        'optionD'
-      ) {
-
-        result.optionD +=
-          (
-            result.optionD
-              ? ' '
-              : ''
-          ) + line
-
-      }
-
-
-      else if (
-        current ===
-        'explanation'
-      ) {
-
-        result.explanation +=
-          (
-            result.explanation
-              ? ' '
-              : ''
-          ) + line
-
-      }
-
-    }
-
-
-    result.question =
-      result.question
-        .replace(
-          /^\d+[\.)]\s*/,
-          ''
+        ctx.fillRect(
+          0,
+          0,
+          width,
+          height
         )
 
 
-    return result
+        /*
+          Draw enlarged image.
+        */
+
+        ctx.drawImage(
+          image,
+          0,
+          0,
+          width,
+          height
+        )
+
+
+        /*
+          Read pixels.
+        */
+
+        const imageData =
+          ctx.getImageData(
+            0,
+            0,
+            width,
+            height
+          )
+
+
+        const data =
+          imageData.data
+
+
+        /*
+          Grayscale + contrast enhancement.
+
+          We deliberately do NOT use an
+          aggressive black/white threshold because
+          thin mathematical symbols can disappear.
+        */
+
+        const contrast = 1.35
+
+        const midpoint = 128
+
+
+        for (
+          let i = 0;
+          i < data.length;
+          i += 4
+        ) {
+
+          const r = data[i]
+          const g = data[i + 1]
+          const b = data[i + 2]
+
+
+          /*
+            Perceived grayscale.
+          */
+
+          let gray =
+            (
+              0.299 * r +
+              0.587 * g +
+              0.114 * b
+            )
+
+
+          /*
+            Contrast.
+          */
+
+          gray =
+            midpoint +
+            contrast *
+              (gray - midpoint)
+
+
+          gray =
+            Math.max(
+              0,
+              Math.min(
+                255,
+                gray
+              )
+            )
+
+
+          data[i] =
+            gray
+
+          data[i + 1] =
+            gray
+
+          data[i + 2] =
+            gray
+
+        }
+
+
+        ctx.putImageData(
+          imageData,
+          0,
+          0
+        )
+
+
+        /*
+          Export as PNG.
+        */
+
+        canvas.toBlob(
+          blob => {
+
+            URL.revokeObjectURL(
+              objectUrl
+            )
+
+
+            if (!blob) {
+
+              reject(
+                new Error(
+                  'Could not preprocess image.'
+                )
+              )
+
+              return
+
+            }
+
+
+            resolve(blob)
+
+          },
+          'image/png'
+        )
+
+
+      } catch (error) {
+
+        URL.revokeObjectURL(
+          objectUrl
+        )
+
+        reject(error)
+
+      }
+
+    }
+
+
+    image.onerror =
+      () => {
+
+        URL.revokeObjectURL(
+          objectUrl
+        )
+
+        reject(
+          new Error(
+            'Could not load image.'
+          )
+        )
+
+      }
+
+
+    image.src =
+      objectUrl
+
+  })
+
+}
+
+
+/* =========================================================
+   OCR TEXT CLEANUP
+========================================================= */
+
+function cleanOCRLine(line) {
+
+  if (!line) {
+    return ''
+  }
+
+
+  let value =
+    line
+      .replace(
+        /\r/g,
+        ''
+      )
+      .replace(
+        /[ \t]+/g,
+        ' '
+      )
+      .trim()
+
+
+  /*
+    Remove obvious OCR garbage at the
+    beginning/end of a line.
+  */
+
+  value =
+    value.replace(
+      /^[|¦~`]+/,
+      ''
+    )
+
+
+  value =
+    value.replace(
+      /[|¦~`]+$/,
+      ''
+    )
+
+
+  /*
+    Common OCR character corrections.
+  */
+
+  value =
+    value
+
+      /*
+        Mathematical minus.
+      */
+
+      .replace(
+        /−/g,
+        '-'
+      )
+
+      /*
+        Multiplication.
+      */
+
+      .replace(
+        /×/g,
+        '×'
+      )
+
+      /*
+        Smart quotes.
+      */
+
+      .replace(
+        /[“”]/g,
+        '"'
+      )
+
+      .replace(
+        /[‘’]/g,
+        "'"
+      )
+
+
+  /*
+    OCR frequently reads superscript 2
+    as * or a plain character.
+
+    Only apply these inside obvious
+    mathematical contexts.
+  */
+
+  value =
+    value.replace(
+      /([A-Za-z0-9)])\s*\*\s*(?=[,.;:\s]|$)/g,
+      '$1²'
+    )
+
+
+  /*
+    Common OCR spelling of rho.
+  */
+
+  value =
+    value.replace(
+      /\brho\b/gi,
+      'ρ'
+    )
+
+
+  /*
+    OCR sometimes reads Greek mu as:
+      u
+      m
+      v
+
+    Do NOT globally replace those.
+    We only handle explicit "mu".
+  */
+
+  value =
+    value.replace(
+      /\bmu\b/gi,
+      'μ'
+    )
+
+
+  /*
+    Common OCR reading of degree symbol.
+  */
+
+  value =
+    value.replace(
+      /\bdeg\b/gi,
+      '°'
+    )
+
+
+  return value
+
+}
+
+
+/* =========================================================
+   NORMALIZE MATHEMATICAL OCR
+========================================================= */
+
+function normalizeOCRMath(text) {
+
+  if (!text) {
+    return ''
+  }
+
+
+  let value =
+    cleanOCRLine(text)
+
+
+  /*
+    ---------------------------------------------------------
+    GREEK LETTERS
+    ---------------------------------------------------------
+  */
+
+  const greekReplacements = {
+
+    alpha: 'α',
+    beta: 'β',
+    gamma: 'γ',
+    delta: 'δ',
+    epsilon: 'ε',
+    theta: 'θ',
+    lambda: 'λ',
+    mu: 'μ',
+    rho: 'ρ',
+    sigma: 'σ',
+    omega: 'ω',
+    pi: 'π',
+    phi: 'φ',
+    psi: 'ψ',
+
+    Alpha: 'Α',
+    Beta: 'Β',
+    Gamma: 'Γ',
+    Delta: 'Δ',
+    Theta: 'Θ',
+    Lambda: 'Λ',
+    Sigma: 'Σ',
+    Omega: 'Ω',
+    Pi: 'Π',
+    Phi: 'Φ',
+    Psi: 'Ψ'
 
   }
 
 
-  /* =========================================================
-     OCR
-  ========================================================= */
-
-  async function processImageOCR(
-    fileToRead
+  for (
+    const [word, symbol]
+    of Object.entries(
+      greekReplacements
+    )
   ) {
 
-    const file =
-      fileToRead ||
-      imageFile
-
-
-    if (!file) {
-
-      alert(
-        'Please select, paste or drag an image first.'
+    value =
+      value.replace(
+        new RegExp(
+          `\\b${word}\\b`,
+          'g'
+        ),
+        symbol
       )
 
-      return
+  }
+
+
+  /*
+    ---------------------------------------------------------
+    FRACTION-LIKE OCR
+    ---------------------------------------------------------
+  */
+
+  value =
+    value.replace(
+      /(\d+)\s*[\/|]\s*(\d+)/g,
+      '$1/$2'
+    )
+
+
+  /*
+    ---------------------------------------------------------
+    POWER OCR
+    ---------------------------------------------------------
+  */
+
+  /*
+    Examples:
+
+      mv2
+      x2
+      s2
+      mc2
+
+    become:
+
+      mv²
+      x²
+      s²
+      mc²
+  */
+
+  value =
+    value.replace(
+      /\b([A-Za-z]+)([23456789])\b/g,
+      (_, base, power) => {
+
+        const superscripts = {
+
+          '2': '²',
+          '3': '³',
+          '4': '⁴',
+          '5': '⁵',
+          '6': '⁶',
+          '7': '⁷',
+          '8': '⁸',
+          '9': '⁹'
+
+        }
+
+
+        return (
+          base +
+          superscripts[power]
+        )
+
+      }
+    )
+
+
+  /*
+    ---------------------------------------------------------
+    UNIT POWERS
+    ---------------------------------------------------------
+  */
+
+  value =
+    value.replace(
+      /\bm\/s\s*2\b/gi,
+      'm/s²'
+    )
+
+
+  value =
+    value.replace(
+      /\bm\/s2\b/gi,
+      'm/s²'
+    )
+
+
+  value =
+    value.replace(
+      /\bcm\/s\s*2\b/gi,
+      'cm/s²'
+    )
+
+
+  /*
+    ---------------------------------------------------------
+    COMMON EQUATION OCR CORRECTIONS
+    ---------------------------------------------------------
+
+    These are deliberately limited to patterns
+    that are very common in school Physics.
+  */
+
+
+  /*
+    a = (v-u)/t
+  */
+
+  value =
+    value.replace(
+      /\ba\s*=\s*\(?v\s*[-–]\s*u\)?\s*[\/|]\s*t\b/gi,
+      'a = (v-u)/t'
+    )
+
+
+  /*
+    v = d/t
+  */
+
+  value =
+    value.replace(
+      /\bv\s*=\s*d\s*[\/|]\s*t\b/gi,
+      'v = d/t'
+    )
+
+
+  /*
+    F = ma
+  */
+
+  value =
+    value.replace(
+      /\bF\s*=\s*m\s*a\b/gi,
+      'F = ma'
+    )
+
+
+  /*
+    E = mc2
+  */
+
+  value =
+    value.replace(
+      /\bE\s*=\s*m\s*c\s*(?:2|²)\b/g,
+      'E = mc²'
+    )
+
+
+  /*
+    V = IR
+  */
+
+  value =
+    value.replace(
+      /\bV\s*=\s*I\s*R\b/g,
+      'V = IR'
+    )
+
+
+  /*
+    KE = 1/2 mv2
+
+    OCR may produce:
+
+      ke = 1/2 mv2
+      ke = 1/2 my
+      ke = 1/2 mv?
+      KE = 1/2 mv
+
+    We normalize the obvious forms.
+  */
+
+  value =
+    value.replace(
+      /\bke\s*=\s*1\s*[\/|]\s*2\s*m\s*v(?:\s*[²2?])?\b/gi,
+      'KE = 1/2 mv²'
+    )
+
+
+  /*
+    OCR can confuse:
+      mv²
+    with:
+      my?
+      mv?
+      mv
+  */
+
+  value =
+    value.replace(
+      /\b(KE\s*=\s*1\s*[\/|]\s*2\s*m)\s*y\??\b/gi,
+      '$1 v²'
+    )
+
+
+  value =
+    value.replace(
+      /\b(KE\s*=\s*1\s*[\/|]\s*2\s*m\s*v)\??\b/gi,
+      '$1²'
+    )
+
+
+  /*
+    ρ = m/V
+
+    OCR can produce:
+      rho = m/v
+      p = m/v
+      ρ = m/v
+  */
+
+  value =
+    value.replace(
+      /\b(?:rho|p|ρ)\s*=\s*m\s*[\/|]\s*v\b/gi,
+      'ρ = m/V'
+    )
+
+
+  /*
+    g = 9.8 m/s²
+  */
+
+  value =
+    value.replace(
+      /\bg\s*=\s*9[\.,]?\s*8\s*m\s*[\/|]\s*s\s*(?:²|2|\*)?\b/gi,
+      'g = 9.8 m/s²'
+    )
+
+
+  /*
+    f = 1/T
+  */
+
+  value =
+    value.replace(
+      /\bf\s*=\s*1\s*[\/|]\s*T\b/gi,
+      'f = 1/T'
+    )
+
+
+  /*
+    ---------------------------------------------------------
+    CHEMISTRY FORMULAS
+    ---------------------------------------------------------
+  */
+
+  /*
+    H2O
+    CO2
+    NH3
+    H2SO4
+    CaCO3
+    etc.
+  */
+
+  value =
+    value.replace(
+      /\b([A-Z][a-z]?)(\d+)([A-Z][a-z]?\d*)*\b/g,
+      match => {
+
+        return match
+
+      }
+    )
+
+
+  /*
+    Chemical arrows.
+  */
+
+  value =
+    value.replace(
+      /-{1,2}>/g,
+      '→'
+    )
+
+
+  value =
+    value.replace(
+      /<[-=]+>/g,
+      '⇌'
+    )
+
+
+  /*
+    ---------------------------------------------------------
+    CLEAN SPACING AROUND EQUATIONS
+    ---------------------------------------------------------
+  */
+
+  value =
+    value.replace(
+      /\s*=\s*/g,
+      ' = '
+    )
+
+
+  value =
+    value.replace(
+      /\s*\/\s*/g,
+      '/'
+    )
+
+
+  value =
+    value.replace(
+      /\s+/g,
+      ' '
+    )
+
+
+  return value.trim()
+
+}
+
+
+/* =========================================================
+   DETECT OPTION LABEL
+========================================================= */
+
+function detectOptionLabel(line) {
+
+  if (!line) {
+    return null
+  }
+
+
+  const clean =
+    line.trim()
+
+
+  /*
+    Handles:
+
+      A.
+      A)
+      A:
+      A -
+      (A)
+      A
+  */
+
+  const match =
+    clean.match(
+      /^\(?\s*([ABCD])\s*\)?\s*[\.\):\-]?\s*(.*)$/i
+    )
+
+
+  if (!match) {
+    return null
+  }
+
+
+  return {
+
+    label:
+      match[1].toUpperCase(),
+
+    content:
+      match[2].trim()
+
+  }
+
+}
+
+
+/* =========================================================
+   PARSE OCR INTO QUESTION + OPTIONS
+========================================================= */
+
+function parseMCQ(text) {
+
+  const result = {
+
+    question: '',
+
+    optionA: '',
+    optionB: '',
+    optionC: '',
+    optionD: '',
+
+    explanation: ''
+
+  }
+
+
+  if (!text) {
+    return result
+  }
+
+
+  /*
+    Normalize lines.
+  */
+
+  const rawLines =
+    text
+      .replace(
+        /\r\n/g,
+        '\n'
+      )
+      .replace(
+        /\r/g,
+        '\n'
+      )
+      .split('\n')
+
+
+  const lines = []
+
+
+  for (
+    const rawLine
+    of rawLines
+  ) {
+
+    const line =
+      normalizeOCRMath(
+        rawLine
+      )
+
+
+    if (!line) {
+      continue
+    }
+
+
+    lines.push(line)
+
+  }
+
+
+  let currentSection =
+    'question'
+
+
+  /*
+    Temporary storage.
+
+    This lets us correctly handle
+    multi-line options.
+  */
+
+  const sections = {
+
+    question: [],
+    A: [],
+    B: [],
+    C: [],
+    D: [],
+    explanation: []
+
+  }
+
+
+  for (
+    let i = 0;
+    i < lines.length;
+    i++
+  ) {
+
+    const line =
+      lines[i]
+
+
+    /*
+      Explanation.
+    */
+
+    if (
+      /^(explanation|solution|working|answer explanation)\s*:?\s*$/i
+        .test(line)
+    ) {
+
+      currentSection =
+        'explanation'
+
+      continue
 
     }
 
 
-    setOcrLoading(true)
+    /*
+      Option label.
+    */
 
-    setOcrProgress(0)
+    const option =
+      detectOptionLabel(
+        line
+      )
 
 
-    try {
+    if (option) {
 
-      const result =
-        await Tesseract.recognize(
+      currentSection =
+        option.label
 
-          file,
 
-          'eng',
+      if (
+        option.content
+      ) {
 
-          {
+        sections[
+          option.label
+        ].push(
+          option.content
+        )
 
-            logger:
-              message => {
+      }
 
-                if (
-                  message.status ===
-                  'recognizing text'
-                ) {
 
-                  setOcrProgress(
-                    Math.round(
-                      message.progress *
-                      100
-                    )
-                  )
+      continue
 
-                }
+    }
 
-              }
+
+    /*
+      Some OCR output can be:
+
+        A
+        a = ...
+
+      where the label and content are
+      on separate lines.
+
+      Detect a line containing only A-D.
+    */
+
+    if (
+      /^[ABCD]$/i.test(
+        line
+      )
+    ) {
+
+      currentSection =
+        line.toUpperCase()
+
+      continue
+
+    }
+
+
+    /*
+      Add line to current section.
+    */
+
+    sections[
+      currentSection
+    ].push(line)
+
+  }
+
+
+  /*
+    Join multi-line sections.
+  */
+
+  result.question =
+    sections.question
+      .join(' ')
+      .trim()
+
+
+  result.optionA =
+    sections.A
+      .join(' ')
+      .trim()
+
+
+  result.optionB =
+    sections.B
+      .join(' ')
+      .trim()
+
+
+  result.optionC =
+    sections.C
+      .join(' ')
+      .trim()
+
+
+  result.optionD =
+    sections.D
+      .join(' ')
+      .trim()
+
+
+  result.explanation =
+    sections.explanation
+      .join(' ')
+      .trim()
+
+
+  /*
+    ---------------------------------------------------------
+    QUESTION CLEANUP
+    ---------------------------------------------------------
+  */
+
+  /*
+    Remove leading question number:
+
+      1.
+      1)
+      Q1.
+      Q.
+  */
+
+  result.question =
+    result.question
+      .replace(
+        /^\s*(?:Q(?:uestion)?\s*)?\d+\s*[\.\):\-]\s*/i,
+        ''
+      )
+      .trim()
+
+
+  /*
+    OCR sometimes puts an isolated "Q"
+    before the question.
+  */
+
+  result.question =
+    result.question
+      .replace(
+        /^\s*Q\s+/i,
+        ''
+      )
+      .trim()
+
+
+  /*
+    ---------------------------------------------------------
+    OPTION CLEANUP
+    ---------------------------------------------------------
+  */
+
+  const cleanOption =
+    value => {
+
+      return value
+
+        .replace(
+          /^\s*[\.\):\-]+\s*/,
+          ''
+        )
+
+        .replace(
+          /^\s*[|¦]+\s*/,
+          ''
+        )
+
+        .trim()
+
+    }
+
+
+  result.optionA =
+    cleanOption(
+      result.optionA
+    )
+
+
+  result.optionB =
+    cleanOption(
+      result.optionB
+    )
+
+
+  result.optionC =
+    cleanOption(
+      result.optionC
+    )
+
+
+  result.optionD =
+    cleanOption(
+      result.optionD
+    )
+
+
+  return result
+
+}
+
+
+/* =========================================================
+   OCR USING TESSERACT
+========================================================= */
+
+async function runImprovedOCR(
+  imageBlob
+) {
+
+  /*
+    Create a dedicated worker.
+
+    PSM 11 = sparse text.
+
+    This is better for screenshots where
+    text and equations are separated by
+    white space.
+  */
+
+  const worker =
+    await Tesseract.createWorker(
+      'eng',
+      1,
+      {
+
+        logger:
+          message => {
+
+            if (
+              message.status ===
+              'recognizing text'
+            ) {
+
+              setOcrProgress(
+                Math.round(
+                  message.progress *
+                  100
+                )
+              )
+
+            }
 
           }
 
-        )
+      }
+    )
 
 
-      let text =
-        result.data.text || ''
+  try {
+
+    await worker.setParameters({
+
+      tessedit_pageseg_mode:
+        '11',
+
+      preserve_interword_spaces:
+        '1'
+
+    })
 
 
-      /*
-        Common OCR corrections.
-      */
-
-      text =
-        text
-
-          .replace(
-            /©/g,
-            'A.'
-          )
-
-          .replace(
-            /®/g,
-            'B.'
-          )
-
-          .replace(
-            /0\s*63%/g,
-            '0.63%'
-          )
-
-          .replace(
-            /0\s*82%/g,
-            '0.82%'
-          )
-
-          .replace(
-            /0\s*72%/g,
-            '0.72%'
-          )
-
-          .replace(
-            /0\s*25%/g,
-            '0.25%'
-          )
-
-          .replace(
-            /[ \t]+$/gm,
-            ''
-          )
-
-          .trim()
-
-
-      const parsed =
-        parseMCQ(text)
-
-
-      setQuestion(
-        parsed.question
-      )
-
-      setOptionA(
-        parsed.optionA
-      )
-
-      setOptionB(
-        parsed.optionB
-      )
-
-      setOptionC(
-        parsed.optionC
-      )
-
-      setOptionD(
-        parsed.optionD
-      )
-
-      setExplanation(
-        parsed.explanation
+    const result =
+      await worker.recognize(
+        imageBlob
       )
 
 
-      setActiveField(
-        'question'
-      )
+    return (
+      result?.data?.text ||
+      ''
+    )
+
+  } finally {
+
+    await worker.terminate()
+
+  }
+
+}
 
 
-    } catch (error) {
+/* =========================================================
+   IMAGE HANDLING
+========================================================= */
 
-      console.error(
-        error
-      )
+async function processImageOCR(
+  fileToRead
+) {
 
-      alert(
-        'OCR failed. Please try a clearer image.'
-      )
-
-    } finally {
-
-      setOcrProgress(100)
+  const file =
+    fileToRead ||
+    imageFile
 
 
-      setTimeout(() => {
+  if (!file) {
 
-        setOcrLoading(false)
+    alert(
+      'Please select, paste or drag an image first.'
+    )
 
-        setOcrProgress(0)
-
-      }, 500)
-
-    }
+    return
 
   }
 
 
-  /* =========================================================
-     IMAGE HANDLING
-  ========================================================= */
+  setOcrLoading(true)
 
-  function handleImageFile(
-    file
-  ) {
-
-    if (!file) return
+  setOcrProgress(0)
 
 
-    if (
-      !file.type.startsWith(
-        'image/'
-      )
-    ) {
+  try {
 
-      alert(
-        'Please select an image file.'
-      )
+    /*
+      -------------------------------------------------------
+      STEP 1
+      -------------------------------------------------------
 
-      return
+      Enlarge and improve the image.
+    */
 
-    }
-
-
-    if (imagePreview) {
-
-      URL.revokeObjectURL(
-        imagePreview
-      )
-
-    }
-
-
-    const url =
-      URL.createObjectURL(
+    const processedImage =
+      await preprocessOCRImage(
         file
       )
 
 
-    setImageFile(file)
+    /*
+      -------------------------------------------------------
+      STEP 2
+      -------------------------------------------------------
 
-    setImagePreview(url)
+      OCR the processed image.
+    */
+
+    const rawText =
+      await runImprovedOCR(
+        processedImage
+      )
+
+
+    console.log(
+      'RAW OCR RESULT:',
+      rawText
+    )
+
+
+    /*
+      -------------------------------------------------------
+      STEP 3
+      -------------------------------------------------------
+
+      Parse into Question / A / B / C / D.
+    */
+
+    const parsed =
+      parseMCQ(
+        rawText
+      )
+
+
+    console.log(
+      'PARSED OCR RESULT:',
+      parsed
+    )
+
+
+    /*
+      -------------------------------------------------------
+      STEP 4
+      -------------------------------------------------------
+
+      Put cleaned OCR into the editor.
+    */
+
+    setQuestion(
+      parsed.question
+    )
+
+
+    setOptionA(
+      parsed.optionA
+    )
+
+
+    setOptionB(
+      parsed.optionB
+    )
+
+
+    setOptionC(
+      parsed.optionC
+    )
+
+
+    setOptionD(
+      parsed.optionD
+    )
+
+
+    setExplanation(
+      parsed.explanation
+    )
+
+
+    /*
+      Start editing from Question.
+    */
+
+    setActiveField(
+      'question'
+    )
+
+
+  } catch (error) {
+
+    console.error(
+      'OCR ERROR:',
+      error
+    )
+
+
+    alert(
+      'OCR failed. Please try a clearer image.'
+    )
+
+
+  } finally {
+
+    setOcrProgress(100)
 
 
     setTimeout(() => {
 
-      processImageOCR(file)
+      setOcrLoading(false)
 
-    }, 100)
+      setOcrProgress(0)
+
+    }, 500)
 
   }
 
+}
 
-  function handleDrag(
-    event
+
+/* =========================================================
+   IMAGE FILE HANDLING
+========================================================= */
+
+function handleImageFile(
+  file
+) {
+
+  if (!file) {
+    return
+  }
+
+
+  if (
+    !file.type.startsWith(
+      'image/'
+    )
   ) {
 
-    event.preventDefault()
+    alert(
+      'Please select an image file.'
+    )
 
-    event.stopPropagation()
-
-  }
-
-
-  function handleDragEnter(
-    event
-  ) {
-
-    event.preventDefault()
-
-    event.stopPropagation()
-
-    setDragActive(true)
+    return
 
   }
 
 
-  function handleDragLeave(
-    event
-  ) {
+  if (imagePreview) {
 
-    event.preventDefault()
-
-    event.stopPropagation()
-
-    setDragActive(false)
+    URL.revokeObjectURL(
+      imagePreview
+    )
 
   }
 
 
-  function handleDrop(
-    event
-  ) {
-
-    event.preventDefault()
-
-    event.stopPropagation()
-
-    setDragActive(false)
+  const url =
+    URL.createObjectURL(
+      file
+    )
 
 
-    const file =
-      event.dataTransfer
-        .files?.[0]
+  setImageFile(
+    file
+  )
 
 
-    if (file) {
+  setImagePreview(
+    url
+  )
 
-      handleImageFile(file)
 
-    }
+  /*
+    Do NOT automatically run OCR here.
+
+    The user can inspect the screenshot
+    and click "Extract Question from Image".
+  */
+
+}
+
+
+/* =========================================================
+   DRAG HANDLERS
+========================================================= */
+
+function handleDrag(
+  event
+) {
+
+  event.preventDefault()
+
+  event.stopPropagation()
+
+}
+
+
+function handleDragEnter(
+  event
+) {
+
+  event.preventDefault()
+
+  event.stopPropagation()
+
+  setDragActive(
+    true
+  )
+
+}
+
+
+function handleDragLeave(
+  event
+) {
+
+  event.preventDefault()
+
+  event.stopPropagation()
+
+  setDragActive(
+    false
+  )
+
+}
+
+
+function handleDrop(
+  event
+) {
+
+  event.preventDefault()
+
+  event.stopPropagation()
+
+  setDragActive(
+    false
+  )
+
+
+  const file =
+    event.dataTransfer
+      .files?.[0]
+
+
+  if (file) {
+
+    handleImageFile(
+      file
+    )
 
   }
 
+}
 
   /* =========================================================
      EXCEL CONVERSION
