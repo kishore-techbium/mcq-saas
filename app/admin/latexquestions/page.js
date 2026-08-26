@@ -643,59 +643,84 @@ export default function QuestionStudioPage() {
 
   function convertEquations(text) {
 
-    const pattern =
-      /(?<![A-Za-z0-9])([A-Za-zρλθπΔμσΩ][A-Za-z0-9ρλθπΔμσΩ_{}^().+\-*/\s]*?(?:=|≈|≠|≤|≥)[A-Za-z0-9ρλθπΔμσΩ_{}^().+\-*/\s]+)(?=[,.;:\n]|$)/g
+  /*
+    IMPORTANT:
+    Do not let an equation consume the rest of
+    an English sentence.
+
+    Example:
+
+      KE = 1/2 mv^2 is defined as ...
+
+    must become:
+
+      $KE = \frac{1}{2}mv^2$ is defined as ...
+  */
 
 
-    return text.replace(
-      pattern,
-      match => {
-
-        const clean =
-          match.trim()
+  const equationPattern =
+    /(?<![A-Za-z0-9])([A-Za-z][A-Za-z0-9_]*\s*(?:=|≈|≠|≤|≥)\s*[^,.;:\n]+?)(?=\s+(?:is|are|was|were|means|represents|denotes|defined|given|called|where|when|if|and|or|which|that|in|of|for)\b|[,.;:\n]|$)/gi
 
 
-        if (
-          clean.length > 100
-        ) {
+  return text.replace(
+    equationPattern,
+    match => {
 
-          return match
-
-        }
-
-
-        if (
-          !/[=≈≠≤≥]/.test(clean)
-        ) {
-
-          return match
-
-        }
+      let clean =
+        match.trim()
 
 
-        /*
-          Don't turn normal English
-          sentences into equations.
-        */
+      /*
+        Safety check.
+      */
 
-        if (
-          /\b(is|are|was|were|means|equals)\b/i
-            .test(clean) &&
-          !/[A-Za-z]\s*=\s*/.test(clean)
-        ) {
+      if (
+        clean.length > 100
+      ) {
 
-          return match
-
-        }
-
-
-        return `$${convertMathFragment(clean)}$`
+        return match
 
       }
-    )
 
-  }
 
+      /*
+        Must actually contain an equation
+        operator.
+      */
+
+      if (
+        !/[=≈≠≤≥]/.test(clean)
+      ) {
+
+        return match
+
+      }
+
+
+      /*
+        Remove accidental trailing spaces.
+      */
+
+      clean =
+        clean.trim()
+
+
+      /*
+        Convert the mathematical part only.
+      */
+
+      const converted =
+        convertMathFragment(
+          clean
+        )
+
+
+      return `$${converted}$`
+
+    }
+  )
+
+}
 
   /* =========================================================
      SIMPLE MATH
@@ -2395,7 +2420,7 @@ export default function QuestionStudioPage() {
         CREATE DOCX
       */
 
-      const document =
+      const doc =
         new Document({
 
           creator:
@@ -2428,7 +2453,7 @@ export default function QuestionStudioPage() {
 
       const blob =
         await Packer.toBlob(
-          document
+          doc
         )
 
 
